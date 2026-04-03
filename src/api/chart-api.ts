@@ -284,6 +284,27 @@ class ChartApi implements IChartApi {
     const idx = this._series.findIndex((e) => e.api === series);
     if (idx !== -1) {
       this._series.splice(idx, 1);
+
+      // If we removed the primary (first) series the crosshair handler holds a
+      // reference to its DataLayer. Reset it so the handler is recreated with
+      // the correct DataLayer the next time a series is added, or replaced with
+      // one pointing at the new primary series if any remain.
+      if (idx === 0 && this._crosshairHandler !== null) {
+        this._eventRouter.removeHandler(this._crosshairHandler);
+        this._crosshairHandler = null;
+
+        if (this._series.length > 0) {
+          this._crosshairHandler = new CrosshairHandler(
+            this._crosshair,
+            this._series[0].api.getDataLayer(),
+            this._timeScale,
+            this._priceScale,
+            () => this.requestRepaint(InvalidationLevel.Cursor),
+          );
+          this._eventRouter.addHandler(this._crosshairHandler);
+        }
+      }
+
       this.requestRepaint(InvalidationLevel.Full);
     }
   }

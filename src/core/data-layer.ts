@@ -49,6 +49,12 @@ export class DataLayer {
       store.close[i] = bar.close;
       store.volume[i] = bar.volume ?? 0;
     } else {
+      // Guard: out-of-order bars would corrupt the binary search in findIndex()
+      if (store.length > 0 && bar.time < store.time[store.length - 1]) {
+        throw new Error(
+          `update(): bar.time (${bar.time}) must be >= last bar time (${store.time[store.length - 1]})`,
+        );
+      }
       // Append
       if (store.length >= store.capacity) {
         this.grow();

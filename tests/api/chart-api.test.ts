@@ -148,6 +148,52 @@ describe('createChart', () => {
     chart.removeSeries(series);
   });
 
+  it('crosshair handler uses new primary series DataLayer after original series is removed', () => {
+    // Regression: CrosshairHandler must not hold a stale DataLayer reference
+    // after the primary series is removed.
+    chart = createChart(container, { width: 600, height: 300 });
+
+    // Series A – becomes the primary; crosshair handler is created pointing to its DataLayer
+    const seriesA = chart.addCandlestickSeries();
+    seriesA.setData(makeBars(5, 1000)); // times 1000, 1060, ..., 1240
+
+    // Remove series A – handler must be reset
+    chart.removeSeries(seriesA);
+
+    // Series B – must become the new primary and the crosshair handler should
+    // reference its DataLayer (not the stale one from series A)
+    const seriesB = chart.addCandlestickSeries();
+    seriesB.setData(makeBars(3, 5000)); // times 5000, 5060, 5120
+
+    // Painting must not throw (would fail if handler uses freed DataLayer)
+    expect(() => flushRAF()).not.toThrow();
+
+    // The chart should correctly render series B's data
+    const bar = seriesB.dataByIndex(0);
+    expect(bar).not.toBeNull();
+    expect(bar!.time).toBe(5000);
+  });
+
+  it('crosshair handler is replaced with next series when primary is removed while others remain', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+
+    const seriesA = chart.addCandlestickSeries();
+    seriesA.setData(makeBars(5, 1000));
+
+    const seriesB = chart.addCandlestickSeries();
+    seriesB.setData(makeBars(3, 5000));
+
+    // Remove the primary series while series B still exists
+    chart.removeSeries(seriesA);
+
+    // Series B is now primary; painting must not throw
+    expect(() => flushRAF()).not.toThrow();
+
+    const bar = seriesB.dataByIndex(0);
+    expect(bar).not.toBeNull();
+    expect(bar!.time).toBe(5000);
+  });
+
   it('adds a line series with initial data', () => {
     chart = createChart(container);
     const bars = makeBars(5);
