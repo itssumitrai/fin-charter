@@ -6,7 +6,18 @@ export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/char
 export type { ISeriesApi } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
 
-export { DARK_THEME, LIGHT_THEME } from './api/options';
+export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
+
+// ─── Series markers ────────────────────────────────────────────────────
+export type {
+  MarkerShape,
+  MarkerPosition,
+  SeriesMarker,
+} from './core/series-markers';
+
+// ─── Price lines ───────────────────────────────────────────────────────
+export { PriceLine } from './core/price-line';
+export type { PriceLineOptions } from './core/price-line';
 
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
@@ -25,6 +36,11 @@ export type {
   PaneOptions,
   BaseSeriesOptions,
   SeriesOptionsMap,
+  TooltipOptions,
+  WatermarkOptions,
+  VolumeOverlayOptions,
+  PriceScaleOptions,
+  TimeGapsOptions,
 } from './api/options';
 
 // ─── Core types ─────────────────────────────────────────────────────────────

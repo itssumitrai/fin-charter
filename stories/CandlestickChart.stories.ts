@@ -4,7 +4,7 @@ import { generateOHLCV, createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
-  title: 'Charts/Candlestick',
+  title: 'Chart Types/Candlestick',
   parameters: {
     docs: {
       description: {

@@ -1,9 +1,14 @@
 import type { EventHandler } from './event-router';
 import type { TimeScale } from '../core/time-scale';
 
-/** TV uses 0.997 for kinetic damping. */
-const KINETIC_DAMPING = 0.997;
+/**
+ * Kinetic scrolling constants.
+ * TV uses 0.997 damping but measures velocity in bars/ms. We measure in px/frame (~16ms),
+ * so we use a more aggressive damping to prevent excessively long scroll-after-release.
+ */
+const KINETIC_DAMPING = 0.92;
 const KINETIC_MIN_VELOCITY = 0.5;
+const KINETIC_MAX_VELOCITY = 80; // px per frame cap
 /** Number of recent positions to track for velocity calculation. */
 const KINETIC_TRACK_COUNT = 4;
 
@@ -113,7 +118,7 @@ export class PanZoomHandler implements EventHandler {
   }
 
   private _startKinetic(initialVelocity: number): void {
-    let velocity = initialVelocity;
+    let velocity = Math.max(-KINETIC_MAX_VELOCITY, Math.min(KINETIC_MAX_VELOCITY, initialVelocity));
 
     const step = () => {
       velocity *= KINETIC_DAMPING;

@@ -11,6 +11,7 @@ import { PriceScale } from '../core/price-scale';
 import { Crosshair, type CrosshairState } from '../core/crosshair';
 import { InvalidateMask } from '../core/invalidation';
 import { DataLayer } from '../core/data-layer';
+import type { SeriesMarker } from '../core/series-markers';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
@@ -41,6 +42,7 @@ import {
   DEFAULT_CHART_OPTIONS,
   DARK_THEME,
   LIGHT_THEME,
+  COLORFUL_THEME,
   mergeOptions,
 } from './options';
 
@@ -55,6 +57,8 @@ export type CrosshairMoveCallback = (state: CrosshairState | null) => void;
 export type ClickCallback = (state: { x: number; y: number; time: number; price: number }) => void;
 
 // ─── IChartApi ──────────────────────────────────────────────────────────────
+
+export type VisibleRangeChangeCallback = (range: { from: number; to: number } | null) => void;
 
 export interface IChartApi {
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
@@ -77,6 +81,17 @@ export interface IChartApi {
   unsubscribeCrosshairMove(callback: CrosshairMoveCallback): void;
   subscribeClick(callback: ClickCallback): void;
   unsubscribeClick(callback: ClickCallback): void;
+  // ── Feature 1: Range Switcher ─────────────────────────────────────────────
+  /** Set the visible time range by Unix timestamps (seconds). Adjusts barSpacing and rightOffset. */
+  setVisibleRange(from: number, to: number): void;
+  /** Set the visible range by bar indices directly. */
+  setVisibleLogicalRange(from: number, to: number): void;
+  // ── Feature 2: Go to Realtime ─────────────────────────────────────────────
+  /** Reset the view so the latest bar is at the right edge. */
+  scrollToRealTime(): void;
+  // ── Feature 3: Infinite History Loading ──────────────────────────────────
+  subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
+  unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -118,15 +133,19 @@ class ChartApi implements IChartApi {
   private _chartCanvas: HTMLCanvasElement;
   private _overlayCanvas: HTMLCanvasElement;
   private _priceAxisCanvas: HTMLCanvasElement;
+  private _leftPriceAxisCanvas: HTMLCanvasElement;
   private _timeAxisCanvas: HTMLCanvasElement;
   private _chartCtx: CanvasRenderingContext2D;
   private _overlayCtx: CanvasRenderingContext2D;
   private _priceAxisCtx: CanvasRenderingContext2D;
+  private _leftPriceAxisCtx: CanvasRenderingContext2D;
   private _timeAxisCtx: CanvasRenderingContext2D;
   private _legendEl: HTMLDivElement;
+  private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
   private _priceScale: PriceScale;
+  private _leftPriceScale: PriceScale;
   private _crosshair: Crosshair;
   private _mask: InvalidateMask;
 
@@ -143,15 +162,49 @@ class ChartApi implements IChartApi {
 
   private _crosshairMoveCallbacks: CrosshairMoveCallback[] = [];
   private _clickCallbacks: ClickCallback[] = [];
+  private _visibleRangeChangeCallbacks: VisibleRangeChangeCallback[] = [];
+  private _lastVisibleRangeFrom: number | null = null;
+  private _lastVisibleRangeTo: number | null = null;
 
   private _width: number;
   private _height: number;
+
+  // ── Tooltip/Legend caching ──────────────────────────────────────────────
+  private _lastTooltipBarIdx: number = -1;
+  private _lastLegendBarIdx: number = -1;
+  private _tooltipWidth: number = 140;
+  private _tooltipHeight: number = 80;
+  private _volumeFormatter = new Intl.NumberFormat();
+
+  // Pre-created tooltip child elements
+  private _tooltipDateEl!: HTMLDivElement;
+  private _tooltipOHEl!: HTMLDivElement;
+  private _tooltipLCEl!: HTMLDivElement;
+  private _tooltipVEl!: HTMLDivElement;
+
+  // Pre-created legend child elements
+  private _legendOLabelEl!: HTMLSpanElement;
+  private _legendOValEl!: HTMLSpanElement;
+  private _legendHLabelEl!: HTMLSpanElement;
+  private _legendHValEl!: HTMLSpanElement;
+  private _legendLLabelEl!: HTMLSpanElement;
+  private _legendLValEl!: HTMLSpanElement;
+  private _legendCLabelEl!: HTMLSpanElement;
+  private _legendCValEl!: HTMLSpanElement;
+  private _legendVLabelEl!: HTMLSpanElement;
+  private _legendVValEl!: HTMLSpanElement;
 
   // The "primary" pane id for the mask
   private readonly _mainPaneId = 'main';
 
   // Track next pane id
   private _nextPaneId = 0;
+
+  private get _chartWidth(): number {
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    return this._width - leftScaleW - rightScaleW;
+  }
 
   constructor(container: HTMLElement, options: ChartOptions) {
     this._options = options;
@@ -187,6 +240,13 @@ class ChartApi implements IChartApi {
     this._priceAxisCanvas.style.top = '0';
     this._priceAxisCanvas.style.zIndex = '1';
 
+    // Left price axis canvas — top-left (visible only when leftPriceScale.visible)
+    this._leftPriceAxisCanvas = document.createElement('canvas');
+    this._leftPriceAxisCanvas.style.position = 'absolute';
+    this._leftPriceAxisCanvas.style.top = '0';
+    this._leftPriceAxisCanvas.style.left = '0';
+    this._leftPriceAxisCanvas.style.zIndex = '1';
+
     // Time axis canvas — bottom-left
     this._timeAxisCanvas = document.createElement('canvas');
     this._timeAxisCanvas.style.position = 'absolute';
@@ -196,12 +256,55 @@ class ChartApi implements IChartApi {
     this._wrapper.appendChild(this._chartCanvas);
     this._wrapper.appendChild(this._overlayCanvas);
     this._wrapper.appendChild(this._priceAxisCanvas);
+    this._wrapper.appendChild(this._leftPriceAxisCanvas);
     this._wrapper.appendChild(this._timeAxisCanvas);
 
     // Legend overlay (DOM-based)
     this._legendEl = document.createElement('div');
-    this._legendEl.style.cssText = 'position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;gap:8px;pointer-events:none;color:' + options.layout.textColor;
+    this._legendEl.style.cssText = `position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:${options.layout.fontFamily};display:flex;gap:8px;pointer-events:none;color:${options.layout.textColor}`;
     this._wrapper.appendChild(this._legendEl);
+
+    // Tooltip overlay (DOM-based)
+    this._tooltipEl = document.createElement('div');
+    this._tooltipEl.style.cssText =
+      `position:absolute;z-index:20;pointer-events:none;display:none;` +
+      `background:rgba(0,0,0,0.78);color:${options.layout.textColor};border-radius:4px;padding:6px 10px;` +
+      `font-size:${options.layout.fontSize}px;font-family:${options.layout.fontFamily};` +
+      `line-height:1.5;white-space:nowrap;`;
+    // Pre-create tooltip child elements
+    this._tooltipDateEl = document.createElement('div');
+    this._tooltipDateEl.style.marginBottom = '2px';
+    this._tooltipDateEl.style.color = '#999';
+    this._tooltipOHEl = document.createElement('div');
+    this._tooltipLCEl = document.createElement('div');
+    this._tooltipVEl = document.createElement('div');
+    this._tooltipEl.appendChild(this._tooltipDateEl);
+    this._tooltipEl.appendChild(this._tooltipOHEl);
+    this._tooltipEl.appendChild(this._tooltipLCEl);
+    this._tooltipEl.appendChild(this._tooltipVEl);
+
+    this._wrapper.appendChild(this._tooltipEl);
+
+    // Pre-create legend child elements
+    const createLegendPair = (): [HTMLSpanElement, HTMLSpanElement] => {
+      const label = document.createElement('span');
+      const val = document.createElement('span');
+      return [label, val];
+    };
+    [this._legendOLabelEl, this._legendOValEl] = createLegendPair();
+    [this._legendHLabelEl, this._legendHValEl] = createLegendPair();
+    [this._legendLLabelEl, this._legendLValEl] = createLegendPair();
+    [this._legendCLabelEl, this._legendCValEl] = createLegendPair();
+    [this._legendVLabelEl, this._legendVValEl] = createLegendPair();
+    for (const el of [
+      this._legendOLabelEl, this._legendOValEl,
+      this._legendHLabelEl, this._legendHValEl,
+      this._legendLLabelEl, this._legendLValEl,
+      this._legendCLabelEl, this._legendCValEl,
+      this._legendVLabelEl, this._legendVValEl,
+    ]) {
+      this._legendEl.appendChild(el);
+    }
 
     container.appendChild(this._wrapper);
 
@@ -211,14 +314,20 @@ class ChartApi implements IChartApi {
     this._chartCtx = this._chartCanvas.getContext('2d')!;
     this._overlayCtx = this._overlayCanvas.getContext('2d')!;
     this._priceAxisCtx = this._priceAxisCanvas.getContext('2d')!;
+    this._leftPriceAxisCtx = this._leftPriceAxisCanvas.getContext('2d')!;
     this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
-    this._timeScale.setWidth(this._width - PRICE_AXIS_WIDTH);
+    const leftScaleW = options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleW = options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(this._width - leftScaleW - rightScaleW);
 
     this._priceScale = new PriceScale('right');
     this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
+
+    this._leftPriceScale = new PriceScale('left');
+    this._leftPriceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
 
     this._crosshair = new Crosshair();
 
@@ -248,6 +357,15 @@ class ChartApi implements IChartApi {
       });
       this._resizeObserver.observe(container);
     }
+  }
+
+  // ── Price formatter ─────────────────────────────────────────────────────
+
+  private _formatPrice(price: number): string {
+    if (this._options.priceFormatter) {
+      return this._options.priceFormatter(price);
+    }
+    return price.toFixed(2);
   }
 
   // ── Series management ───────────────────────────────────────────────────
@@ -354,7 +472,9 @@ class ChartApi implements IChartApi {
       this._timeScale.setOptions(this._options.timeScale);
     }
 
-    if (options.width !== undefined || options.height !== undefined) {
+    // Re-layout canvases if scale visibility changed
+    if (options.leftPriceScale !== undefined || options.rightPriceScale !== undefined ||
+        options.width !== undefined || options.height !== undefined) {
       this.resize(this._options.width, this._options.height);
     } else {
       this.requestRepaint(InvalidationLevel.Full);
@@ -377,8 +497,11 @@ class ChartApi implements IChartApi {
     this._wrapper.style.width = `${width}px`;
     this._wrapper.style.height = `${height}px`;
 
-    this._timeScale.setWidth(width - PRICE_AXIS_WIDTH);
+    const leftScaleWidthR = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleWidthR = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(width - leftScaleWidthR - rightScaleWidthR);
     this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
+    this._leftPriceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
     this._options.width = width;
     this._options.height = height;
@@ -399,6 +522,10 @@ class ChartApi implements IChartApi {
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
     this._overlayCanvas.removeEventListener('click', this._handleClick);
+
+    this._visibleRangeChangeCallbacks.length = 0;
+    this._crosshairMoveCallbacks.length = 0;
+    this._clickCallbacks.length = 0;
 
     this._wrapper.remove();
   }
@@ -423,6 +550,66 @@ class ChartApi implements IChartApi {
     if (idx !== -1) this._clickCallbacks.splice(idx, 1);
   }
 
+  // ── Feature 1: Range Switcher ─────────────────────────────────────────
+
+  setVisibleRange(from: number, to: number): void {
+    if (this._series.length === 0) return;
+    const dl = this._series[0].api.getDataLayer();
+    if (dl.store.length === 0) return;
+
+    // Find bar indices corresponding to the timestamps using binary search
+    const fromIdx = dl.findIndex(from);
+    const toIdx = dl.findIndex(to);
+    this.setVisibleLogicalRange(fromIdx, toIdx);
+  }
+
+  setVisibleLogicalRange(from: number, to: number): void {
+    // Sync dataLength from primary series in case this is called before first paint
+    if (this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      this._timeScale.setDataLength(store.length);
+    }
+
+    const barsToShow = to - from + 1;
+    if (barsToShow <= 0) return;
+
+    const chartW = this._chartWidth;
+    if (chartW <= 0) return;
+
+    // Set barSpacing so exactly barsToShow bars fit in the chart width.
+    // setOptions() internally clamps to [minBarSpacing, maxBarSpacing].
+    const newBarSpacing = chartW / barsToShow;
+    this._timeScale.setOptions({ barSpacing: newBarSpacing });
+
+    // Compute rightOffset so that `to` sits at the right edge.
+    // rightBorder = baseIndex + rightOffset = to  →  rightOffset = to - baseIndex
+    const baseIndex = this._timeScale.dataLength > 0
+      ? this._timeScale.dataLength - 1
+      : 0;
+    const newRightOffset = to - baseIndex;
+
+    this._timeScale.setRightOffset(newRightOffset);
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 2: Go to Realtime ─────────────────────────────────────────
+
+  scrollToRealTime(): void {
+    this._timeScale.scrollToEnd();
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 3: Visible Range Change Subscription ──────────────────────
+
+  subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
+    this._visibleRangeChangeCallbacks.push(callback);
+  }
+
+  unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
+    const idx = this._visibleRangeChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._visibleRangeChangeCallbacks.splice(idx, 1);
+  }
+
   // ── Repaint scheduling ────────────────────────────────────────────────
 
   requestRepaint(level: number): void {
@@ -444,12 +631,14 @@ class ChartApi implements IChartApi {
     if (level >= InvalidationLevel.Light) {
       this._paintMain();
       this._paintPriceAxis();
+      this._paintLeftPriceAxis();
       this._paintTimeAxis();
     }
     if (level >= InvalidationLevel.Cursor) {
       this._paintOverlay();
       // Redraw axes on cursor move too (for crosshair labels) — axes are tiny, very cheap
       this._paintPriceAxis();
+      this._paintLeftPriceAxis();
       this._paintTimeAxis();
     }
 
@@ -469,13 +658,52 @@ class ChartApi implements IChartApi {
     }
 
     this._updateLegend();
+    this._updateTooltip();
+
+    // Emit visible range change callbacks (Feature 3)
+    if (this._visibleRangeChangeCallbacks.length > 0) {
+      this._emitVisibleRangeChange();
+    }
+
     this._mask.reset();
+  }
+
+  private _emitVisibleRangeChange(): void {
+    if (this._series.length === 0) {
+      if (this._lastVisibleRangeFrom !== null || this._lastVisibleRangeTo !== null) {
+        this._lastVisibleRangeFrom = null;
+        this._lastVisibleRangeTo = null;
+        for (const cb of this._visibleRangeChangeCallbacks) cb(null);
+      }
+      return;
+    }
+
+    const store = this._series[0].api.getDataLayer().store;
+    if (store.length === 0) {
+      if (this._lastVisibleRangeFrom !== null || this._lastVisibleRangeTo !== null) {
+        this._lastVisibleRangeFrom = null;
+        this._lastVisibleRangeTo = null;
+        for (const cb of this._visibleRangeChangeCallbacks) cb(null);
+      }
+      return;
+    }
+
+    const range = this._timeScale.visibleRange();
+    const fromTime = store.time[Math.max(0, range.fromIdx)];
+    const toTime = store.time[Math.min(store.length - 1, range.toIdx)];
+
+    if (fromTime !== this._lastVisibleRangeFrom || toTime !== this._lastVisibleRangeTo) {
+      this._lastVisibleRangeFrom = fromTime;
+      this._lastVisibleRangeTo = toTime;
+      const payload = { from: fromTime, to: toTime };
+      for (const cb of this._visibleRangeChangeCallbacks) cb(payload);
+    }
   }
 
   private _paintMain(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._chartCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     const chartH = this._height - TIME_AXIS_HEIGHT;
 
     // Clear chart canvas
@@ -494,6 +722,9 @@ class ChartApi implements IChartApi {
 
     // Auto-scale price from visible data (scan all series)
     this._updateDataRange(range);
+
+    // Draw watermark BEFORE grid/series so it appears behind everything
+    this._drawWatermark(ctx, chartW, chartH, pixelRatio);
 
     // Draw grid (within chart area only)
     this._drawGrid(ctx, chartW, chartH, range, primaryStore, pixelRatio);
@@ -519,6 +750,30 @@ class ChartApi implements IChartApi {
       }
 
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
+    }
+
+    // Draw volume overlay
+    if (this._options.volume.visible) {
+      this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
+    }
+
+    // Draw markers for each series
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      const markers = entry.api.getMarkers();
+      if (markers.length > 0) {
+        const dataLayer = entry.api.getDataLayer();
+        this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
+      }
+    }
+
+    // Draw price lines for each series
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      const priceLines = entry.api.getPriceLines();
+      if (priceLines.length > 0) {
+        this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+      }
     }
 
     // Draw last close price line
@@ -597,7 +852,7 @@ class ChartApi implements IChartApi {
   private _paintOverlay(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._overlayCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     const chartH = this._height - TIME_AXIS_HEIGHT;
 
     // Overlay canvas is sized to chart area only
@@ -714,7 +969,7 @@ class ChartApi implements IChartApi {
       const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
-      const text = price.toFixed(2);
+      const text = this._formatPrice(price);
 
       // Draw background rect
       ctx.fillStyle = this._options.layout.backgroundColor;
@@ -742,7 +997,7 @@ class ChartApi implements IChartApi {
         const isUp = lastClose >= lastOpen;
         const bgColor = isUp ? '#26a69a' : '#ef5350';
         const y = Math.round(this._priceScale.priceToY(lastClose) * pixelRatio);
-        const priceText = lastClose.toFixed(2);
+        const priceText = this._formatPrice(lastClose);
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
         // Background
@@ -758,10 +1013,31 @@ class ChartApi implements IChartApi {
       }
     }
 
+    // Price line labels on axis
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      for (const pl of entry.api.getPriceLines()) {
+        if (!pl.options.axisLabelVisible) continue;
+        const plY = Math.round(this._priceScale.priceToY(pl.options.price) * pixelRatio);
+        if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+        const plText = this._formatPrice(pl.options.price);
+        const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+        ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
+        ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
+
+        ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
+        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(plText, axisRight - padding, plY);
+      }
+    }
+
     // Crosshair price label
     if (this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
-      const priceText = this._crosshair.price.toFixed(2);
+      const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
       ctx.fillStyle = this._options.crosshair.horzLineColor;
@@ -781,7 +1057,7 @@ class ChartApi implements IChartApi {
   private _paintTimeAxis(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._timeAxisCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
 
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(TIME_AXIS_HEIGHT * pixelRatio));
 
@@ -874,31 +1150,349 @@ class ChartApi implements IChartApi {
   // ── Auto-scale price range ────────────────────────────────────────────
 
   private _updateDataRange(range: VisibleRange): void {
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
+    let rightMin = Infinity;
+    let rightMax = -Infinity;
+    let leftMin = Infinity;
+    let leftMax = -Infinity;
 
     for (const entry of this._series) {
       if (!entry.api.isVisible()) continue;
       const store = entry.api.getDataLayer().store;
       const to = Math.min(range.toIdx, store.length - 1);
 
+      const isLeft = entry.api.options().priceScaleId === 'left';
+
       for (let i = range.fromIdx; i <= to; i++) {
         const lo = store.low[i];
         const hi = store.high[i];
-        if (lo < minPrice) minPrice = lo;
-        if (hi > maxPrice) maxPrice = hi;
+        if (isLeft) {
+          if (lo < leftMin) leftMin = lo;
+          if (hi > leftMax) leftMax = hi;
+        } else {
+          if (lo < rightMin) rightMin = lo;
+          if (hi > rightMax) rightMax = hi;
+        }
       }
     }
 
-    if (minPrice < Infinity && maxPrice > -Infinity) {
-      this._priceScale.autoScale(minPrice, maxPrice);
+    if (rightMin < Infinity && rightMax > -Infinity) {
+      this._priceScale.autoScale(rightMin, rightMax);
     }
+    if (leftMin < Infinity && leftMax > -Infinity) {
+      this._leftPriceScale.autoScale(leftMin, leftMax);
+    }
+  }
+
+  // ── Watermark ─────────────────────────────────────────────────────────
+
+  private _drawWatermark(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    pixelRatio: number,
+  ): void {
+    const wm = this._options.watermark;
+    if (!wm.visible || !wm.text) return;
+
+    ctx.save();
+    ctx.font = `bold ${Math.round(wm.fontSize * pixelRatio)}px ${this._options.layout.fontFamily}`;
+    ctx.fillStyle = wm.color;
+
+    let x: number;
+    if (wm.horzAlign === 'left') {
+      ctx.textAlign = 'left';
+      x = Math.round(20 * pixelRatio);
+    } else if (wm.horzAlign === 'right') {
+      ctx.textAlign = 'right';
+      x = Math.round((w - 20) * pixelRatio);
+    } else {
+      ctx.textAlign = 'center';
+      x = Math.round((w / 2) * pixelRatio);
+    }
+
+    let y: number;
+    if (wm.vertAlign === 'top') {
+      ctx.textBaseline = 'top';
+      y = Math.round(20 * pixelRatio);
+    } else if (wm.vertAlign === 'bottom') {
+      ctx.textBaseline = 'bottom';
+      y = Math.round((h - 20) * pixelRatio);
+    } else {
+      ctx.textBaseline = 'middle';
+      y = Math.round((h / 2) * pixelRatio);
+    }
+
+    ctx.fillText(wm.text, x, y);
+    ctx.restore();
+  }
+
+  // ── Volume overlay ───────────────────────────────────────────────────
+
+  private _drawVolumeOverlay(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    chartH: number,
+    range: VisibleRange,
+    pixelRatio: number,
+  ): void {
+    const volOpts = this._options.volume;
+
+    // Gather volume data from all visible series (use primary for OHLC coloring)
+    const primaryStore = this._series[0].api.getDataLayer().store;
+    if (!primaryStore.volume) return;
+    const to = Math.min(range.toIdx, primaryStore.length - 1);
+    if (to < range.fromIdx) return;
+
+    // Find max volume in visible range
+    let maxVol = 0;
+    for (let i = range.fromIdx; i <= to; i++) {
+      const v = primaryStore.volume[i];
+      if (v > maxVol) maxVol = v;
+    }
+    if (maxVol === 0) return;
+
+    // Volume occupies the area from scaleMarginTop*chartH to chartH
+    const volTop = Math.round(volOpts.scaleMarginTop * chartH * pixelRatio);
+    const volBottom = Math.round(chartH * pixelRatio);
+    const volHeight = volBottom - volTop;
+
+    const barWidth = this._timeScale.barSpacing * 0.8;
+    const halfBar = Math.max(1, Math.round((barWidth * pixelRatio) / 2));
+
+    ctx.save();
+    for (let i = range.fromIdx; i <= to; i++) {
+      const vol = primaryStore.volume[i];
+      if (vol === 0) continue;
+
+      const isUp = primaryStore.close[i] >= primaryStore.open[i];
+      ctx.fillStyle = isUp ? volOpts.upColor : volOpts.downColor;
+
+      const cx = Math.round(this._timeScale.indexToX(i) * pixelRatio);
+      const barH = Math.max(1, Math.round((vol / maxVol) * volHeight));
+      const topY = volBottom - barH;
+
+      ctx.fillRect(cx - halfBar, topY, halfBar * 2, barH);
+    }
+    ctx.restore();
+  }
+
+  // ── Series markers ───────────────────────────────────────────────────
+
+  private _drawMarkers(
+    ctx: CanvasRenderingContext2D,
+    markers: readonly SeriesMarker[],
+    dataLayer: DataLayer,
+    range: VisibleRange,
+    indexToX: (i: number) => number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    const store = dataLayer.store;
+    if (store.length === 0) return;
+
+    ctx.save();
+    const layout = this._options.layout;
+
+    for (const marker of markers) {
+      // Binary search for bar index matching marker time
+      const idx = dataLayer.findIndex(marker.time);
+      if (idx < range.fromIdx || idx > range.toIdx) continue;
+      if (idx >= store.length) continue;
+
+      const x = Math.round(indexToX(idx) * pixelRatio);
+      const size = (marker.size ?? 1) * 8 * pixelRatio;
+      const offset = size + 4 * pixelRatio;
+
+      let y: number;
+      if (marker.position === 'aboveBar') {
+        y = Math.round(priceToY(store.high[idx]) * pixelRatio) - offset;
+      } else if (marker.position === 'belowBar') {
+        y = Math.round(priceToY(store.low[idx]) * pixelRatio) + offset;
+      } else {
+        y = Math.round(priceToY(store.close[idx]) * pixelRatio);
+      }
+
+      ctx.fillStyle = marker.color;
+
+      switch (marker.shape) {
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, 2 * Math.PI);
+          ctx.fill();
+          break;
+        case 'square':
+          ctx.fillRect(x - size, y - size, size * 2, size * 2);
+          break;
+        case 'arrowUp': {
+          ctx.beginPath();
+          ctx.moveTo(x, y - size);
+          ctx.lineTo(x - size, y + size);
+          ctx.lineTo(x + size, y + size);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case 'arrowDown': {
+          ctx.beginPath();
+          ctx.moveTo(x, y + size);
+          ctx.lineTo(x - size, y - size);
+          ctx.lineTo(x + size, y - size);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+      }
+
+      // Draw text label if provided
+      if (marker.text) {
+        ctx.fillStyle = marker.color;
+        ctx.font = `${Math.round(10 * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = marker.position === 'belowBar' ? 'top' : 'bottom';
+        const textY = marker.position === 'belowBar'
+          ? y + size + 2 * pixelRatio
+          : y - size - 2 * pixelRatio;
+        ctx.fillText(marker.text, x, textY);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // ── Price lines ──────────────────────────────────────────────────────
+
+  private _drawPriceLines(
+    ctx: CanvasRenderingContext2D,
+    priceLines: readonly import('../core/price-line').PriceLine[],
+    chartW: number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    ctx.save();
+    for (const pl of priceLines) {
+      const y = Math.round(priceToY(pl.options.price) * pixelRatio);
+
+      ctx.strokeStyle = pl.options.color;
+      ctx.lineWidth = pl.options.lineWidth * pixelRatio;
+
+      switch (pl.options.lineStyle) {
+        case 'dashed':
+          ctx.setLineDash([6 * pixelRatio, 4 * pixelRatio]);
+          break;
+        case 'dotted':
+          ctx.setLineDash([2 * pixelRatio, 2 * pixelRatio]);
+          break;
+        default:
+          ctx.setLineDash([]);
+          break;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(Math.round(chartW * pixelRatio), y);
+      ctx.stroke();
+
+      // Draw title text if provided
+      if (pl.options.title) {
+        ctx.fillStyle = pl.options.color;
+        ctx.font = `${Math.round(10 * pixelRatio)}px ${this._options.layout.fontFamily}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(pl.options.title, Math.round(4 * pixelRatio), y - Math.round(2 * pixelRatio));
+      }
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // ── Tooltip ──────────────────────────────────────────────────────────
+
+  private _updateTooltip(): void {
+    if (!this._options.tooltip.enabled || this._series.length === 0) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    if (!this._crosshair.visible) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    const store = this._series[0].api.getDataLayer().store;
+    const idx = this._crosshair.barIndex;
+    if (idx < 0 || idx >= store.length) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    // Only rebuild content when barIndex changes
+    if (idx !== this._lastTooltipBarIdx) {
+      this._lastTooltipBarIdx = idx;
+
+      const o = store.open[idx];
+      const h = store.high[idx];
+      const l = store.low[idx];
+      const c = store.close[idx];
+      const v = store.volume ? store.volume[idx] : 0;
+      const timestamp = store.time[idx];
+      const date = new Date(timestamp * 1000);
+
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      let dateStr: string;
+      if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+        const hh = date.getUTCHours().toString().padStart(2, '0');
+        const mm = date.getUTCMinutes().toString().padStart(2, '0');
+        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()} ${hh}:${mm}`;
+      } else {
+        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+      }
+
+      const isUp = c >= o;
+      const color = isUp ? '#26a69a' : '#ef5350';
+
+      this._tooltipDateEl.textContent = dateStr;
+      this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
+      this._tooltipOHEl.style.color = color;
+      this._tooltipLCEl.textContent = `L ${this._formatPrice(l)} C ${this._formatPrice(c)}`;
+      this._tooltipLCEl.style.color = color;
+      this._tooltipVEl.textContent = `V ${this._volumeFormatter.format(v)}`;
+      this._tooltipVEl.style.color = '#999';
+
+      // Re-measure cached dimensions only when content changes
+      this._tooltipWidth = this._tooltipEl.offsetWidth || 140;
+      this._tooltipHeight = this._tooltipEl.offsetHeight || 80;
+    }
+
+    // Position tooltip near cursor, ensuring it doesn't overflow
+    const chartW = this._chartWidth;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const cursorX = this._crosshair.snappedX;
+    const cursorY = this._crosshair.y;
+    const tooltipW = this._tooltipWidth;
+    const tooltipH = this._tooltipHeight;
+
+    let tx = cursorX + 16;
+    let ty = cursorY - tooltipH - 8;
+
+    // Keep within chart bounds
+    if (tx + tooltipW > chartW) tx = cursorX - tooltipW - 16;
+    if (tx < 0) tx = 4;
+    if (ty < 0) ty = cursorY + 16;
+    if (ty + tooltipH > chartH) ty = chartH - tooltipH - 4;
+
+    this._tooltipEl.style.left = `${Math.round(tx)}px`;
+    this._tooltipEl.style.top = `${Math.round(ty)}px`;
+    this._tooltipEl.style.display = 'block';
   }
 
   // ── Legend ────────────────────────────────────────────────────────────
 
   private _updateLegend(): void {
-    if (this._series.length === 0) { this._legendEl.innerHTML = ''; return; }
+    if (this._series.length === 0) {
+      this._legendEl.style.display = 'none';
+      this._lastLegendBarIdx = -1;
+      return;
+    }
 
     const primaryEntry = this._series[0];
     const store = primaryEntry.api.getDataLayer().store;
@@ -908,22 +1502,52 @@ class ChartApi implements IChartApi {
     if (this._crosshair.visible && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
       idx = this._crosshair.barIndex;
     }
-    if (idx < 0 || idx >= store.length) { this._legendEl.innerHTML = ''; return; }
+    if (idx < 0 || idx >= store.length) {
+      this._legendEl.style.display = 'none';
+      this._lastLegendBarIdx = -1;
+      return;
+    }
 
-    const o = store.open[idx];
-    const h = store.high[idx];
-    const l = store.low[idx];
-    const c = store.close[idx];
-    const v = store.volume[idx];
-    const isUp = c >= o;
-    const color = isUp ? '#26a69a' : '#ef5350';
+    // Only rebuild content when barIndex changes
+    if (idx !== this._lastLegendBarIdx) {
+      this._lastLegendBarIdx = idx;
 
-    this._legendEl.innerHTML =
-      `<span style="color:${this._options.layout.textColor}">O</span><span style="color:${color}">${o.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">H</span><span style="color:${color}">${h.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">L</span><span style="color:${color}">${l.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">C</span><span style="color:${color}">${c.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">V</span><span style="color:${this._options.layout.textColor}">${v.toLocaleString()}</span>`;
+      const o = store.open[idx];
+      const h = store.high[idx];
+      const l = store.low[idx];
+      const c = store.close[idx];
+      const v = store.volume ? store.volume[idx] : 0;
+      const isUp = c >= o;
+      const color = isUp ? '#26a69a' : '#ef5350';
+      const textColor = this._options.layout.textColor;
+
+      this._legendOLabelEl.textContent = 'O';
+      this._legendOLabelEl.style.color = textColor;
+      this._legendOValEl.textContent = this._formatPrice(o);
+      this._legendOValEl.style.color = color;
+
+      this._legendHLabelEl.textContent = 'H';
+      this._legendHLabelEl.style.color = textColor;
+      this._legendHValEl.textContent = this._formatPrice(h);
+      this._legendHValEl.style.color = color;
+
+      this._legendLLabelEl.textContent = 'L';
+      this._legendLLabelEl.style.color = textColor;
+      this._legendLValEl.textContent = this._formatPrice(l);
+      this._legendLValEl.style.color = color;
+
+      this._legendCLabelEl.textContent = 'C';
+      this._legendCLabelEl.style.color = textColor;
+      this._legendCValEl.textContent = this._formatPrice(c);
+      this._legendCValEl.style.color = color;
+
+      this._legendVLabelEl.textContent = 'V';
+      this._legendVLabelEl.style.color = textColor;
+      this._legendVValEl.textContent = this._volumeFormatter.format(v);
+      this._legendVValEl.style.color = textColor;
+    }
+
+    this._legendEl.style.display = 'flex';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
@@ -936,14 +1560,16 @@ class ChartApi implements IChartApi {
     return {
       canvas,
       context: ctx,
-      width: this._width - PRICE_AXIS_WIDTH,
+      width: this._chartWidth,
       height: this._height - TIME_AXIS_HEIGHT,
       pixelRatio,
     };
   }
 
   private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
-    const chartW = width - PRICE_AXIS_WIDTH;
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const chartW = width - leftScaleW - rightScaleW;
     const chartH = height - TIME_AXIS_HEIGHT;
 
     // Chart + overlay canvases: chart area only
@@ -952,21 +1578,105 @@ class ChartApi implements IChartApi {
       canvas.height = Math.round(chartH * pixelRatio);
       canvas.style.width = `${chartW}px`;
       canvas.style.height = `${chartH}px`;
+      canvas.style.left = `${leftScaleW}px`;
     }
 
-    // Price axis canvas — positioned top-right
+    // Right price axis canvas — positioned top-right
     this._priceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
     this._priceAxisCanvas.height = Math.round(chartH * pixelRatio);
     this._priceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
     this._priceAxisCanvas.style.height = `${chartH}px`;
-    this._priceAxisCanvas.style.left = `${chartW}px`;
+    this._priceAxisCanvas.style.left = `${leftScaleW + chartW}px`;
+    this._priceAxisCanvas.style.display = this._options.rightPriceScale.visible ? '' : 'none';
 
-    // Time axis canvas — positioned bottom-left
+    // Left price axis canvas — positioned top-left
+    this._leftPriceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
+    this._leftPriceAxisCanvas.height = Math.round(chartH * pixelRatio);
+    this._leftPriceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
+    this._leftPriceAxisCanvas.style.height = `${chartH}px`;
+    this._leftPriceAxisCanvas.style.left = '0px';
+    this._leftPriceAxisCanvas.style.display = this._options.leftPriceScale.visible ? '' : 'none';
+
+    // Time axis canvas — positioned bottom-left (offset by left scale width)
     this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
     this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
     this._timeAxisCanvas.style.width = `${chartW}px`;
     this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
+    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
     this._timeAxisCanvas.style.top = `${chartH}px`;
+  }
+
+  // ── Left Price axis (on its own canvas) ─────────────────────────────────
+
+  private _paintLeftPriceAxis(): void {
+    if (!this._options.leftPriceScale.visible) return;
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    const ctx = this._leftPriceAxisCtx;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const axisW = PRICE_AXIS_WIDTH;
+
+    ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
+
+    // Left scale auto-scales independently in _updateDataRange() based on series with priceScaleId: 'left'.
+    // Fall back to right scale range if no series are assigned to the left scale.
+    const leftRange = this._leftPriceScale.priceRange;
+    if (leftRange.min === leftRange.max) {
+      this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+    }
+
+    const layout = this._options.layout;
+    const priceRange = this._leftPriceScale.priceRange;
+    const pRange = priceRange.max - priceRange.min;
+    const targetSteps = Math.max(2, Math.floor(chartH / 60));
+    const step = niceStep(pRange, targetSteps);
+
+    ctx.save();
+    ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    const padding = Math.round(6 * pixelRatio);
+    const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
+
+    const firstPrice = Math.ceil(priceRange.min / step) * step;
+    for (let price = firstPrice; price <= priceRange.max; price += step) {
+      const y = Math.round(this._leftPriceScale.priceToY(price) * pixelRatio);
+      if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+
+      const text = this._formatPrice(price);
+
+      ctx.fillStyle = layout.backgroundColor;
+      ctx.fillRect(0, y - labelHeight / 2, Math.round(axisW * pixelRatio), labelHeight);
+
+      ctx.fillStyle = layout.textColor;
+      ctx.fillText(text, padding, y);
+    }
+
+    // Draw right separator line
+    ctx.strokeStyle = this._options.grid.horzLinesColor;
+    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    ctx.beginPath();
+    ctx.moveTo(Math.round(axisW * pixelRatio) - 1, 0);
+    ctx.lineTo(Math.round(axisW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
+    ctx.stroke();
+
+    // Crosshair price label on left axis
+    if (this._crosshair.visible) {
+      const hy = Math.round(this._crosshair.y * pixelRatio);
+      const priceText = this._formatPrice(this._crosshair.price);
+      const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+      ctx.fillStyle = this._options.crosshair.horzLineColor;
+      ctx.fillRect(0, hy - lh / 2, Math.round(axisW * pixelRatio), lh);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(priceText, padding, hy);
+    }
+
+    ctx.restore();
   }
 
   private _addSeries<T extends SeriesType>(
@@ -1085,6 +1795,8 @@ export function createChart(
       resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, LIGHT_THEME), options);
     } else if (theme === 'dark') {
       resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, DARK_THEME), options);
+    } else if (theme === 'colorful') {
+      resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, COLORFUL_THEME), options);
     } else {
       resolved = mergeOptions(DEFAULT_CHART_OPTIONS, options);
     }

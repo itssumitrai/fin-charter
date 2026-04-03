@@ -120,13 +120,13 @@ describe('createChart', () => {
   it('creates a chart with DOM elements', () => {
     chart = createChart(container, { width: 600, height: 300 });
 
-    // Should have a wrapper div with 4 canvases (chart, overlay, price axis, time axis)
+    // Should have a wrapper div with canvases (chart, overlay, price axis, left price axis, time axis)
     const wrapper = container.firstElementChild as HTMLDivElement;
     expect(wrapper).toBeTruthy();
     expect(wrapper.tagName).toBe('DIV');
 
     const canvases = wrapper.querySelectorAll('canvas');
-    expect(canvases.length).toBe(4);
+    expect(canvases.length).toBe(5);
   });
 
   it('adds and removes a candlestick series', () => {
@@ -323,5 +323,226 @@ describe('createChart', () => {
     const pane = chart.addPane({ height: 150 });
     expect(pane.id).toBeTruthy();
     chart.removePane(pane);
+  });
+
+  // ── Feature 2: Go to Realtime ────────────────────────────────────────────
+
+  it('scrollToRealTime resets rightOffset to 0', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(50));
+
+    // Scroll away from realtime by adjusting rightOffset via timeScale
+    chart.timeScale().setRightOffset(10);
+    expect(chart.timeScale().rightOffset).toBe(10);
+
+    // Now reset
+    chart.scrollToRealTime();
+    expect(chart.timeScale().rightOffset).toBe(0);
+  });
+
+  // ── Feature 1: Range Switcher ────────────────────────────────────────────
+
+  it('setVisibleLogicalRange adjusts barSpacing and rightOffset', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(100));
+    flushRAF(); // allow _paint to update dataLength on timeScale
+
+    // Show bars 50–99 (50 bars)
+    chart.setVisibleLogicalRange(50, 99);
+
+    // rightOffset = toIdx - baseIndex = 99 - 99 = 0
+    expect(chart.timeScale().rightOffset).toBeCloseTo(0, 5);
+  });
+
+  it('setVisibleRange finds nearest bar indices by timestamp', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    const bars = makeBars(10, 1000); // times 1000, 1060, 1120, ..., 1540
+    series.setData(bars);
+    flushRAF();
+
+    // Set visible range covering bars 0–4 by exact timestamps
+    chart.setVisibleRange(1000, 1240);
+
+    // rightOffset = toIdx(4) - baseIndex(9) = 4 - 9 = -5
+    expect(chart.timeScale().rightOffset).toBeCloseTo(-5, 5);
+  });
+
+  // ── Feature 3: Visible Range Change Subscription ─────────────────────────
+
+  it('subscribeVisibleRangeChange fires when visible range changes', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(20, 1000));
+
+    const callback = vi.fn();
+    chart.subscribeVisibleRangeChange(callback);
+
+    // Flush the initial paint - this should fire the callback
+    flushRAF();
+    expect(callback).toHaveBeenCalledTimes(1);
+    const firstCall = callback.mock.calls[0][0];
+    expect(firstCall).not.toBeNull();
+    expect(typeof firstCall.from).toBe('number');
+    expect(typeof firstCall.to).toBe('number');
+    expect(firstCall.from).toBeLessThanOrEqual(firstCall.to);
+  });
+
+  it('unsubscribeVisibleRangeChange stops firing callbacks', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(20, 1000));
+
+    const callback = vi.fn();
+    chart.subscribeVisibleRangeChange(callback);
+    flushRAF();
+    const callsBefore = callback.mock.calls.length;
+
+    chart.unsubscribeVisibleRangeChange(callback);
+
+    // Force another repaint
+    chart.scrollToRealTime();
+    flushRAF();
+
+    // Callback count should not have increased after unsubscribe
+    expect(callback.mock.calls.length).toBe(callsBefore);
+  });
+
+  // ── Feature: Custom Price Formatter ─────────────────────────────────────
+
+  it('custom priceFormatter is called when formatting prices', () => {
+    const formatter = vi.fn((price: number) => `$${price.toFixed(4)}`);
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      priceFormatter: formatter,
+    });
+
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(10));
+
+    // Flush to trigger painting which uses _formatPrice internally
+    flushRAF();
+
+    // The formatter should have been called at least once during painting
+    expect(formatter).toHaveBeenCalled();
+
+    // The return value should match formatter output
+    const opts = chart.options();
+    expect(opts.priceFormatter).toBe(formatter);
+  });
+
+  it('default price formatting uses toFixed(2) when no priceFormatter is set', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+
+    const opts = chart.options();
+    // No custom formatter set
+    expect(opts.priceFormatter).toBeUndefined();
+
+    // Painting should not throw without a custom formatter
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
+  });
+
+  it('priceFormatter can be applied via applyOptions', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const formatter = (price: number) => `${price.toFixed(0)} USD`;
+
+    chart.applyOptions({ priceFormatter: formatter });
+
+    const opts = chart.options();
+    expect(opts.priceFormatter).toBe(formatter);
+    expect(opts.priceFormatter!(123.456)).toBe('123 USD');
+  });
+
+  // ── Feature: Theme Application ───────────────────────────────────────────
+
+  it('COLORFUL_THEME merges correctly via applyOptions', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+
+    // Apply colorful theme values manually (same as COLORFUL_THEME)
+    chart.applyOptions({
+      layout: { backgroundColor: '#131722', textColor: '#b2b5be' },
+      grid: {
+        vertLinesColor: 'rgba(42, 46, 57, 0.8)',
+        horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+      },
+    });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#131722');
+    expect(opts.layout.textColor).toBe('#b2b5be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    // Other options should be preserved
+    expect(opts.layout.fontSize).toBe(11);
+    expect(opts.lastPriceLine.visible).toBe(true);
+  });
+
+  it('createChart with theme: colorful applies COLORFUL_THEME', () => {
+    chart = createChart(container, { width: 600, height: 300, theme: 'colorful' });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#131722');
+    expect(opts.layout.textColor).toBe('#b2b5be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+  });
+
+  it('createChart with theme: dark applies DARK_THEME', () => {
+    chart = createChart(container, { width: 600, height: 300, theme: 'dark' });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#1a1a2e');
+    expect(opts.layout.textColor).toBe('#d1d4dc');
+  });
+
+  // ── Feature: Dual Price Scales ───────────────────────────────────────────
+
+  it('leftPriceScale.visible defaults to false', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const opts = chart.options();
+    expect(opts.leftPriceScale.visible).toBe(false);
+    expect(opts.rightPriceScale.visible).toBe(true);
+  });
+
+  it('leftPriceScale can be enabled via options', () => {
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      leftPriceScale: { visible: true },
+    });
+
+    const opts = chart.options();
+    expect(opts.leftPriceScale.visible).toBe(true);
+
+    // Painting should not throw with left scale enabled
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
+  });
+
+  // ── Feature: TimeGaps option ─────────────────────────────────────────────
+
+  it('timeGaps.visible defaults to false', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const opts = chart.options();
+    expect(opts.timeGaps.visible).toBe(false);
+  });
+
+  it('timeGaps can be enabled via options without throwing', () => {
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      timeGaps: { visible: true },
+    });
+
+    const opts = chart.options();
+    expect(opts.timeGaps.visible).toBe(true);
+
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
   });
 });

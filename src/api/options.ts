@@ -51,6 +51,34 @@ export interface LastPriceLineOptions {
   visible: boolean;
 }
 
+export interface TooltipOptions {
+  enabled: boolean;
+}
+
+export interface WatermarkOptions {
+  visible: boolean;
+  text: string;
+  color: string;
+  fontSize: number;
+  horzAlign: 'left' | 'center' | 'right';
+  vertAlign: 'top' | 'center' | 'bottom';
+}
+
+export interface VolumeOverlayOptions {
+  visible: boolean;
+  upColor: string;
+  downColor: string;
+  scaleMarginTop: number;
+}
+
+export interface PriceScaleOptions {
+  visible: boolean;
+}
+
+export interface TimeGapsOptions {
+  visible: boolean;
+}
+
 export interface ChartOptions {
   width: number;
   height: number;
@@ -60,7 +88,14 @@ export interface ChartOptions {
   crosshair: CrosshairOptions;
   grid: GridOptions;
   lastPriceLine: LastPriceLineOptions;
-  theme?: 'dark' | 'light';
+  tooltip: TooltipOptions;
+  watermark: WatermarkOptions;
+  volume: VolumeOverlayOptions;
+  rightPriceScale: PriceScaleOptions;
+  leftPriceScale: PriceScaleOptions;
+  timeGaps: TimeGapsOptions;
+  priceFormatter?: (price: number) => string;
+  theme?: 'dark' | 'light' | 'colorful';
 }
 
 export const DARK_THEME: DeepPartial<ChartOptions> = {
@@ -75,6 +110,21 @@ export const DARK_THEME: DeepPartial<ChartOptions> = {
   grid: {
     vertLinesColor: 'rgba(255, 255, 255, 0.06)',
     horzLinesColor: 'rgba(255, 255, 255, 0.06)',
+  },
+};
+
+export const COLORFUL_THEME: DeepPartial<ChartOptions> = {
+  layout: {
+    backgroundColor: '#131722',
+    textColor: '#b2b5be',
+  },
+  grid: {
+    vertLinesColor: 'rgba(42, 46, 57, 0.8)',
+    horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+  },
+  crosshair: {
+    vertLineColor: '#758696',
+    horzLineColor: '#758696',
   },
 };
 
@@ -125,6 +175,32 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   },
   lastPriceLine: {
     visible: true,
+  },
+  tooltip: {
+    enabled: true,
+  },
+  watermark: {
+    visible: false,
+    text: '',
+    color: 'rgba(255,255,255,0.06)',
+    fontSize: 48,
+    horzAlign: 'center',
+    vertAlign: 'center',
+  },
+  volume: {
+    visible: false,
+    upColor: 'rgba(38,166,154,0.3)',
+    downColor: 'rgba(239,83,80,0.3)',
+    scaleMarginTop: 0.7,
+  },
+  rightPriceScale: {
+    visible: true,
+  },
+  leftPriceScale: {
+    visible: false,
+  },
+  timeGaps: {
+    visible: false,
   },
 };
 
