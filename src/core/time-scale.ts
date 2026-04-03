@@ -82,6 +82,10 @@ export class TimeScale {
     return this._rightOffset;
   }
 
+  get dataLength(): number {
+    return this._dataLength;
+  }
+
   // ── Visible range ──────────────────────────────────────────────────────────
 
   /**

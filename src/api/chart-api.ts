@@ -42,6 +42,7 @@ import {
   DEFAULT_CHART_OPTIONS,
   DARK_THEME,
   LIGHT_THEME,
+  COLORFUL_THEME,
   mergeOptions,
 } from './options';
 
@@ -56,6 +57,8 @@ export type CrosshairMoveCallback = (state: CrosshairState | null) => void;
 export type ClickCallback = (state: { x: number; y: number; time: number; price: number }) => void;
 
 // ─── IChartApi ──────────────────────────────────────────────────────────────
+
+export type VisibleRangeChangeCallback = (range: { from: number; to: number } | null) => void;
 
 export interface IChartApi {
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
@@ -78,6 +81,17 @@ export interface IChartApi {
   unsubscribeCrosshairMove(callback: CrosshairMoveCallback): void;
   subscribeClick(callback: ClickCallback): void;
   unsubscribeClick(callback: ClickCallback): void;
+  // ── Feature 1: Range Switcher ─────────────────────────────────────────────
+  /** Set the visible time range by Unix timestamps (seconds). Adjusts barSpacing and rightOffset. */
+  setVisibleRange(from: number, to: number): void;
+  /** Set the visible range by bar indices directly. */
+  setVisibleLogicalRange(from: number, to: number): void;
+  // ── Feature 2: Go to Realtime ─────────────────────────────────────────────
+  /** Reset the view so the latest bar is at the right edge. */
+  scrollToRealTime(): void;
+  // ── Feature 3: Infinite History Loading ──────────────────────────────────
+  subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
+  unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -119,16 +133,19 @@ class ChartApi implements IChartApi {
   private _chartCanvas: HTMLCanvasElement;
   private _overlayCanvas: HTMLCanvasElement;
   private _priceAxisCanvas: HTMLCanvasElement;
+  private _leftPriceAxisCanvas: HTMLCanvasElement;
   private _timeAxisCanvas: HTMLCanvasElement;
   private _chartCtx: CanvasRenderingContext2D;
   private _overlayCtx: CanvasRenderingContext2D;
   private _priceAxisCtx: CanvasRenderingContext2D;
+  private _leftPriceAxisCtx: CanvasRenderingContext2D;
   private _timeAxisCtx: CanvasRenderingContext2D;
   private _legendEl: HTMLDivElement;
   private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
   private _priceScale: PriceScale;
+  private _leftPriceScale: PriceScale;
   private _crosshair: Crosshair;
   private _mask: InvalidateMask;
 
@@ -145,6 +162,9 @@ class ChartApi implements IChartApi {
 
   private _crosshairMoveCallbacks: CrosshairMoveCallback[] = [];
   private _clickCallbacks: ClickCallback[] = [];
+  private _visibleRangeChangeCallbacks: VisibleRangeChangeCallback[] = [];
+  private _lastVisibleRangeFrom: number | null = null;
+  private _lastVisibleRangeTo: number | null = null;
 
   private _width: number;
   private _height: number;
@@ -189,6 +209,13 @@ class ChartApi implements IChartApi {
     this._priceAxisCanvas.style.top = '0';
     this._priceAxisCanvas.style.zIndex = '1';
 
+    // Left price axis canvas — top-left (visible only when leftPriceScale.visible)
+    this._leftPriceAxisCanvas = document.createElement('canvas');
+    this._leftPriceAxisCanvas.style.position = 'absolute';
+    this._leftPriceAxisCanvas.style.top = '0';
+    this._leftPriceAxisCanvas.style.left = '0';
+    this._leftPriceAxisCanvas.style.zIndex = '1';
+
     // Time axis canvas — bottom-left
     this._timeAxisCanvas = document.createElement('canvas');
     this._timeAxisCanvas.style.position = 'absolute';
@@ -198,20 +225,21 @@ class ChartApi implements IChartApi {
     this._wrapper.appendChild(this._chartCanvas);
     this._wrapper.appendChild(this._overlayCanvas);
     this._wrapper.appendChild(this._priceAxisCanvas);
+    this._wrapper.appendChild(this._leftPriceAxisCanvas);
     this._wrapper.appendChild(this._timeAxisCanvas);
 
     // Legend overlay (DOM-based)
     this._legendEl = document.createElement('div');
-    this._legendEl.style.cssText = 'position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;gap:8px;pointer-events:none;color:' + options.layout.textColor;
+    this._legendEl.style.cssText = `position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:${options.layout.fontFamily};display:flex;gap:8px;pointer-events:none;color:${options.layout.textColor}`;
     this._wrapper.appendChild(this._legendEl);
 
     // Tooltip overlay (DOM-based)
     this._tooltipEl = document.createElement('div');
     this._tooltipEl.style.cssText =
-      'position:absolute;z-index:20;pointer-events:none;display:none;' +
-      'background:rgba(0,0,0,0.78);color:#d1d4dc;border-radius:4px;padding:6px 10px;' +
-      'font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-      'line-height:1.5;white-space:nowrap;';
+      `position:absolute;z-index:20;pointer-events:none;display:none;` +
+      `background:rgba(0,0,0,0.78);color:${options.layout.textColor};border-radius:4px;padding:6px 10px;` +
+      `font-size:${options.layout.fontSize}px;font-family:${options.layout.fontFamily};` +
+      `line-height:1.5;white-space:nowrap;`;
     this._wrapper.appendChild(this._tooltipEl);
 
     container.appendChild(this._wrapper);
@@ -222,14 +250,19 @@ class ChartApi implements IChartApi {
     this._chartCtx = this._chartCanvas.getContext('2d')!;
     this._overlayCtx = this._overlayCanvas.getContext('2d')!;
     this._priceAxisCtx = this._priceAxisCanvas.getContext('2d')!;
+    this._leftPriceAxisCtx = this._leftPriceAxisCanvas.getContext('2d')!;
     this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
-    this._timeScale.setWidth(this._width - PRICE_AXIS_WIDTH);
+    const leftScaleW = options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(this._width - PRICE_AXIS_WIDTH - leftScaleW);
 
     this._priceScale = new PriceScale('right');
     this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
+
+    this._leftPriceScale = new PriceScale('left');
+    this._leftPriceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
 
     this._crosshair = new Crosshair();
 
@@ -434,6 +467,61 @@ class ChartApi implements IChartApi {
     if (idx !== -1) this._clickCallbacks.splice(idx, 1);
   }
 
+  // ── Feature 1: Range Switcher ─────────────────────────────────────────
+
+  setVisibleRange(from: number, to: number): void {
+    if (this._series.length === 0) return;
+    const store = this._series[0].api.getDataLayer().store;
+    if (store.length === 0) return;
+
+    // Find bar indices corresponding to the timestamps using binary search
+    const fromIdx = this._findNearestIndex(store, from);
+    const toIdx = this._findNearestIndex(store, to);
+    this.setVisibleLogicalRange(fromIdx, toIdx);
+  }
+
+  setVisibleLogicalRange(from: number, to: number): void {
+    const barsToShow = to - from + 1;
+    if (barsToShow <= 0) return;
+
+    const chartW = this._width - PRICE_AXIS_WIDTH;
+    if (chartW <= 0) return;
+
+    // Set barSpacing so exactly barsToShow bars fit in the chart width.
+    // setOptions() internally clamps to [minBarSpacing, maxBarSpacing].
+    const newBarSpacing = chartW / barsToShow;
+    this._timeScale.setOptions({ barSpacing: newBarSpacing });
+
+    // Compute rightOffset so that `to` sits at the right edge.
+    // rightBorder = baseIndex + rightOffset = to  →  rightOffset = to - baseIndex
+    const baseIndex = this._timeScale.dataLength > 0
+      ? this._timeScale.dataLength - 1
+      : 0;
+    const newRightOffset = to - baseIndex;
+
+    this._timeScale.setOptions({ barSpacing: newBarSpacing });
+    this._timeScale.setRightOffset(newRightOffset);
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 2: Go to Realtime ─────────────────────────────────────────
+
+  scrollToRealTime(): void {
+    this._timeScale.scrollToEnd();
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 3: Visible Range Change Subscription ──────────────────────
+
+  subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
+    this._visibleRangeChangeCallbacks.push(callback);
+  }
+
+  unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
+    const idx = this._visibleRangeChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._visibleRangeChangeCallbacks.splice(idx, 1);
+  }
+
   // ── Repaint scheduling ────────────────────────────────────────────────
 
   requestRepaint(level: number): void {
@@ -481,7 +569,45 @@ class ChartApi implements IChartApi {
 
     this._updateLegend();
     this._updateTooltip();
+
+    // Emit visible range change callbacks (Feature 3)
+    if (this._visibleRangeChangeCallbacks.length > 0) {
+      this._emitVisibleRangeChange();
+    }
+
     this._mask.reset();
+  }
+
+  private _emitVisibleRangeChange(): void {
+    if (this._series.length === 0) {
+      if (this._lastVisibleRangeFrom !== null || this._lastVisibleRangeTo !== null) {
+        this._lastVisibleRangeFrom = null;
+        this._lastVisibleRangeTo = null;
+        for (const cb of this._visibleRangeChangeCallbacks) cb(null);
+      }
+      return;
+    }
+
+    const store = this._series[0].api.getDataLayer().store;
+    if (store.length === 0) {
+      if (this._lastVisibleRangeFrom !== null || this._lastVisibleRangeTo !== null) {
+        this._lastVisibleRangeFrom = null;
+        this._lastVisibleRangeTo = null;
+        for (const cb of this._visibleRangeChangeCallbacks) cb(null);
+      }
+      return;
+    }
+
+    const range = this._timeScale.visibleRange();
+    const fromTime = store.time[Math.max(0, range.fromIdx)];
+    const toTime = store.time[Math.min(store.length - 1, range.toIdx)];
+
+    if (fromTime !== this._lastVisibleRangeFrom || toTime !== this._lastVisibleRangeTo) {
+      this._lastVisibleRangeFrom = fromTime;
+      this._lastVisibleRangeTo = toTime;
+      const payload = { from: fromTime, to: toTime };
+      for (const cb of this._visibleRangeChangeCallbacks) cb(payload);
+    }
   }
 
   private _paintMain(): void {
@@ -1127,6 +1253,21 @@ class ChartApi implements IChartApi {
     }
 
     ctx.restore();
+  }
+
+  /** Find the bar index whose timestamp is nearest to `time`. */
+  private _findNearestIndex(store: ColumnStore, time: number): number {
+    if (store.length === 0) return 0;
+    let lo = 0;
+    let hi = store.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (store.time[mid] < time) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo === 0) return 0;
+    if (lo >= store.length) return store.length - 1;
+    return Math.abs(store.time[lo] - time) <= Math.abs(store.time[lo - 1] - time) ? lo : lo - 1;
   }
 
   /** Binary search for exact time match in a ColumnStore, returns nearest index. */

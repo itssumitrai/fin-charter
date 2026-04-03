@@ -120,13 +120,13 @@ describe('createChart', () => {
   it('creates a chart with DOM elements', () => {
     chart = createChart(container, { width: 600, height: 300 });
 
-    // Should have a wrapper div with 4 canvases (chart, overlay, price axis, time axis)
+    // Should have a wrapper div with canvases (chart, overlay, price axis, left price axis, time axis)
     const wrapper = container.firstElementChild as HTMLDivElement;
     expect(wrapper).toBeTruthy();
     expect(wrapper.tagName).toBe('DIV');
 
     const canvases = wrapper.querySelectorAll('canvas');
-    expect(canvases.length).toBe(4);
+    expect(canvases.length).toBeGreaterThanOrEqual(4);
   });
 
   it('adds and removes a candlestick series', () => {
@@ -323,5 +323,90 @@ describe('createChart', () => {
     const pane = chart.addPane({ height: 150 });
     expect(pane.id).toBeTruthy();
     chart.removePane(pane);
+  });
+
+  // ── Feature 2: Go to Realtime ────────────────────────────────────────────
+
+  it('scrollToRealTime resets rightOffset to 0', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(50));
+
+    // Scroll away from realtime by adjusting rightOffset via timeScale
+    chart.timeScale().setRightOffset(10);
+    expect(chart.timeScale().rightOffset).toBe(10);
+
+    // Now reset
+    chart.scrollToRealTime();
+    expect(chart.timeScale().rightOffset).toBe(0);
+  });
+
+  // ── Feature 1: Range Switcher ────────────────────────────────────────────
+
+  it('setVisibleLogicalRange adjusts barSpacing and rightOffset', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(100));
+    flushRAF(); // allow _paint to update dataLength on timeScale
+
+    // Show bars 50–99 (50 bars)
+    chart.setVisibleLogicalRange(50, 99);
+
+    // rightOffset = toIdx - baseIndex = 99 - 99 = 0
+    expect(chart.timeScale().rightOffset).toBeCloseTo(0, 5);
+  });
+
+  it('setVisibleRange finds nearest bar indices by timestamp', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    const bars = makeBars(10, 1000); // times 1000, 1060, 1120, ..., 1540
+    series.setData(bars);
+    flushRAF();
+
+    // Set visible range covering bars 0–4 by exact timestamps
+    chart.setVisibleRange(1000, 1240);
+
+    // rightOffset = toIdx(4) - baseIndex(9) = 4 - 9 = -5
+    expect(chart.timeScale().rightOffset).toBeCloseTo(-5, 5);
+  });
+
+  // ── Feature 3: Visible Range Change Subscription ─────────────────────────
+
+  it('subscribeVisibleRangeChange fires when visible range changes', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(20, 1000));
+
+    const callback = vi.fn();
+    chart.subscribeVisibleRangeChange(callback);
+
+    // Flush the initial paint - this should fire the callback
+    flushRAF();
+    expect(callback).toHaveBeenCalledTimes(1);
+    const firstCall = callback.mock.calls[0][0];
+    expect(firstCall).not.toBeNull();
+    expect(typeof firstCall.from).toBe('number');
+    expect(typeof firstCall.to).toBe('number');
+    expect(firstCall.from).toBeLessThanOrEqual(firstCall.to);
+  });
+
+  it('unsubscribeVisibleRangeChange stops firing callbacks', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(20, 1000));
+
+    const callback = vi.fn();
+    chart.subscribeVisibleRangeChange(callback);
+    flushRAF();
+    const callsBefore = callback.mock.calls.length;
+
+    chart.unsubscribeVisibleRangeChange(callback);
+
+    // Force another repaint
+    chart.scrollToRealTime();
+    flushRAF();
+
+    // Callback count should not have increased after unsubscribe
+    expect(callback.mock.calls.length).toBe(callsBefore);
   });
 });

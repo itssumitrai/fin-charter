@@ -6,7 +6,7 @@ export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/char
 export type { ISeriesApi } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
 
-export { DARK_THEME, LIGHT_THEME } from './api/options';
+export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
 
 // ─── Series markers ────────────────────────────────────────────────────
 export type {
@@ -39,6 +39,8 @@ export type {
   TooltipOptions,
   WatermarkOptions,
   VolumeOverlayOptions,
+  PriceScaleOptions,
+  TimeGapsOptions,
 } from './api/options';
 
 // ─── Core types ─────────────────────────────────────────────────────────────

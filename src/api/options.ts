@@ -71,6 +71,14 @@ export interface VolumeOverlayOptions {
   scaleMarginTop: number;
 }
 
+export interface PriceScaleOptions {
+  visible: boolean;
+}
+
+export interface TimeGapsOptions {
+  visible: boolean;
+}
+
 export interface ChartOptions {
   width: number;
   height: number;
@@ -83,6 +91,10 @@ export interface ChartOptions {
   tooltip: TooltipOptions;
   watermark: WatermarkOptions;
   volume: VolumeOverlayOptions;
+  rightPriceScale: PriceScaleOptions;
+  leftPriceScale: PriceScaleOptions;
+  timeGaps: TimeGapsOptions;
+  priceFormatter?: (price: number) => string;
   theme?: 'dark' | 'light';
 }
 
@@ -98,6 +110,21 @@ export const DARK_THEME: DeepPartial<ChartOptions> = {
   grid: {
     vertLinesColor: 'rgba(255, 255, 255, 0.06)',
     horzLinesColor: 'rgba(255, 255, 255, 0.06)',
+  },
+};
+
+export const COLORFUL_THEME: DeepPartial<ChartOptions> = {
+  layout: {
+    backgroundColor: '#131722',
+    textColor: '#b2b5be',
+  },
+  grid: {
+    vertLinesColor: 'rgba(42, 46, 57, 0.8)',
+    horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+  },
+  crosshair: {
+    vertLineColor: '#758696',
+    horzLineColor: '#758696',
   },
 };
 
@@ -165,6 +192,15 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
     upColor: 'rgba(38,166,154,0.3)',
     downColor: 'rgba(239,83,80,0.3)',
     scaleMarginTop: 0.7,
+  },
+  rightPriceScale: {
+    visible: true,
+  },
+  leftPriceScale: {
+    visible: false,
+  },
+  timeGaps: {
+    visible: false,
   },
 };
 
