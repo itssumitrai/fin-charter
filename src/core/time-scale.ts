@@ -40,7 +40,14 @@ export class TimeScale {
   }
 
   setDataLength(length: number): void {
+    const oldLength = this._dataLength;
     this._dataLength = length;
+
+    // Auto-scroll: if user hasn't scrolled away from the right edge,
+    // keep the latest data in view as new bars arrive.
+    if (length > oldLength && Math.abs(this._scrollOffset) < 1) {
+      this._scrollOffset = 0;
+    }
   }
 
   get barSpacing(): number {
