@@ -25,6 +25,7 @@ export class CrosshairHandler implements EventHandler {
     this._requestInvalidation = requestInvalidation;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onPointerMove(x: number, y: number, _pointerId: number): void {
     const store = this._dataLayer.store;
     if (store.length === 0) {
@@ -57,6 +58,7 @@ export class CrosshairHandler implements EventHandler {
     this._requestInvalidation();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onPointerUp(_pointerId: number): void {
     this._crosshair.hide();
     this._requestInvalidation();

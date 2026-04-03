@@ -1,4 +1,4 @@
-import type { Bar, ColumnData, DeepPartial, SeriesType } from '../core/types';
+import type { Bar, ColumnData, DeepPartial } from '../core/types';
 import type { CandlestickRendererOptions } from '../renderers/candlestick';
 import type { LineRendererOptions } from '../renderers/line';
 import type { AreaRendererOptions } from '../renderers/area';

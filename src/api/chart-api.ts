@@ -1,5 +1,4 @@
 import type {
-  Bar,
   ColumnStore,
   DeepPartial,
   IRenderTarget,
@@ -280,6 +279,7 @@ class ChartApi implements IChartApi {
     return this._timeScale;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   priceScale(_id?: string): PriceScale {
     return this._priceScale;
   }
@@ -664,6 +664,7 @@ class ChartApi implements IChartApi {
     options: Record<string, unknown>,
   ): SeriesEntry['renderer'] {
     // Extract renderer-relevant options (exclude BaseSeriesOptions fields)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: _d, priceScaleId: _p, visible: _v, ...rendererOpts } = options;
 
     switch (type) {

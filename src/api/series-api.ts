@@ -128,6 +128,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
 
   // ── Private ───────────────────────────────────────────────────────────────
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private _notifyPrimitives(_scope: 'full' | 'update'): void {
     for (const p of this._primitives) {
       p.updateAllViews?.();
