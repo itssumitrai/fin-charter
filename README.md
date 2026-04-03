@@ -2,6 +2,8 @@
 
 Ultra-fast, tree-shakeable financial charting library for the browser.
 
+**[Live Storybook Documentation & Examples](https://itssumitrai.github.io/fin-charter/)**
+
 ## Key Features
 
 - **Ultra-fast canvas rendering** — direct 2D canvas drawing, no virtual DOM
