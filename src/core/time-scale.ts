@@ -29,6 +29,9 @@ const DEFAULT_OPTIONS: TimeScaleOptions = {
  *   naturally appear if the last bar was visible.
  */
 export class TimeScale {
+  // Minimum visible bars before can't scroll further
+  private static readonly MIN_VISIBLE_BARS = 2;
+
   private _options: TimeScaleOptions;
   /** Canvas width in pixels. */
   private _width: number = 0;
@@ -143,11 +146,13 @@ export class TimeScale {
   scrollTo(startX: number, currentX: number, savedRightOffset: number): void {
     const shift = (startX - currentX) / this._barSpacing;
     this._rightOffset = savedRightOffset + shift;
+    this.correctOffset();
   }
 
   /** Direct offset setter for kinetic scrolling etc. */
   setRightOffset(offset: number): void {
     this._rightOffset = offset;
+    this.correctOffset();
   }
 
   /** Scroll so the last bar is visible at the right edge (reset to configured rightOffset). */
@@ -163,6 +168,7 @@ export class TimeScale {
    */
   scrollByPixels(deltaX: number): void {
     this._rightOffset += deltaX / this._barSpacing;
+    this.correctOffset();
   }
 
   /**
@@ -171,6 +177,7 @@ export class TimeScale {
    */
   scrollToPosition(position: number): void {
     this._rightOffset = position;
+    this.correctOffset();
   }
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
@@ -191,6 +198,7 @@ export class TimeScale {
     this._barSpacing = newSpacing;
     const newIdx = this._floatIndexAtX(x);
     this._rightOffset += oldIdx - newIdx;
+    this.correctOffset();
   }
 
   // ── Fit content ───────────────────────────────────────────────────────────
@@ -203,6 +211,26 @@ export class TimeScale {
       Math.min(this._options.maxBarSpacing, this._width / this._dataLength),
     );
     this._rightOffset = this._options.rightOffset;
+  }
+
+  // ── Offset clamping ───────────────────────────────────────────────────────
+
+  correctOffset(): void {
+    if (this._dataLength === 0) return;
+
+    const barsInView = this._width / this._barSpacing;
+
+    // Max rightOffset: can't scroll so far left that fewer than MIN_VISIBLE_BARS are visible on the right
+    const maxRightOffset = barsInView - TimeScale.MIN_VISIBLE_BARS;
+    if (this._rightOffset > maxRightOffset) {
+      this._rightOffset = maxRightOffset;
+    }
+
+    // Min rightOffset: can't scroll so far right that fewer than MIN_VISIBLE_BARS are visible on the left
+    const minRightOffset = -(this._dataLength - TimeScale.MIN_VISIBLE_BARS);
+    if (this._rightOffset < minRightOffset) {
+      this._rightOffset = minRightOffset;
+    }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

@@ -120,13 +120,13 @@ describe('createChart', () => {
   it('creates a chart with DOM elements', () => {
     chart = createChart(container, { width: 600, height: 300 });
 
-    // Should have a wrapper div with 2 canvases
+    // Should have a wrapper div with 4 canvases (chart, overlay, price axis, time axis)
     const wrapper = container.firstElementChild as HTMLDivElement;
     expect(wrapper).toBeTruthy();
     expect(wrapper.tagName).toBe('DIV');
 
     const canvases = wrapper.querySelectorAll('canvas');
-    expect(canvases.length).toBe(2);
+    expect(canvases.length).toBe(4);
   });
 
   it('adds and removes a candlestick series', () => {

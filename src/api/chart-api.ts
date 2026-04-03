@@ -115,10 +115,15 @@ class ChartApi implements IChartApi {
   private _options: ChartOptions;
   private _container: HTMLElement;
   private _wrapper: HTMLDivElement;
-  private _mainCanvas: HTMLCanvasElement;
+  private _chartCanvas: HTMLCanvasElement;
   private _overlayCanvas: HTMLCanvasElement;
-  private _mainCtx: CanvasRenderingContext2D;
+  private _priceAxisCanvas: HTMLCanvasElement;
+  private _timeAxisCanvas: HTMLCanvasElement;
+  private _chartCtx: CanvasRenderingContext2D;
   private _overlayCtx: CanvasRenderingContext2D;
+  private _priceAxisCtx: CanvasRenderingContext2D;
+  private _timeAxisCtx: CanvasRenderingContext2D;
+  private _legendEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
   private _priceScale: PriceScale;
@@ -162,27 +167,51 @@ class ChartApi implements IChartApi {
     this._wrapper.style.height = `${this._height}px`;
     this._wrapper.style.backgroundColor = options.layout.backgroundColor;
 
-    this._mainCanvas = document.createElement('canvas');
-    this._mainCanvas.style.position = 'absolute';
-    this._mainCanvas.style.left = '0';
-    this._mainCanvas.style.top = '0';
-    this._mainCanvas.style.zIndex = '2';
+    // Chart canvas (series + grid) — top-left
+    this._chartCanvas = document.createElement('canvas');
+    this._chartCanvas.style.position = 'absolute';
+    this._chartCanvas.style.left = '0';
+    this._chartCanvas.style.top = '0';
+    this._chartCanvas.style.zIndex = '1';
 
+    // Overlay canvas (crosshair only) — same position as chart canvas, z+1
     this._overlayCanvas = document.createElement('canvas');
     this._overlayCanvas.style.position = 'absolute';
     this._overlayCanvas.style.left = '0';
     this._overlayCanvas.style.top = '0';
-    this._overlayCanvas.style.zIndex = '3';
+    this._overlayCanvas.style.zIndex = '2';
 
-    this._wrapper.appendChild(this._mainCanvas);
+    // Price axis canvas — top-right
+    this._priceAxisCanvas = document.createElement('canvas');
+    this._priceAxisCanvas.style.position = 'absolute';
+    this._priceAxisCanvas.style.top = '0';
+    this._priceAxisCanvas.style.zIndex = '1';
+
+    // Time axis canvas — bottom-left
+    this._timeAxisCanvas = document.createElement('canvas');
+    this._timeAxisCanvas.style.position = 'absolute';
+    this._timeAxisCanvas.style.left = '0';
+    this._timeAxisCanvas.style.zIndex = '1';
+
+    this._wrapper.appendChild(this._chartCanvas);
     this._wrapper.appendChild(this._overlayCanvas);
+    this._wrapper.appendChild(this._priceAxisCanvas);
+    this._wrapper.appendChild(this._timeAxisCanvas);
+
+    // Legend overlay (DOM-based)
+    this._legendEl = document.createElement('div');
+    this._legendEl.style.cssText = 'position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;gap:8px;pointer-events:none;color:' + options.layout.textColor;
+    this._wrapper.appendChild(this._legendEl);
+
     container.appendChild(this._wrapper);
 
     const pixelRatio = window.devicePixelRatio || 1;
     this._setCanvasSize(this._width, this._height, pixelRatio);
 
-    this._mainCtx = this._mainCanvas.getContext('2d')!;
+    this._chartCtx = this._chartCanvas.getContext('2d')!;
     this._overlayCtx = this._overlayCanvas.getContext('2d')!;
+    this._priceAxisCtx = this._priceAxisCanvas.getContext('2d')!;
+    this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
@@ -393,9 +422,14 @@ class ChartApi implements IChartApi {
     const level = this._mask.level(this._mainPaneId);
     if (level >= InvalidationLevel.Light) {
       this._paintMain();
+      this._paintPriceAxis();
+      this._paintTimeAxis();
     }
     if (level >= InvalidationLevel.Cursor) {
       this._paintOverlay();
+      // Redraw axes on cursor move too (for crosshair labels) — axes are tiny, very cheap
+      this._paintPriceAxis();
+      this._paintTimeAxis();
     }
 
     // Emit crosshair callbacks
@@ -413,19 +447,18 @@ class ChartApi implements IChartApi {
       for (const cb of this._crosshairMoveCallbacks) cb(null);
     }
 
+    this._updateLegend();
     this._mask.reset();
   }
 
   private _paintMain(): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._mainCtx;
-    const w = this._width;
-    const h = this._height;
-    const chartW = w - PRICE_AXIS_WIDTH;
-    const chartH = h - TIME_AXIS_HEIGHT;
+    const ctx = this._chartCtx;
+    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
 
-    // Clear
-    ctx.clearRect(0, 0, Math.round(w * pixelRatio), Math.round(h * pixelRatio));
+    // Clear chart canvas
+    ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
 
     if (this._series.length === 0) return;
 
@@ -451,7 +484,7 @@ class ChartApi implements IChartApi {
     ctx.clip();
 
     // Draw each series
-    const target = this._createRenderTarget(this._mainCanvas, ctx, pixelRatio);
+    const target = this._createRenderTarget(this._chartCanvas, ctx, pixelRatio);
     const indexToX = (i: number) => this._timeScale.indexToX(i);
     const priceToY = (p: number) => this._priceScale.priceToY(p);
 
@@ -469,23 +502,19 @@ class ChartApi implements IChartApi {
 
     ctx.restore();
 
-    // Draw axes
-    this._drawPriceAxis(ctx, w, chartW, chartH, pixelRatio);
-    this._drawTimeAxis(ctx, chartW, chartH, h, range, primaryStore, pixelRatio);
-
-    // Draw axis separator lines
+    // Draw separator lines on chart canvas edges
     ctx.save();
     ctx.strokeStyle = this._options.grid.horzLinesColor;
     ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
-    // Vertical separator (chart area | price axis)
+    // Right edge separator (chart area | price axis)
     ctx.beginPath();
-    ctx.moveTo(Math.round(chartW * pixelRatio), 0);
-    ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+    ctx.moveTo(Math.round(chartW * pixelRatio) - 1, 0);
+    ctx.lineTo(Math.round(chartW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
     ctx.stroke();
-    // Horizontal separator (chart area / time axis)
+    // Bottom edge separator (chart area / time axis)
     ctx.beginPath();
-    ctx.moveTo(0, Math.round(chartH * pixelRatio));
-    ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+    ctx.moveTo(0, Math.round(chartH * pixelRatio) - 1);
+    ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio) - 1);
     ctx.stroke();
     ctx.restore();
   }
@@ -528,16 +557,17 @@ class ChartApi implements IChartApi {
   private _paintOverlay(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._overlayCtx;
-    const w = this._width;
-    const h = this._height;
+    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
 
-    ctx.clearRect(0, 0, Math.round(w * pixelRatio), Math.round(h * pixelRatio));
+    // Overlay canvas is sized to chart area only
+    ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
 
     if (!this._crosshair.visible) return;
 
     const opts = this._options.crosshair;
 
-    // Vertical line (snapped to bar center)
+    // Vertical line (snapped to bar center) — clipped to chart area
     const vx = Math.round(this._crosshair.snappedX * pixelRatio);
     ctx.save();
     ctx.strokeStyle = opts.vertLineColor;
@@ -545,11 +575,11 @@ class ChartApi implements IChartApi {
     ctx.setLineDash(opts.vertLineDash.map((d) => d * pixelRatio));
     ctx.beginPath();
     ctx.moveTo(vx, 0);
-    ctx.lineTo(vx, Math.round(h * pixelRatio));
+    ctx.lineTo(vx, Math.round(chartH * pixelRatio));
     ctx.stroke();
     ctx.restore();
 
-    // Horizontal line
+    // Horizontal line — clipped to chart area
     const hy = Math.round(this._crosshair.y * pixelRatio);
     ctx.save();
     ctx.strokeStyle = opts.horzLineColor;
@@ -557,7 +587,7 @@ class ChartApi implements IChartApi {
     ctx.setLineDash(opts.horzLineDash.map((d) => d * pixelRatio));
     ctx.beginPath();
     ctx.moveTo(0, hy);
-    ctx.lineTo(Math.round(w * pixelRatio), hy);
+    ctx.lineTo(Math.round(chartW * pixelRatio), hy);
     ctx.stroke();
     ctx.restore();
   }
@@ -614,15 +644,16 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
-  // ── Price axis ────────────────────────────────────────────────────────
+  // ── Price axis (on its own canvas) ─────────────────────────────────────
 
-  private _drawPriceAxis(
-    ctx: CanvasRenderingContext2D,
-    totalW: number,
-    chartW: number,
-    chartH: number,
-    pixelRatio: number,
-  ): void {
+  private _paintPriceAxis(): void {
+    const pixelRatio = window.devicePixelRatio || 1;
+    const ctx = this._priceAxisCtx;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const axisW = PRICE_AXIS_WIDTH;
+
+    ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
+
     const layout = this._options.layout;
     const priceRange = this._priceScale.priceRange;
     const pRange = priceRange.max - priceRange.min;
@@ -634,43 +665,70 @@ class ChartApi implements IChartApi {
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
-    const axisX = Math.round(chartW * pixelRatio);
-    const axisRight = Math.round(totalW * pixelRatio);
+    const axisRight = Math.round(axisW * pixelRatio);
     const padding = Math.round(6 * pixelRatio);
     const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
     for (let price = firstPrice; price <= priceRange.max; price += step) {
       const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
-      // Skip labels too close to edges
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
       const text = price.toFixed(2);
 
       // Draw background rect
       ctx.fillStyle = this._options.layout.backgroundColor;
-      ctx.fillRect(axisX + 1, y - labelHeight / 2, axisRight - axisX - 1, labelHeight);
+      ctx.fillRect(0, y - labelHeight / 2, axisRight, labelHeight);
 
       // Draw text
       ctx.fillStyle = layout.textColor;
       ctx.fillText(text, axisRight - padding, y);
     }
 
+    // Draw left separator line
+    ctx.strokeStyle = this._options.grid.horzLinesColor;
+    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, Math.round(chartH * pixelRatio));
+    ctx.stroke();
+
+    // Crosshair price label
+    if (this._crosshair.visible) {
+      const hy = Math.round(this._crosshair.y * pixelRatio);
+      const priceText = this._crosshair.price.toFixed(2);
+      const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+      ctx.fillStyle = this._options.crosshair.horzLineColor;
+      ctx.fillRect(0, hy - lh / 2, axisRight, lh);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(priceText, axisRight - padding, hy);
+    }
+
     ctx.restore();
   }
 
-  // ── Time axis ─────────────────────────────────────────────────────────
+  // ── Time axis (on its own canvas) ─────────────────────────────────────
 
-  private _drawTimeAxis(
-    ctx: CanvasRenderingContext2D,
-    chartW: number,
-    chartH: number,
-    totalH: number,
-    range: VisibleRange,
-    store: ColumnStore,
-    pixelRatio: number,
-  ): void {
-    if (store.length === 0) return;
+  private _paintTimeAxis(): void {
+    const pixelRatio = window.devicePixelRatio || 1;
+    const ctx = this._timeAxisCtx;
+    const chartW = this._width - PRICE_AXIS_WIDTH;
+
+    ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(TIME_AXIS_HEIGHT * pixelRatio));
+
+    if (this._series.length === 0) return;
+
+    const primaryEntry = this._series[0];
+    const primaryStore = primaryEntry.api.getDataLayer().store;
+    if (primaryStore.length === 0) return;
+
+    this._timeScale.setDataLength(primaryStore.length);
+    const range = this._timeScale.visibleRange();
+    if (range.fromIdx > range.toIdx) return;
 
     const layout = this._options.layout;
     const barsInRange = range.toIdx - range.fromIdx + 1;
@@ -683,32 +741,66 @@ class ChartApi implements IChartApi {
     ctx.textBaseline = 'top';
     ctx.fillStyle = layout.textColor;
 
-    const axisY = Math.round(chartH * pixelRatio);
-    const textY = axisY + Math.round(8 * pixelRatio);
+    const textY = Math.round(8 * pixelRatio);
 
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     for (let i = range.fromIdx; i <= range.toIdx; i += barStep) {
-      if (i >= store.length) break;
+      if (i >= primaryStore.length) break;
       const x = Math.round(this._timeScale.indexToX(i) * pixelRatio);
       if (x < 0 || x > Math.round(chartW * pixelRatio)) continue;
 
-      const timestamp = store.time[i];
+      const timestamp = primaryStore.time[i];
       const date = new Date(timestamp * 1000);
 
-      // Detect if data is intraday: check spacing between first two bars
       let label: string;
-      if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
-        // Intraday: HH:MM
+      if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
         const hh = date.getUTCHours().toString().padStart(2, '0');
         const mm = date.getUTCMinutes().toString().padStart(2, '0');
         label = `${hh}:${mm}`;
       } else {
-        // Daily: MMM DD
         label = `${months[date.getUTCMonth()]} ${date.getUTCDate().toString().padStart(2, '0')}`;
       }
 
       ctx.fillText(label, x, textY);
+    }
+
+    // Draw top separator line
+    ctx.strokeStyle = this._options.grid.horzLinesColor;
+    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.round(chartW * pixelRatio), 0);
+    ctx.stroke();
+
+    // Crosshair time label
+    if (this._crosshair.visible && this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      if (store.length > 0 && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
+        const vx = Math.round(this._crosshair.snappedX * pixelRatio);
+        const timestamp = store.time[this._crosshair.barIndex];
+        const date = new Date(timestamp * 1000);
+
+        let timeLabel: string;
+        if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+          const hh = date.getUTCHours().toString().padStart(2, '0');
+          const mm = date.getUTCMinutes().toString().padStart(2, '0');
+          timeLabel = `${hh}:${mm}`;
+        } else {
+          timeLabel = `${months[date.getUTCMonth()]} ${date.getUTCDate().toString().padStart(2, '0')}`;
+        }
+
+        const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+        const tw = Math.round(50 * pixelRatio);
+
+        ctx.fillStyle = this._options.crosshair.vertLineColor;
+        ctx.fillRect(vx - tw / 2, 0, tw, lh);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(timeLabel, vx, Math.round(2 * pixelRatio));
+      }
     }
 
     ctx.restore();
@@ -738,6 +830,37 @@ class ChartApi implements IChartApi {
     }
   }
 
+  // ── Legend ────────────────────────────────────────────────────────────
+
+  private _updateLegend(): void {
+    if (this._series.length === 0) { this._legendEl.innerHTML = ''; return; }
+
+    const primaryEntry = this._series[0];
+    const store = primaryEntry.api.getDataLayer().store;
+
+    // Use crosshair bar if visible, otherwise last bar
+    let idx = store.length - 1;
+    if (this._crosshair.visible && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
+      idx = this._crosshair.barIndex;
+    }
+    if (idx < 0 || idx >= store.length) { this._legendEl.innerHTML = ''; return; }
+
+    const o = store.open[idx];
+    const h = store.high[idx];
+    const l = store.low[idx];
+    const c = store.close[idx];
+    const v = store.volume[idx];
+    const isUp = c >= o;
+    const color = isUp ? '#26a69a' : '#ef5350';
+
+    this._legendEl.innerHTML =
+      `<span style="color:${this._options.layout.textColor}">O</span><span style="color:${color}">${o.toFixed(2)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">H</span><span style="color:${color}">${h.toFixed(2)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">L</span><span style="color:${color}">${l.toFixed(2)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">C</span><span style="color:${color}">${c.toFixed(2)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">V</span><span style="color:${this._options.layout.textColor}">${v.toLocaleString()}</span>`;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────
 
   private _createRenderTarget(
@@ -748,22 +871,37 @@ class ChartApi implements IChartApi {
     return {
       canvas,
       context: ctx,
-      width: this._width,
-      height: this._height,
+      width: this._width - PRICE_AXIS_WIDTH,
+      height: this._height - TIME_AXIS_HEIGHT,
       pixelRatio,
     };
   }
 
   private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
-    const pw = Math.round(width * pixelRatio);
-    const ph = Math.round(height * pixelRatio);
+    const chartW = width - PRICE_AXIS_WIDTH;
+    const chartH = height - TIME_AXIS_HEIGHT;
 
-    for (const canvas of [this._mainCanvas, this._overlayCanvas]) {
-      canvas.width = pw;
-      canvas.height = ph;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+    // Chart + overlay canvases: chart area only
+    for (const canvas of [this._chartCanvas, this._overlayCanvas]) {
+      canvas.width = Math.round(chartW * pixelRatio);
+      canvas.height = Math.round(chartH * pixelRatio);
+      canvas.style.width = `${chartW}px`;
+      canvas.style.height = `${chartH}px`;
     }
+
+    // Price axis canvas — positioned top-right
+    this._priceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
+    this._priceAxisCanvas.height = Math.round(chartH * pixelRatio);
+    this._priceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
+    this._priceAxisCanvas.style.height = `${chartH}px`;
+    this._priceAxisCanvas.style.left = `${chartW}px`;
+
+    // Time axis canvas — positioned bottom-left
+    this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
+    this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
+    this._timeAxisCanvas.style.width = `${chartW}px`;
+    this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
+    this._timeAxisCanvas.style.top = `${chartH}px`;
   }
 
   private _addSeries<T extends SeriesType>(
