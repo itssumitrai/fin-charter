@@ -13,10 +13,10 @@ const config: StorybookConfig = {
   viteFinal: async (config) => {
     return mergeConfig(config, {
       resolve: {
-        alias: {
-          'fin-charter': resolve(__dirname, '../src/index.ts'),
-          'fin-charter/indicators': resolve(__dirname, '../src/indicators/index.ts'),
-        },
+        alias: [
+          { find: 'fin-charter/indicators', replacement: resolve(__dirname, '../src/indicators/index.ts') },
+          { find: 'fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
+        ],
       },
     });
   },
