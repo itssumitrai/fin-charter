@@ -132,7 +132,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   }
 
   getMarkers(): readonly SeriesMarker[] {
-    return this._markers;
+    return [...this._markers];
   }
 
   createPriceLine(options: PriceLineOptions): PriceLine {
@@ -151,7 +151,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   }
 
   getPriceLines(): readonly PriceLine[] {
-    return this._priceLines;
+    return [...this._priceLines];
   }
 
   // ── Internal accessors ────────────────────────────────────────────────────

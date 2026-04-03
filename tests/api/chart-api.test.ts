@@ -126,7 +126,7 @@ describe('createChart', () => {
     expect(wrapper.tagName).toBe('DIV');
 
     const canvases = wrapper.querySelectorAll('canvas');
-    expect(canvases.length).toBeGreaterThanOrEqual(4);
+    expect(canvases.length).toBe(5);
   });
 
   it('adds and removes a candlestick series', () => {

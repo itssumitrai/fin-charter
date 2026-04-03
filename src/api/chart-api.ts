@@ -202,7 +202,8 @@ class ChartApi implements IChartApi {
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    return this._width - PRICE_AXIS_WIDTH - leftScaleW;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    return this._width - leftScaleW - rightScaleW;
   }
 
   constructor(container: HTMLElement, options: ChartOptions) {
@@ -319,7 +320,8 @@ class ChartApi implements IChartApi {
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
     const leftScaleW = options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    this._timeScale.setWidth(this._width - PRICE_AXIS_WIDTH - leftScaleW);
+    const rightScaleW = options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(this._width - leftScaleW - rightScaleW);
 
     this._priceScale = new PriceScale('right');
     this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
@@ -496,7 +498,8 @@ class ChartApi implements IChartApi {
     this._wrapper.style.height = `${height}px`;
 
     const leftScaleWidthR = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    this._timeScale.setWidth(width - PRICE_AXIS_WIDTH - leftScaleWidthR);
+    const rightScaleWidthR = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(width - leftScaleWidthR - rightScaleWidthR);
     this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
     this._leftPriceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
@@ -551,16 +554,22 @@ class ChartApi implements IChartApi {
 
   setVisibleRange(from: number, to: number): void {
     if (this._series.length === 0) return;
-    const store = this._series[0].api.getDataLayer().store;
-    if (store.length === 0) return;
+    const dl = this._series[0].api.getDataLayer();
+    if (dl.store.length === 0) return;
 
     // Find bar indices corresponding to the timestamps using binary search
-    const fromIdx = this._findNearestIndex(store, from);
-    const toIdx = this._findNearestIndex(store, to);
+    const fromIdx = dl.findIndex(from);
+    const toIdx = dl.findIndex(to);
     this.setVisibleLogicalRange(fromIdx, toIdx);
   }
 
   setVisibleLogicalRange(from: number, to: number): void {
+    // Sync dataLength from primary series in case this is called before first paint
+    if (this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      this._timeScale.setDataLength(store.length);
+    }
+
     const barsToShow = to - from + 1;
     if (barsToShow <= 0) return;
 
@@ -753,8 +762,8 @@ class ChartApi implements IChartApi {
       if (!entry.api.isVisible()) continue;
       const markers = entry.api.getMarkers();
       if (markers.length > 0) {
-        const store = entry.api.getDataLayer().store;
-        this._drawMarkers(ctx, markers, store, range, indexToX, priceToY, pixelRatio);
+        const dataLayer = entry.api.getDataLayer();
+        this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
       }
     }
 
@@ -1141,24 +1150,36 @@ class ChartApi implements IChartApi {
   // ── Auto-scale price range ────────────────────────────────────────────
 
   private _updateDataRange(range: VisibleRange): void {
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
+    let rightMin = Infinity;
+    let rightMax = -Infinity;
+    let leftMin = Infinity;
+    let leftMax = -Infinity;
 
     for (const entry of this._series) {
       if (!entry.api.isVisible()) continue;
       const store = entry.api.getDataLayer().store;
       const to = Math.min(range.toIdx, store.length - 1);
 
+      const isLeft = entry.api.options().priceScaleId === 'left';
+
       for (let i = range.fromIdx; i <= to; i++) {
         const lo = store.low[i];
         const hi = store.high[i];
-        if (lo < minPrice) minPrice = lo;
-        if (hi > maxPrice) maxPrice = hi;
+        if (isLeft) {
+          if (lo < leftMin) leftMin = lo;
+          if (hi > leftMax) leftMax = hi;
+        } else {
+          if (lo < rightMin) rightMin = lo;
+          if (hi > rightMax) rightMax = hi;
+        }
       }
     }
 
-    if (minPrice < Infinity && maxPrice > -Infinity) {
-      this._priceScale.autoScale(minPrice, maxPrice);
+    if (rightMin < Infinity && rightMax > -Infinity) {
+      this._priceScale.autoScale(rightMin, rightMax);
+    }
+    if (leftMin < Infinity && leftMax > -Infinity) {
+      this._leftPriceScale.autoScale(leftMin, leftMax);
     }
   }
 
@@ -1260,12 +1281,13 @@ class ChartApi implements IChartApi {
   private _drawMarkers(
     ctx: CanvasRenderingContext2D,
     markers: readonly SeriesMarker[],
-    store: ColumnStore,
+    dataLayer: DataLayer,
     range: VisibleRange,
     indexToX: (i: number) => number,
     priceToY: (p: number) => number,
     pixelRatio: number,
   ): void {
+    const store = dataLayer.store;
     if (store.length === 0) return;
 
     ctx.save();
@@ -1273,7 +1295,7 @@ class ChartApi implements IChartApi {
 
     for (const marker of markers) {
       // Binary search for bar index matching marker time
-      const idx = this._findNearestIndex(store, marker.time);
+      const idx = dataLayer.findIndex(marker.time);
       if (idx < range.fromIdx || idx > range.toIdx) continue;
       if (idx >= store.length) continue;
 
@@ -1335,21 +1357,6 @@ class ChartApi implements IChartApi {
     }
 
     ctx.restore();
-  }
-
-  /** Find the bar index whose timestamp is nearest to `time`. */
-  private _findNearestIndex(store: ColumnStore, time: number): number {
-    if (store.length === 0) return 0;
-    let lo = 0;
-    let hi = store.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1;
-      if (store.time[mid] < time) lo = mid + 1;
-      else hi = mid;
-    }
-    if (lo === 0) return 0;
-    if (lo >= store.length) return store.length - 1;
-    return Math.abs(store.time[lo] - time) <= Math.abs(store.time[lo - 1] - time) ? lo : lo - 1;
   }
 
   // ── Price lines ──────────────────────────────────────────────────────
@@ -1561,7 +1568,8 @@ class ChartApi implements IChartApi {
 
   private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    const chartW = width - PRICE_AXIS_WIDTH - leftScaleW;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const chartW = width - leftScaleW - rightScaleW;
     const chartH = height - TIME_AXIS_HEIGHT;
 
     // Chart + overlay canvases: chart area only
@@ -1610,8 +1618,12 @@ class ChartApi implements IChartApi {
 
     ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
 
-    // Sync left scale with same price range as right scale
-    this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+    // Left scale auto-scales independently in _updateDataRange() based on series with priceScaleId: 'left'.
+    // Fall back to right scale range if no series are assigned to the left scale.
+    const leftRange = this._leftPriceScale.priceRange;
+    if (leftRange.min === leftRange.max) {
+      this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+    }
 
     const layout = this._options.layout;
     const priceRange = this._leftPriceScale.priceRange;

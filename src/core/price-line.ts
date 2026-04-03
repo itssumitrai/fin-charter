@@ -16,12 +16,12 @@ export class PriceLine {
   private _requestRepaint: (() => void) | null;
 
   constructor(options: PriceLineOptions, requestRepaint?: () => void) {
-    this._options = options;
+    this._options = { ...options };
     this._requestRepaint = requestRepaint ?? null;
   }
 
   get options(): Readonly<PriceLineOptions> {
-    return this._options;
+    return { ...this._options };
   }
 
   applyOptions(opts: Partial<PriceLineOptions>, requestRepaint?: () => void): void {

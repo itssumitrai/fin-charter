@@ -42,7 +42,6 @@ export const Default: Story = {
     const lastBar = AAPL_DAILY[AAPL_DAILY.length - 1];
     const lastTime = lastBar.time;
 
-    const SECOND = 1;
     const DAY = 86400;
     const MONTH = 30 * DAY;
 
