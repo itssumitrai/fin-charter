@@ -1,0 +1,148 @@
+import type { Bar, ColumnData, DeepPartial, SeriesType } from '../core/types';
+import type { CandlestickRendererOptions } from '../renderers/candlestick';
+import type { LineRendererOptions } from '../renderers/line';
+import type { AreaRendererOptions } from '../renderers/area';
+import type { BarOHLCRendererOptions } from '../renderers/bar-ohlc';
+import type { BaselineRendererOptions } from '../renderers/baseline';
+import type { HollowCandleRendererOptions } from '../renderers/hollow-candle';
+import type { HistogramRendererOptions } from '../renderers/histogram';
+
+// ─── Layout ─────────────────────────────────────────────────────────────────
+
+export interface LayoutOptions {
+  backgroundColor: string;
+  textColor: string;
+  fontSize: number;
+  fontFamily: string;
+}
+
+// ─── TimeScale ──────────────────────────────────────────────────────────────
+
+export interface TimeScaleApiOptions {
+  barSpacing: number;
+  rightOffset: number;
+  minBarSpacing: number;
+  maxBarSpacing: number;
+}
+
+// ─── Crosshair ──────────────────────────────────────────────────────────────
+
+export interface CrosshairOptions {
+  vertLineColor: string;
+  vertLineWidth: number;
+  vertLineDash: number[];
+  horzLineColor: string;
+  horzLineWidth: number;
+  horzLineDash: number[];
+}
+
+// ─── Grid ───────────────────────────────────────────────────────────────────
+
+export interface GridOptions {
+  vertLinesVisible: boolean;
+  vertLinesColor: string;
+  horzLinesVisible: boolean;
+  horzLinesColor: string;
+}
+
+// ─── Chart ──────────────────────────────────────────────────────────────────
+
+export interface ChartOptions {
+  width: number;
+  height: number;
+  autoSize: boolean;
+  layout: LayoutOptions;
+  timeScale: TimeScaleApiOptions;
+  crosshair: CrosshairOptions;
+  grid: GridOptions;
+}
+
+export const DEFAULT_CHART_OPTIONS: ChartOptions = {
+  width: 800,
+  height: 400,
+  autoSize: false,
+  layout: {
+    backgroundColor: '#ffffff',
+    textColor: '#333333',
+    fontSize: 11,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  timeScale: {
+    barSpacing: 6,
+    rightOffset: 0,
+    minBarSpacing: 1,
+    maxBarSpacing: 50,
+  },
+  crosshair: {
+    vertLineColor: '#9598A1',
+    vertLineWidth: 1,
+    vertLineDash: [4, 4],
+    horzLineColor: '#9598A1',
+    horzLineWidth: 1,
+    horzLineDash: [4, 4],
+  },
+  grid: {
+    vertLinesVisible: true,
+    vertLinesColor: 'rgba(0, 0, 0, 0.06)',
+    horzLinesVisible: true,
+    horzLinesColor: 'rgba(0, 0, 0, 0.06)',
+  },
+};
+
+// ─── Series options ─────────────────────────────────────────────────────────
+
+export interface BaseSeriesOptions {
+  data?: Bar[] | ColumnData;
+  priceScaleId?: string;
+  visible?: boolean;
+}
+
+export type CandlestickSeriesOptions = BaseSeriesOptions & Partial<CandlestickRendererOptions>;
+export type LineSeriesOptions = BaseSeriesOptions & Partial<LineRendererOptions>;
+export type AreaSeriesOptions = BaseSeriesOptions & Partial<AreaRendererOptions>;
+export type BarSeriesOptions = BaseSeriesOptions & Partial<BarOHLCRendererOptions>;
+export type BaselineSeriesOptions = BaseSeriesOptions & Partial<BaselineRendererOptions>;
+export type HollowCandleSeriesOptions = BaseSeriesOptions & Partial<HollowCandleRendererOptions>;
+export type HistogramSeriesOptions = BaseSeriesOptions & Partial<HistogramRendererOptions>;
+
+export interface PaneOptions {
+  height?: number;
+}
+
+export interface SeriesOptionsMap {
+  candlestick: CandlestickSeriesOptions;
+  bar: BarSeriesOptions;
+  line: LineSeriesOptions;
+  area: AreaSeriesOptions;
+  histogram: HistogramSeriesOptions;
+  baseline: BaselineSeriesOptions;
+  'hollow-candle': HollowCandleSeriesOptions;
+}
+
+// ─── Utility ────────────────────────────────────────────────────────────────
+
+/** Deep merge `overrides` into a copy of `defaults`. */
+export function mergeOptions<T extends Record<string, unknown>>(
+  defaults: T,
+  overrides: DeepPartial<T>,
+): T {
+  const result = { ...defaults } as Record<string, unknown>;
+  for (const key of Object.keys(overrides)) {
+    const val = (overrides as Record<string, unknown>)[key];
+    if (
+      val !== undefined &&
+      val !== null &&
+      typeof val === 'object' &&
+      !Array.isArray(val) &&
+      !(val instanceof Float64Array)
+    ) {
+      result[key] = mergeOptions(
+        (result[key] ?? {}) as Record<string, unknown>,
+        val as DeepPartial<Record<string, unknown>>,
+      );
+    } else if (val !== undefined) {
+      result[key] = val;
+    }
+  }
+  return result as T;
+}

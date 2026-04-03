@@ -181,7 +181,7 @@ export interface IPanePrimitive {
 
 // ─── Series ──────────────────────────────────────────────────────────────────
 
-export type SeriesType = 'candlestick' | 'bar' | 'line' | 'area' | 'histogram' | 'baseline';
+export type SeriesType = 'candlestick' | 'bar' | 'line' | 'area' | 'histogram' | 'baseline' | 'hollow-candle';
 
 // ─── Utility types ───────────────────────────────────────────────────────────
 
