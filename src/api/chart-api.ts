@@ -294,6 +294,15 @@ class ChartApi implements IChartApi {
     }
   }
 
+  // ── Price formatter ─────────────────────────────────────────────────────
+
+  private _formatPrice(price: number): string {
+    if (this._options.priceFormatter) {
+      return this._options.priceFormatter(price);
+    }
+    return price.toFixed(2);
+  }
+
   // ── Series management ───────────────────────────────────────────────────
 
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'> {
@@ -398,7 +407,9 @@ class ChartApi implements IChartApi {
       this._timeScale.setOptions(this._options.timeScale);
     }
 
-    if (options.width !== undefined || options.height !== undefined) {
+    // Re-layout canvases if scale visibility changed
+    if (options.leftPriceScale !== undefined || options.rightPriceScale !== undefined ||
+        options.width !== undefined || options.height !== undefined) {
       this.resize(this._options.width, this._options.height);
     } else {
       this.requestRepaint(InvalidationLevel.Full);
@@ -421,8 +432,10 @@ class ChartApi implements IChartApi {
     this._wrapper.style.width = `${width}px`;
     this._wrapper.style.height = `${height}px`;
 
-    this._timeScale.setWidth(width - PRICE_AXIS_WIDTH);
+    const leftScaleWidthR = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    this._timeScale.setWidth(width - PRICE_AXIS_WIDTH - leftScaleWidthR);
     this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
+    this._leftPriceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
     this._options.width = width;
     this._options.height = height;
@@ -543,12 +556,14 @@ class ChartApi implements IChartApi {
     if (level >= InvalidationLevel.Light) {
       this._paintMain();
       this._paintPriceAxis();
+      this._paintLeftPriceAxis();
       this._paintTimeAxis();
     }
     if (level >= InvalidationLevel.Cursor) {
       this._paintOverlay();
       // Redraw axes on cursor move too (for crosshair labels) — axes are tiny, very cheap
       this._paintPriceAxis();
+      this._paintLeftPriceAxis();
       this._paintTimeAxis();
     }
 
@@ -879,7 +894,7 @@ class ChartApi implements IChartApi {
       const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
-      const text = price.toFixed(2);
+      const text = this._formatPrice(price);
 
       // Draw background rect
       ctx.fillStyle = this._options.layout.backgroundColor;
@@ -907,7 +922,7 @@ class ChartApi implements IChartApi {
         const isUp = lastClose >= lastOpen;
         const bgColor = isUp ? '#26a69a' : '#ef5350';
         const y = Math.round(this._priceScale.priceToY(lastClose) * pixelRatio);
-        const priceText = lastClose.toFixed(2);
+        const priceText = this._formatPrice(lastClose);
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
         // Background
@@ -930,7 +945,7 @@ class ChartApi implements IChartApi {
         if (!pl.options.axisLabelVisible) continue;
         const plY = Math.round(this._priceScale.priceToY(pl.options.price) * pixelRatio);
         if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
-        const plText = pl.options.price.toFixed(2);
+        const plText = this._formatPrice(pl.options.price);
         const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
         ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
@@ -947,7 +962,7 @@ class ChartApi implements IChartApi {
     // Crosshair price label
     if (this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
-      const priceText = this._crosshair.price.toFixed(2);
+      const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
       ctx.fillStyle = this._options.crosshair.horzLineColor;
@@ -1375,10 +1390,10 @@ class ChartApi implements IChartApi {
 
     this._tooltipEl.innerHTML =
       `<div style="margin-bottom:2px;color:#999">${dateStr}</div>` +
-      `<div>O <span style="color:${color}">${o.toFixed(2)}</span> ` +
-      `H <span style="color:${color}">${h.toFixed(2)}</span></div>` +
-      `<div>L <span style="color:${color}">${l.toFixed(2)}</span> ` +
-      `C <span style="color:${color}">${c.toFixed(2)}</span></div>` +
+      `<div>O <span style="color:${color}">${this._formatPrice(o)}</span> ` +
+      `H <span style="color:${color}">${this._formatPrice(h)}</span></div>` +
+      `<div>L <span style="color:${color}">${this._formatPrice(l)}</span> ` +
+      `C <span style="color:${color}">${this._formatPrice(c)}</span></div>` +
       `<div>V <span style="color:#999">${v.toLocaleString()}</span></div>`;
 
     // Position tooltip near cursor, ensuring it doesn't overflow
@@ -1427,10 +1442,10 @@ class ChartApi implements IChartApi {
     const color = isUp ? '#26a69a' : '#ef5350';
 
     this._legendEl.innerHTML =
-      `<span style="color:${this._options.layout.textColor}">O</span><span style="color:${color}">${o.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">H</span><span style="color:${color}">${h.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">L</span><span style="color:${color}">${l.toFixed(2)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">C</span><span style="color:${color}">${c.toFixed(2)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">O</span><span style="color:${color}">${this._formatPrice(o)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">H</span><span style="color:${color}">${this._formatPrice(h)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">L</span><span style="color:${color}">${this._formatPrice(l)}</span>` +
+      `<span style="color:${this._options.layout.textColor}">C</span><span style="color:${color}">${this._formatPrice(c)}</span>` +
       `<span style="color:${this._options.layout.textColor}">V</span><span style="color:${this._options.layout.textColor}">${v.toLocaleString()}</span>`;
   }
 
@@ -1451,7 +1466,8 @@ class ChartApi implements IChartApi {
   }
 
   private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
-    const chartW = width - PRICE_AXIS_WIDTH;
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const chartW = width - PRICE_AXIS_WIDTH - leftScaleW;
     const chartH = height - TIME_AXIS_HEIGHT;
 
     // Chart + overlay canvases: chart area only
@@ -1460,21 +1476,101 @@ class ChartApi implements IChartApi {
       canvas.height = Math.round(chartH * pixelRatio);
       canvas.style.width = `${chartW}px`;
       canvas.style.height = `${chartH}px`;
+      canvas.style.left = `${leftScaleW}px`;
     }
 
-    // Price axis canvas — positioned top-right
+    // Right price axis canvas — positioned top-right
     this._priceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
     this._priceAxisCanvas.height = Math.round(chartH * pixelRatio);
     this._priceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
     this._priceAxisCanvas.style.height = `${chartH}px`;
-    this._priceAxisCanvas.style.left = `${chartW}px`;
+    this._priceAxisCanvas.style.left = `${leftScaleW + chartW}px`;
+    this._priceAxisCanvas.style.display = this._options.rightPriceScale.visible ? '' : 'none';
 
-    // Time axis canvas — positioned bottom-left
+    // Left price axis canvas — positioned top-left
+    this._leftPriceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
+    this._leftPriceAxisCanvas.height = Math.round(chartH * pixelRatio);
+    this._leftPriceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
+    this._leftPriceAxisCanvas.style.height = `${chartH}px`;
+    this._leftPriceAxisCanvas.style.left = '0px';
+    this._leftPriceAxisCanvas.style.display = this._options.leftPriceScale.visible ? '' : 'none';
+
+    // Time axis canvas — positioned bottom-left (offset by left scale width)
     this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
     this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
     this._timeAxisCanvas.style.width = `${chartW}px`;
     this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
+    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
     this._timeAxisCanvas.style.top = `${chartH}px`;
+  }
+
+  // ── Left Price axis (on its own canvas) ─────────────────────────────────
+
+  private _paintLeftPriceAxis(): void {
+    if (!this._options.leftPriceScale.visible) return;
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    const ctx = this._leftPriceAxisCtx;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const axisW = PRICE_AXIS_WIDTH;
+
+    ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
+
+    // Sync left scale with same price range as right scale
+    this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+
+    const layout = this._options.layout;
+    const priceRange = this._leftPriceScale.priceRange;
+    const pRange = priceRange.max - priceRange.min;
+    const targetSteps = Math.max(2, Math.floor(chartH / 60));
+    const step = niceStep(pRange, targetSteps);
+
+    ctx.save();
+    ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+    const padding = Math.round(6 * pixelRatio);
+    const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
+
+    const firstPrice = Math.ceil(priceRange.min / step) * step;
+    for (let price = firstPrice; price <= priceRange.max; price += step) {
+      const y = Math.round(this._leftPriceScale.priceToY(price) * pixelRatio);
+      if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+
+      const text = this._formatPrice(price);
+
+      ctx.fillStyle = layout.backgroundColor;
+      ctx.fillRect(0, y - labelHeight / 2, Math.round(axisW * pixelRatio), labelHeight);
+
+      ctx.fillStyle = layout.textColor;
+      ctx.fillText(text, padding, y);
+    }
+
+    // Draw right separator line
+    ctx.strokeStyle = this._options.grid.horzLinesColor;
+    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    ctx.beginPath();
+    ctx.moveTo(Math.round(axisW * pixelRatio) - 1, 0);
+    ctx.lineTo(Math.round(axisW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
+    ctx.stroke();
+
+    // Crosshair price label on left axis
+    if (this._crosshair.visible) {
+      const hy = Math.round(this._crosshair.y * pixelRatio);
+      const priceText = this._formatPrice(this._crosshair.price);
+      const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+      ctx.fillStyle = this._options.crosshair.horzLineColor;
+      ctx.fillRect(0, hy - lh / 2, Math.round(axisW * pixelRatio), lh);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(priceText, padding, hy);
+    }
+
+    ctx.restore();
   }
 
   private _addSeries<T extends SeriesType>(
@@ -1593,6 +1689,8 @@ export function createChart(
       resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, LIGHT_THEME), options);
     } else if (theme === 'dark') {
       resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, DARK_THEME), options);
+    } else if (theme === 'colorful') {
+      resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, COLORFUL_THEME), options);
     } else {
       resolved = mergeOptions(DEFAULT_CHART_OPTIONS, options);
     }

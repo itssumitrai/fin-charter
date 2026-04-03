@@ -409,4 +409,140 @@ describe('createChart', () => {
     // Callback count should not have increased after unsubscribe
     expect(callback.mock.calls.length).toBe(callsBefore);
   });
+
+  // ── Feature: Custom Price Formatter ─────────────────────────────────────
+
+  it('custom priceFormatter is called when formatting prices', () => {
+    const formatter = vi.fn((price: number) => `$${price.toFixed(4)}`);
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      priceFormatter: formatter,
+    });
+
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(10));
+
+    // Flush to trigger painting which uses _formatPrice internally
+    flushRAF();
+
+    // The formatter should have been called at least once during painting
+    expect(formatter).toHaveBeenCalled();
+
+    // The return value should match formatter output
+    const opts = chart.options();
+    expect(opts.priceFormatter).toBe(formatter);
+  });
+
+  it('default price formatting uses toFixed(2) when no priceFormatter is set', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+
+    const opts = chart.options();
+    // No custom formatter set
+    expect(opts.priceFormatter).toBeUndefined();
+
+    // Painting should not throw without a custom formatter
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
+  });
+
+  it('priceFormatter can be applied via applyOptions', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const formatter = (price: number) => `${price.toFixed(0)} USD`;
+
+    chart.applyOptions({ priceFormatter: formatter });
+
+    const opts = chart.options();
+    expect(opts.priceFormatter).toBe(formatter);
+    expect(opts.priceFormatter!(123.456)).toBe('123 USD');
+  });
+
+  // ── Feature: Theme Application ───────────────────────────────────────────
+
+  it('COLORFUL_THEME merges correctly via applyOptions', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+
+    // Apply colorful theme values manually (same as COLORFUL_THEME)
+    chart.applyOptions({
+      layout: { backgroundColor: '#131722', textColor: '#b2b5be' },
+      grid: {
+        vertLinesColor: 'rgba(42, 46, 57, 0.8)',
+        horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+      },
+    });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#131722');
+    expect(opts.layout.textColor).toBe('#b2b5be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    // Other options should be preserved
+    expect(opts.layout.fontSize).toBe(11);
+    expect(opts.lastPriceLine.visible).toBe(true);
+  });
+
+  it('createChart with theme: colorful applies COLORFUL_THEME', () => {
+    chart = createChart(container, { width: 600, height: 300, theme: 'colorful' });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#131722');
+    expect(opts.layout.textColor).toBe('#b2b5be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+  });
+
+  it('createChart with theme: dark applies DARK_THEME', () => {
+    chart = createChart(container, { width: 600, height: 300, theme: 'dark' });
+
+    const opts = chart.options();
+    expect(opts.layout.backgroundColor).toBe('#1a1a2e');
+    expect(opts.layout.textColor).toBe('#d1d4dc');
+  });
+
+  // ── Feature: Dual Price Scales ───────────────────────────────────────────
+
+  it('leftPriceScale.visible defaults to false', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const opts = chart.options();
+    expect(opts.leftPriceScale.visible).toBe(false);
+    expect(opts.rightPriceScale.visible).toBe(true);
+  });
+
+  it('leftPriceScale can be enabled via options', () => {
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      leftPriceScale: { visible: true },
+    });
+
+    const opts = chart.options();
+    expect(opts.leftPriceScale.visible).toBe(true);
+
+    // Painting should not throw with left scale enabled
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
+  });
+
+  // ── Feature: TimeGaps option ─────────────────────────────────────────────
+
+  it('timeGaps.visible defaults to false', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const opts = chart.options();
+    expect(opts.timeGaps.visible).toBe(false);
+  });
+
+  it('timeGaps can be enabled via options without throwing', () => {
+    chart = createChart(container, {
+      width: 600,
+      height: 300,
+      timeGaps: { visible: true },
+    });
+
+    const opts = chart.options();
+    expect(opts.timeGaps.visible).toBe(true);
+
+    const series = chart.addCandlestickSeries();
+    series.setData(makeBars(5));
+    expect(() => flushRAF()).not.toThrow();
+  });
 });

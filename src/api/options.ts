@@ -95,7 +95,7 @@ export interface ChartOptions {
   leftPriceScale: PriceScaleOptions;
   timeGaps: TimeGapsOptions;
   priceFormatter?: (price: number) => string;
-  theme?: 'dark' | 'light';
+  theme?: 'dark' | 'light' | 'colorful';
 }
 
 export const DARK_THEME: DeepPartial<ChartOptions> = {
