@@ -8,6 +8,17 @@ export type { IPaneApi } from './api/pane-api';
 
 export { DARK_THEME, LIGHT_THEME } from './api/options';
 
+// ─── Series markers ────────────────────────────────────────────────────
+export type {
+  MarkerShape,
+  MarkerPosition,
+  SeriesMarker,
+} from './core/series-markers';
+
+// ─── Price lines ───────────────────────────────────────────────────────
+export { PriceLine } from './core/price-line';
+export type { PriceLineOptions } from './core/price-line';
+
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
   ChartOptions,
@@ -25,6 +36,9 @@ export type {
   PaneOptions,
   BaseSeriesOptions,
   SeriesOptionsMap,
+  TooltipOptions,
+  WatermarkOptions,
+  VolumeOverlayOptions,
 } from './api/options';
 
 // ─── Core types ─────────────────────────────────────────────────────────────

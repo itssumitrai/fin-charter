@@ -11,6 +11,7 @@ import { PriceScale } from '../core/price-scale';
 import { Crosshair, type CrosshairState } from '../core/crosshair';
 import { InvalidateMask } from '../core/invalidation';
 import { DataLayer } from '../core/data-layer';
+import type { SeriesMarker } from '../core/series-markers';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
@@ -124,6 +125,7 @@ class ChartApi implements IChartApi {
   private _priceAxisCtx: CanvasRenderingContext2D;
   private _timeAxisCtx: CanvasRenderingContext2D;
   private _legendEl: HTMLDivElement;
+  private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
   private _priceScale: PriceScale;
@@ -202,6 +204,15 @@ class ChartApi implements IChartApi {
     this._legendEl = document.createElement('div');
     this._legendEl.style.cssText = 'position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;gap:8px;pointer-events:none;color:' + options.layout.textColor;
     this._wrapper.appendChild(this._legendEl);
+
+    // Tooltip overlay (DOM-based)
+    this._tooltipEl = document.createElement('div');
+    this._tooltipEl.style.cssText =
+      'position:absolute;z-index:20;pointer-events:none;display:none;' +
+      'background:rgba(0,0,0,0.78);color:#d1d4dc;border-radius:4px;padding:6px 10px;' +
+      'font-size:11px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+      'line-height:1.5;white-space:nowrap;';
+    this._wrapper.appendChild(this._tooltipEl);
 
     container.appendChild(this._wrapper);
 
@@ -469,6 +480,7 @@ class ChartApi implements IChartApi {
     }
 
     this._updateLegend();
+    this._updateTooltip();
     this._mask.reset();
   }
 
@@ -495,6 +507,9 @@ class ChartApi implements IChartApi {
     // Auto-scale price from visible data (scan all series)
     this._updateDataRange(range);
 
+    // Draw watermark BEFORE grid/series so it appears behind everything
+    this._drawWatermark(ctx, chartW, chartH, pixelRatio);
+
     // Draw grid (within chart area only)
     this._drawGrid(ctx, chartW, chartH, range, primaryStore, pixelRatio);
 
@@ -519,6 +534,30 @@ class ChartApi implements IChartApi {
       }
 
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
+    }
+
+    // Draw volume overlay
+    if (this._options.volume.visible) {
+      this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
+    }
+
+    // Draw markers for each series
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      const markers = entry.api.getMarkers();
+      if (markers.length > 0) {
+        const store = entry.api.getDataLayer().store;
+        this._drawMarkers(ctx, markers, store, range, indexToX, priceToY, pixelRatio);
+      }
+    }
+
+    // Draw price lines for each series
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      const priceLines = entry.api.getPriceLines();
+      if (priceLines.length > 0) {
+        this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+      }
     }
 
     // Draw last close price line
@@ -758,6 +797,27 @@ class ChartApi implements IChartApi {
       }
     }
 
+    // Price line labels on axis
+    for (const entry of this._series) {
+      if (!entry.api.isVisible()) continue;
+      for (const pl of entry.api.getPriceLines()) {
+        if (!pl.options.axisLabelVisible) continue;
+        const plY = Math.round(this._priceScale.priceToY(pl.options.price) * pixelRatio);
+        if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+        const plText = pl.options.price.toFixed(2);
+        const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+        ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
+        ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
+
+        ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
+        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(plText, axisRight - padding, plY);
+      }
+    }
+
     // Crosshair price label
     if (this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
@@ -893,6 +953,313 @@ class ChartApi implements IChartApi {
     if (minPrice < Infinity && maxPrice > -Infinity) {
       this._priceScale.autoScale(minPrice, maxPrice);
     }
+  }
+
+  // ── Watermark ─────────────────────────────────────────────────────────
+
+  private _drawWatermark(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    pixelRatio: number,
+  ): void {
+    const wm = this._options.watermark;
+    if (!wm.visible || !wm.text) return;
+
+    ctx.save();
+    ctx.font = `bold ${Math.round(wm.fontSize * pixelRatio)}px ${this._options.layout.fontFamily}`;
+    ctx.fillStyle = wm.color;
+
+    let x: number;
+    if (wm.horzAlign === 'left') {
+      ctx.textAlign = 'left';
+      x = Math.round(20 * pixelRatio);
+    } else if (wm.horzAlign === 'right') {
+      ctx.textAlign = 'right';
+      x = Math.round((w - 20) * pixelRatio);
+    } else {
+      ctx.textAlign = 'center';
+      x = Math.round((w / 2) * pixelRatio);
+    }
+
+    let y: number;
+    if (wm.vertAlign === 'top') {
+      ctx.textBaseline = 'top';
+      y = Math.round(20 * pixelRatio);
+    } else if (wm.vertAlign === 'bottom') {
+      ctx.textBaseline = 'bottom';
+      y = Math.round((h - 20) * pixelRatio);
+    } else {
+      ctx.textBaseline = 'middle';
+      y = Math.round((h / 2) * pixelRatio);
+    }
+
+    ctx.fillText(wm.text, x, y);
+    ctx.restore();
+  }
+
+  // ── Volume overlay ───────────────────────────────────────────────────
+
+  private _drawVolumeOverlay(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    chartH: number,
+    range: VisibleRange,
+    pixelRatio: number,
+  ): void {
+    const volOpts = this._options.volume;
+
+    // Gather volume data from all visible series (use primary for OHLC coloring)
+    const primaryStore = this._series[0].api.getDataLayer().store;
+    const to = Math.min(range.toIdx, primaryStore.length - 1);
+    if (to < range.fromIdx) return;
+
+    // Find max volume in visible range
+    let maxVol = 0;
+    for (let i = range.fromIdx; i <= to; i++) {
+      const v = primaryStore.volume[i];
+      if (v > maxVol) maxVol = v;
+    }
+    if (maxVol === 0) return;
+
+    // Volume occupies the area from scaleMarginTop*chartH to chartH
+    const volTop = Math.round(volOpts.scaleMarginTop * chartH * pixelRatio);
+    const volBottom = Math.round(chartH * pixelRatio);
+    const volHeight = volBottom - volTop;
+
+    const barWidth = this._timeScale.barSpacing * 0.8;
+    const halfBar = Math.max(1, Math.round((barWidth * pixelRatio) / 2));
+
+    ctx.save();
+    for (let i = range.fromIdx; i <= to; i++) {
+      const vol = primaryStore.volume[i];
+      if (vol === 0) continue;
+
+      const isUp = primaryStore.close[i] >= primaryStore.open[i];
+      ctx.fillStyle = isUp ? volOpts.upColor : volOpts.downColor;
+
+      const cx = Math.round(this._timeScale.indexToX(i) * pixelRatio);
+      const barH = Math.max(1, Math.round((vol / maxVol) * volHeight));
+      const topY = volBottom - barH;
+
+      ctx.fillRect(cx - halfBar, topY, halfBar * 2, barH);
+    }
+    ctx.restore();
+  }
+
+  // ── Series markers ───────────────────────────────────────────────────
+
+  private _drawMarkers(
+    ctx: CanvasRenderingContext2D,
+    markers: readonly SeriesMarker[],
+    store: ColumnStore,
+    range: VisibleRange,
+    indexToX: (i: number) => number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    if (store.length === 0) return;
+
+    ctx.save();
+    const layout = this._options.layout;
+
+    for (const marker of markers) {
+      // Binary search for bar index matching marker time
+      const idx = this._binarySearchTime(store, marker.time);
+      if (idx < range.fromIdx || idx > range.toIdx) continue;
+      if (idx >= store.length) continue;
+
+      const x = Math.round(indexToX(idx) * pixelRatio);
+      const size = (marker.size ?? 1) * 8 * pixelRatio;
+      const offset = size + 4 * pixelRatio;
+
+      let y: number;
+      if (marker.position === 'aboveBar') {
+        y = Math.round(priceToY(store.high[idx]) * pixelRatio) - offset;
+      } else if (marker.position === 'belowBar') {
+        y = Math.round(priceToY(store.low[idx]) * pixelRatio) + offset;
+      } else {
+        y = Math.round(priceToY(store.close[idx]) * pixelRatio);
+      }
+
+      ctx.fillStyle = marker.color;
+
+      switch (marker.shape) {
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, 2 * Math.PI);
+          ctx.fill();
+          break;
+        case 'square':
+          ctx.fillRect(x - size, y - size, size * 2, size * 2);
+          break;
+        case 'arrowUp': {
+          ctx.beginPath();
+          ctx.moveTo(x, y - size);
+          ctx.lineTo(x - size, y + size);
+          ctx.lineTo(x + size, y + size);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+        case 'arrowDown': {
+          ctx.beginPath();
+          ctx.moveTo(x, y + size);
+          ctx.lineTo(x - size, y - size);
+          ctx.lineTo(x + size, y - size);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+      }
+
+      // Draw text label if provided
+      if (marker.text) {
+        ctx.fillStyle = marker.color;
+        ctx.font = `${Math.round(10 * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = marker.position === 'belowBar' ? 'top' : 'bottom';
+        const textY = marker.position === 'belowBar'
+          ? y + size + 2 * pixelRatio
+          : y - size - 2 * pixelRatio;
+        ctx.fillText(marker.text, x, textY);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  /** Binary search for exact time match in a ColumnStore, returns nearest index. */
+  private _binarySearchTime(store: ColumnStore, time: number): number {
+    let lo = 0;
+    let hi = store.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      const t = store.time[mid];
+      if (t === time) return mid;
+      if (t < time) lo = mid + 1;
+      else hi = mid - 1;
+    }
+    if (lo >= store.length) return store.length - 1;
+    if (lo === 0) return 0;
+    return Math.abs(store.time[lo] - time) < Math.abs(store.time[lo - 1] - time) ? lo : lo - 1;
+  }
+
+  // ── Price lines ──────────────────────────────────────────────────────
+
+  private _drawPriceLines(
+    ctx: CanvasRenderingContext2D,
+    priceLines: readonly import('../core/price-line').PriceLine[],
+    chartW: number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    ctx.save();
+    for (const pl of priceLines) {
+      const y = Math.round(priceToY(pl.options.price) * pixelRatio);
+
+      ctx.strokeStyle = pl.options.color;
+      ctx.lineWidth = pl.options.lineWidth * pixelRatio;
+
+      switch (pl.options.lineStyle) {
+        case 'dashed':
+          ctx.setLineDash([6 * pixelRatio, 4 * pixelRatio]);
+          break;
+        case 'dotted':
+          ctx.setLineDash([2 * pixelRatio, 2 * pixelRatio]);
+          break;
+        default:
+          ctx.setLineDash([]);
+          break;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(Math.round(chartW * pixelRatio), y);
+      ctx.stroke();
+
+      // Draw title text if provided
+      if (pl.options.title) {
+        ctx.fillStyle = pl.options.color;
+        ctx.font = `${Math.round(10 * pixelRatio)}px ${this._options.layout.fontFamily}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(pl.options.title, Math.round(4 * pixelRatio), y - Math.round(2 * pixelRatio));
+      }
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // ── Tooltip ──────────────────────────────────────────────────────────
+
+  private _updateTooltip(): void {
+    if (!this._options.tooltip.enabled || this._series.length === 0) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    if (!this._crosshair.visible) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    const store = this._series[0].api.getDataLayer().store;
+    const idx = this._crosshair.barIndex;
+    if (idx < 0 || idx >= store.length) {
+      this._tooltipEl.style.display = 'none';
+      return;
+    }
+
+    const o = store.open[idx];
+    const h = store.high[idx];
+    const l = store.low[idx];
+    const c = store.close[idx];
+    const v = store.volume[idx];
+    const timestamp = store.time[idx];
+    const date = new Date(timestamp * 1000);
+
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let dateStr: string;
+    if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+      const hh = date.getUTCHours().toString().padStart(2, '0');
+      const mm = date.getUTCMinutes().toString().padStart(2, '0');
+      dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()} ${hh}:${mm}`;
+    } else {
+      dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+    }
+
+    const isUp = c >= o;
+    const color = isUp ? '#26a69a' : '#ef5350';
+
+    this._tooltipEl.innerHTML =
+      `<div style="margin-bottom:2px;color:#999">${dateStr}</div>` +
+      `<div>O <span style="color:${color}">${o.toFixed(2)}</span> ` +
+      `H <span style="color:${color}">${h.toFixed(2)}</span></div>` +
+      `<div>L <span style="color:${color}">${l.toFixed(2)}</span> ` +
+      `C <span style="color:${color}">${c.toFixed(2)}</span></div>` +
+      `<div>V <span style="color:#999">${v.toLocaleString()}</span></div>`;
+
+    // Position tooltip near cursor, ensuring it doesn't overflow
+    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const cursorX = this._crosshair.snappedX;
+    const cursorY = this._crosshair.y;
+    const tooltipW = this._tooltipEl.offsetWidth || 140;
+    const tooltipH = this._tooltipEl.offsetHeight || 80;
+
+    let tx = cursorX + 16;
+    let ty = cursorY - tooltipH - 8;
+
+    // Keep within chart bounds
+    if (tx + tooltipW > chartW) tx = cursorX - tooltipW - 16;
+    if (tx < 0) tx = 4;
+    if (ty < 0) ty = cursorY + 16;
+    if (ty + tooltipH > chartH) ty = chartH - tooltipH - 4;
+
+    this._tooltipEl.style.left = `${Math.round(tx)}px`;
+    this._tooltipEl.style.top = `${Math.round(ty)}px`;
+    this._tooltipEl.style.display = 'block';
   }
 
   // ── Legend ────────────────────────────────────────────────────────────

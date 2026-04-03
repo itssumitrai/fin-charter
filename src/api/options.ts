@@ -51,6 +51,26 @@ export interface LastPriceLineOptions {
   visible: boolean;
 }
 
+export interface TooltipOptions {
+  enabled: boolean;
+}
+
+export interface WatermarkOptions {
+  visible: boolean;
+  text: string;
+  color: string;
+  fontSize: number;
+  horzAlign: 'left' | 'center' | 'right';
+  vertAlign: 'top' | 'center' | 'bottom';
+}
+
+export interface VolumeOverlayOptions {
+  visible: boolean;
+  upColor: string;
+  downColor: string;
+  scaleMarginTop: number;
+}
+
 export interface ChartOptions {
   width: number;
   height: number;
@@ -60,6 +80,9 @@ export interface ChartOptions {
   crosshair: CrosshairOptions;
   grid: GridOptions;
   lastPriceLine: LastPriceLineOptions;
+  tooltip: TooltipOptions;
+  watermark: WatermarkOptions;
+  volume: VolumeOverlayOptions;
   theme?: 'dark' | 'light';
 }
 
@@ -125,6 +148,23 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   },
   lastPriceLine: {
     visible: true,
+  },
+  tooltip: {
+    enabled: true,
+  },
+  watermark: {
+    visible: false,
+    text: '',
+    color: 'rgba(255,255,255,0.06)',
+    fontSize: 48,
+    horzAlign: 'center',
+    vertAlign: 'center',
+  },
+  volume: {
+    visible: false,
+    upColor: 'rgba(38,166,154,0.3)',
+    downColor: 'rgba(239,83,80,0.3)',
+    scaleMarginTop: 0.7,
   },
 };
 
