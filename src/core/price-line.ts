@@ -12,9 +12,21 @@ export interface PriceLineOptions {
 }
 
 export class PriceLine {
-  constructor(public options: PriceLineOptions) {}
+  private _options: PriceLineOptions;
+  private _requestRepaint: (() => void) | null;
 
-  applyOptions(opts: Partial<PriceLineOptions>): void {
-    Object.assign(this.options, opts);
+  constructor(options: PriceLineOptions, requestRepaint?: () => void) {
+    this._options = options;
+    this._requestRepaint = requestRepaint ?? null;
+  }
+
+  get options(): Readonly<PriceLineOptions> {
+    return this._options;
+  }
+
+  applyOptions(opts: Partial<PriceLineOptions>, requestRepaint?: () => void): void {
+    Object.assign(this._options, opts);
+    const repaint = requestRepaint ?? this._requestRepaint;
+    if (repaint) repaint();
   }
 }

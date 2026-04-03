@@ -169,11 +169,41 @@ class ChartApi implements IChartApi {
   private _width: number;
   private _height: number;
 
+  // ── Tooltip/Legend caching ──────────────────────────────────────────────
+  private _lastTooltipBarIdx: number = -1;
+  private _lastLegendBarIdx: number = -1;
+  private _tooltipWidth: number = 140;
+  private _tooltipHeight: number = 80;
+  private _volumeFormatter = new Intl.NumberFormat();
+
+  // Pre-created tooltip child elements
+  private _tooltipDateEl!: HTMLDivElement;
+  private _tooltipOHEl!: HTMLDivElement;
+  private _tooltipLCEl!: HTMLDivElement;
+  private _tooltipVEl!: HTMLDivElement;
+
+  // Pre-created legend child elements
+  private _legendOLabelEl!: HTMLSpanElement;
+  private _legendOValEl!: HTMLSpanElement;
+  private _legendHLabelEl!: HTMLSpanElement;
+  private _legendHValEl!: HTMLSpanElement;
+  private _legendLLabelEl!: HTMLSpanElement;
+  private _legendLValEl!: HTMLSpanElement;
+  private _legendCLabelEl!: HTMLSpanElement;
+  private _legendCValEl!: HTMLSpanElement;
+  private _legendVLabelEl!: HTMLSpanElement;
+  private _legendVValEl!: HTMLSpanElement;
+
   // The "primary" pane id for the mask
   private readonly _mainPaneId = 'main';
 
   // Track next pane id
   private _nextPaneId = 0;
+
+  private get _chartWidth(): number {
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    return this._width - PRICE_AXIS_WIDTH - leftScaleW;
+  }
 
   constructor(container: HTMLElement, options: ChartOptions) {
     this._options = options;
@@ -240,7 +270,40 @@ class ChartApi implements IChartApi {
       `background:rgba(0,0,0,0.78);color:${options.layout.textColor};border-radius:4px;padding:6px 10px;` +
       `font-size:${options.layout.fontSize}px;font-family:${options.layout.fontFamily};` +
       `line-height:1.5;white-space:nowrap;`;
+    // Pre-create tooltip child elements
+    this._tooltipDateEl = document.createElement('div');
+    this._tooltipDateEl.style.marginBottom = '2px';
+    this._tooltipDateEl.style.color = '#999';
+    this._tooltipOHEl = document.createElement('div');
+    this._tooltipLCEl = document.createElement('div');
+    this._tooltipVEl = document.createElement('div');
+    this._tooltipEl.appendChild(this._tooltipDateEl);
+    this._tooltipEl.appendChild(this._tooltipOHEl);
+    this._tooltipEl.appendChild(this._tooltipLCEl);
+    this._tooltipEl.appendChild(this._tooltipVEl);
+
     this._wrapper.appendChild(this._tooltipEl);
+
+    // Pre-create legend child elements
+    const createLegendPair = (): [HTMLSpanElement, HTMLSpanElement] => {
+      const label = document.createElement('span');
+      const val = document.createElement('span');
+      return [label, val];
+    };
+    [this._legendOLabelEl, this._legendOValEl] = createLegendPair();
+    [this._legendHLabelEl, this._legendHValEl] = createLegendPair();
+    [this._legendLLabelEl, this._legendLValEl] = createLegendPair();
+    [this._legendCLabelEl, this._legendCValEl] = createLegendPair();
+    [this._legendVLabelEl, this._legendVValEl] = createLegendPair();
+    for (const el of [
+      this._legendOLabelEl, this._legendOValEl,
+      this._legendHLabelEl, this._legendHValEl,
+      this._legendLLabelEl, this._legendLValEl,
+      this._legendCLabelEl, this._legendCValEl,
+      this._legendVLabelEl, this._legendVValEl,
+    ]) {
+      this._legendEl.appendChild(el);
+    }
 
     container.appendChild(this._wrapper);
 
@@ -457,6 +520,10 @@ class ChartApi implements IChartApi {
     this._panZoomHandler.destroy();
     this._overlayCanvas.removeEventListener('click', this._handleClick);
 
+    this._visibleRangeChangeCallbacks.length = 0;
+    this._crosshairMoveCallbacks.length = 0;
+    this._clickCallbacks.length = 0;
+
     this._wrapper.remove();
   }
 
@@ -497,7 +564,7 @@ class ChartApi implements IChartApi {
     const barsToShow = to - from + 1;
     if (barsToShow <= 0) return;
 
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     if (chartW <= 0) return;
 
     // Set barSpacing so exactly barsToShow bars fit in the chart width.
@@ -512,7 +579,6 @@ class ChartApi implements IChartApi {
       : 0;
     const newRightOffset = to - baseIndex;
 
-    this._timeScale.setOptions({ barSpacing: newBarSpacing });
     this._timeScale.setRightOffset(newRightOffset);
     this.requestRepaint(InvalidationLevel.Full);
   }
@@ -628,7 +694,7 @@ class ChartApi implements IChartApi {
   private _paintMain(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._chartCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     const chartH = this._height - TIME_AXIS_HEIGHT;
 
     // Clear chart canvas
@@ -777,7 +843,7 @@ class ChartApi implements IChartApi {
   private _paintOverlay(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._overlayCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     const chartH = this._height - TIME_AXIS_HEIGHT;
 
     // Overlay canvas is sized to chart area only
@@ -982,7 +1048,7 @@ class ChartApi implements IChartApi {
   private _paintTimeAxis(): void {
     const pixelRatio = window.devicePixelRatio || 1;
     const ctx = this._timeAxisCtx;
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
 
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(TIME_AXIS_HEIGHT * pixelRatio));
 
@@ -1152,6 +1218,7 @@ class ChartApi implements IChartApi {
 
     // Gather volume data from all visible series (use primary for OHLC coloring)
     const primaryStore = this._series[0].api.getDataLayer().store;
+    if (!primaryStore.volume) return;
     const to = Math.min(range.toIdx, primaryStore.length - 1);
     if (to < range.fromIdx) return;
 
@@ -1206,7 +1273,7 @@ class ChartApi implements IChartApi {
 
     for (const marker of markers) {
       // Binary search for bar index matching marker time
-      const idx = this._binarySearchTime(store, marker.time);
+      const idx = this._findNearestIndex(store, marker.time);
       if (idx < range.fromIdx || idx > range.toIdx) continue;
       if (idx >= store.length) continue;
 
@@ -1285,22 +1352,6 @@ class ChartApi implements IChartApi {
     return Math.abs(store.time[lo] - time) <= Math.abs(store.time[lo - 1] - time) ? lo : lo - 1;
   }
 
-  /** Binary search for exact time match in a ColumnStore, returns nearest index. */
-  private _binarySearchTime(store: ColumnStore, time: number): number {
-    let lo = 0;
-    let hi = store.length - 1;
-    while (lo <= hi) {
-      const mid = (lo + hi) >>> 1;
-      const t = store.time[mid];
-      if (t === time) return mid;
-      if (t < time) lo = mid + 1;
-      else hi = mid - 1;
-    }
-    if (lo >= store.length) return store.length - 1;
-    if (lo === 0) return 0;
-    return Math.abs(store.time[lo] - time) < Math.abs(store.time[lo - 1] - time) ? lo : lo - 1;
-  }
-
   // ── Price lines ──────────────────────────────────────────────────────
 
   private _drawPriceLines(
@@ -1367,42 +1418,51 @@ class ChartApi implements IChartApi {
       return;
     }
 
-    const o = store.open[idx];
-    const h = store.high[idx];
-    const l = store.low[idx];
-    const c = store.close[idx];
-    const v = store.volume[idx];
-    const timestamp = store.time[idx];
-    const date = new Date(timestamp * 1000);
+    // Only rebuild content when barIndex changes
+    if (idx !== this._lastTooltipBarIdx) {
+      this._lastTooltipBarIdx = idx;
 
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    let dateStr: string;
-    if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
-      const hh = date.getUTCHours().toString().padStart(2, '0');
-      const mm = date.getUTCMinutes().toString().padStart(2, '0');
-      dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()} ${hh}:${mm}`;
-    } else {
-      dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+      const o = store.open[idx];
+      const h = store.high[idx];
+      const l = store.low[idx];
+      const c = store.close[idx];
+      const v = store.volume ? store.volume[idx] : 0;
+      const timestamp = store.time[idx];
+      const date = new Date(timestamp * 1000);
+
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      let dateStr: string;
+      if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+        const hh = date.getUTCHours().toString().padStart(2, '0');
+        const mm = date.getUTCMinutes().toString().padStart(2, '0');
+        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()} ${hh}:${mm}`;
+      } else {
+        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+      }
+
+      const isUp = c >= o;
+      const color = isUp ? '#26a69a' : '#ef5350';
+
+      this._tooltipDateEl.textContent = dateStr;
+      this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
+      this._tooltipOHEl.style.color = color;
+      this._tooltipLCEl.textContent = `L ${this._formatPrice(l)} C ${this._formatPrice(c)}`;
+      this._tooltipLCEl.style.color = color;
+      this._tooltipVEl.textContent = `V ${this._volumeFormatter.format(v)}`;
+      this._tooltipVEl.style.color = '#999';
+
+      // Re-measure cached dimensions only when content changes
+      this._tooltipWidth = this._tooltipEl.offsetWidth || 140;
+      this._tooltipHeight = this._tooltipEl.offsetHeight || 80;
     }
 
-    const isUp = c >= o;
-    const color = isUp ? '#26a69a' : '#ef5350';
-
-    this._tooltipEl.innerHTML =
-      `<div style="margin-bottom:2px;color:#999">${dateStr}</div>` +
-      `<div>O <span style="color:${color}">${this._formatPrice(o)}</span> ` +
-      `H <span style="color:${color}">${this._formatPrice(h)}</span></div>` +
-      `<div>L <span style="color:${color}">${this._formatPrice(l)}</span> ` +
-      `C <span style="color:${color}">${this._formatPrice(c)}</span></div>` +
-      `<div>V <span style="color:#999">${v.toLocaleString()}</span></div>`;
-
     // Position tooltip near cursor, ensuring it doesn't overflow
-    const chartW = this._width - PRICE_AXIS_WIDTH;
+    const chartW = this._chartWidth;
     const chartH = this._height - TIME_AXIS_HEIGHT;
     const cursorX = this._crosshair.snappedX;
     const cursorY = this._crosshair.y;
-    const tooltipW = this._tooltipEl.offsetWidth || 140;
-    const tooltipH = this._tooltipEl.offsetHeight || 80;
+    const tooltipW = this._tooltipWidth;
+    const tooltipH = this._tooltipHeight;
 
     let tx = cursorX + 16;
     let ty = cursorY - tooltipH - 8;
@@ -1421,7 +1481,11 @@ class ChartApi implements IChartApi {
   // ── Legend ────────────────────────────────────────────────────────────
 
   private _updateLegend(): void {
-    if (this._series.length === 0) { this._legendEl.innerHTML = ''; return; }
+    if (this._series.length === 0) {
+      this._legendEl.style.display = 'none';
+      this._lastLegendBarIdx = -1;
+      return;
+    }
 
     const primaryEntry = this._series[0];
     const store = primaryEntry.api.getDataLayer().store;
@@ -1431,22 +1495,52 @@ class ChartApi implements IChartApi {
     if (this._crosshair.visible && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
       idx = this._crosshair.barIndex;
     }
-    if (idx < 0 || idx >= store.length) { this._legendEl.innerHTML = ''; return; }
+    if (idx < 0 || idx >= store.length) {
+      this._legendEl.style.display = 'none';
+      this._lastLegendBarIdx = -1;
+      return;
+    }
 
-    const o = store.open[idx];
-    const h = store.high[idx];
-    const l = store.low[idx];
-    const c = store.close[idx];
-    const v = store.volume[idx];
-    const isUp = c >= o;
-    const color = isUp ? '#26a69a' : '#ef5350';
+    // Only rebuild content when barIndex changes
+    if (idx !== this._lastLegendBarIdx) {
+      this._lastLegendBarIdx = idx;
 
-    this._legendEl.innerHTML =
-      `<span style="color:${this._options.layout.textColor}">O</span><span style="color:${color}">${this._formatPrice(o)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">H</span><span style="color:${color}">${this._formatPrice(h)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">L</span><span style="color:${color}">${this._formatPrice(l)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">C</span><span style="color:${color}">${this._formatPrice(c)}</span>` +
-      `<span style="color:${this._options.layout.textColor}">V</span><span style="color:${this._options.layout.textColor}">${v.toLocaleString()}</span>`;
+      const o = store.open[idx];
+      const h = store.high[idx];
+      const l = store.low[idx];
+      const c = store.close[idx];
+      const v = store.volume ? store.volume[idx] : 0;
+      const isUp = c >= o;
+      const color = isUp ? '#26a69a' : '#ef5350';
+      const textColor = this._options.layout.textColor;
+
+      this._legendOLabelEl.textContent = 'O';
+      this._legendOLabelEl.style.color = textColor;
+      this._legendOValEl.textContent = this._formatPrice(o);
+      this._legendOValEl.style.color = color;
+
+      this._legendHLabelEl.textContent = 'H';
+      this._legendHLabelEl.style.color = textColor;
+      this._legendHValEl.textContent = this._formatPrice(h);
+      this._legendHValEl.style.color = color;
+
+      this._legendLLabelEl.textContent = 'L';
+      this._legendLLabelEl.style.color = textColor;
+      this._legendLValEl.textContent = this._formatPrice(l);
+      this._legendLValEl.style.color = color;
+
+      this._legendCLabelEl.textContent = 'C';
+      this._legendCLabelEl.style.color = textColor;
+      this._legendCValEl.textContent = this._formatPrice(c);
+      this._legendCValEl.style.color = color;
+
+      this._legendVLabelEl.textContent = 'V';
+      this._legendVLabelEl.style.color = textColor;
+      this._legendVValEl.textContent = this._volumeFormatter.format(v);
+      this._legendVValEl.style.color = textColor;
+    }
+
+    this._legendEl.style.display = 'flex';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
@@ -1459,7 +1553,7 @@ class ChartApi implements IChartApi {
     return {
       canvas,
       context: ctx,
-      width: this._width - PRICE_AXIS_WIDTH,
+      width: this._chartWidth,
       height: this._height - TIME_AXIS_HEIGHT,
       pixelRatio,
     };

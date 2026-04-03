@@ -136,7 +136,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   }
 
   createPriceLine(options: PriceLineOptions): PriceLine {
-    const line = new PriceLine(options);
+    const line = new PriceLine(options, this._requestRepaint);
     this._priceLines.push(line);
     this._requestRepaint();
     return line;
