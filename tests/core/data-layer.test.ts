@@ -63,6 +63,21 @@ describe('DataLayer', () => {
     expect(dl.store.volume[2]).toBe(0); // missing volume → 0
   });
 
+  it('update throws when new bar timestamp is before the last bar', () => {
+    dl.setData(makeBars(3)); // times: 1000, 2000, 3000
+    expect(() =>
+      dl.update({ time: 500, open: 1, high: 2, low: 0, close: 1 }),
+    ).toThrow();
+  });
+
+  it('update does not throw when new bar timestamp equals the last bar', () => {
+    dl.setData(makeBars(2)); // last time: 2000
+    expect(() =>
+      dl.update({ time: 2000, open: 99, high: 100, low: 98, close: 99.5 }),
+    ).not.toThrow();
+    expect(dl.store.length).toBe(2); // overwrite, no growth
+  });
+
   it('update triggers grow when capacity is full', () => {
     // Fill a store exactly to its capacity by loading data then filling to the brim
     const bars = makeBars(2);

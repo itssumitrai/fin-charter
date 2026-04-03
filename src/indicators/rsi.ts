@@ -1,8 +1,8 @@
 export function computeRSI(close: Float64Array, length: number, period: number): Float64Array {
   const result = new Float64Array(length);
 
-  // Fill indices 0 through period with NaN (RSI undefined for first period+1 values)
-  for (let i = 0; i <= period; i++) {
+  // Fill indices 0 through period-1 with NaN (RSI undefined for first `period` values)
+  for (let i = 0; i < period; i++) {
     result[i] = NaN;
   }
 
