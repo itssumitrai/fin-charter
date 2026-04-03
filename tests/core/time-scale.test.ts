@@ -19,7 +19,8 @@ describe('TimeScale', () => {
   it('computes correct visible range for small dataset', () => {
     ts.setWidth(100);
     ts.setDataLength(20);
-    // barSpacing=10 → 10 bars visible; rightmost = 19, leftmost = 10
+    // barSpacing=10, width=100 → barsInView=10
+    // rightBorder = 19 + 0 = 19, leftBorder = 19 - 10 + 1 = 10
     const { fromIdx, toIdx } = ts.visibleRange();
     expect(toIdx).toBe(19);
     expect(fromIdx).toBe(10);
@@ -44,11 +45,12 @@ describe('TimeScale', () => {
   it('visible range shifts after scroll', () => {
     ts.setWidth(100);
     ts.setDataLength(20);
-    ts.scrollByPixels(20); // scroll left by 2 bars
+    // scrollByPixels(20) → rightOffset += 20/10 = 2
+    // rightBorder = 19 + 2 = 21, clamped to 19; leftBorder = 21 - 10 + 1 = 12
+    ts.scrollByPixels(20);
     const { fromIdx, toIdx } = ts.visibleRange();
-    // rightmost moves from 19 to 17
-    expect(toIdx).toBe(17);
-    expect(fromIdx).toBe(8);
+    expect(toIdx).toBe(19);
+    expect(fromIdx).toBe(12);
   });
 
   // ── Coordinate conversion ─────────────────────────────────────────────────
@@ -62,11 +64,11 @@ describe('TimeScale', () => {
     }
   });
 
-  it('last bar is at the right edge with no offset', () => {
+  it('last bar center is at width - 0.5 * barSpacing with no offset', () => {
     ts.setWidth(200);
     ts.setDataLength(10);
-    // rightmost bar (index 9) → x = 200 - 0*10 - (9-9)*10 = 200
-    expect(ts.indexToX(9)).toBe(200);
+    // deltaFromRight = 9 + 0 - 9 = 0; x = 200 - (0 + 0.5) * 10 = 195
+    expect(ts.indexToX(9)).toBe(195);
   });
 
   // ── Scrolling ─────────────────────────────────────────────────────────────
@@ -75,12 +77,13 @@ describe('TimeScale', () => {
     ts.setWidth(100);
     ts.setDataLength(20);
     const before = ts.visibleRange();
-    ts.scrollByPixels(10); // 1 bar
+    // scrollByPixels(10) → rightOffset += 1 → shifts view to show older data
+    ts.scrollByPixels(10);
     const after = ts.visibleRange();
-    expect(after.toIdx).toBe(before.toIdx - 1);
+    expect(after.fromIdx).toBeGreaterThan(before.fromIdx);
   });
 
-  it('scrollToEnd resets scroll offset', () => {
+  it('scrollToEnd resets right offset', () => {
     ts.setWidth(100);
     ts.setDataLength(20);
     ts.scrollByPixels(50);
@@ -92,37 +95,56 @@ describe('TimeScale', () => {
     ts.setWidth(100);
     ts.setDataLength(20);
     ts.scrollToPosition(3); // 3 bars from right
-    expect(ts.visibleRange().toIdx).toBe(16);
+    expect(ts.rightOffset).toBe(3);
+  });
+
+  it('scrollTo computes shift from start position', () => {
+    ts.setWidth(200);
+    ts.setDataLength(20);
+    const savedOffset = ts.rightOffset;
+    // Dragging right by 30px → shift = (100 - 130) / 10 = -3
+    ts.scrollTo(100, 130, savedOffset);
+    expect(ts.rightOffset).toBeCloseTo(savedOffset - 3);
   });
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
 
-  it('zoomAt increases barSpacing when factor > 1', () => {
+  it('zoomAt increases barSpacing when scale > 0', () => {
     ts.setWidth(200);
     ts.setDataLength(20);
-    ts.zoomAt(100, 2);
+    ts.zoomAt(100, 1);
     expect(ts.barSpacing).toBeGreaterThan(10);
   });
 
-  it('zoomAt decreases barSpacing when factor < 1', () => {
+  it('zoomAt decreases barSpacing when scale < 0', () => {
     ts.setWidth(200);
     ts.setDataLength(20);
-    ts.zoomAt(100, 0.5);
+    ts.zoomAt(100, -1);
     expect(ts.barSpacing).toBeLessThan(10);
   });
 
   it('zoomAt clamps barSpacing to maxBarSpacing', () => {
     ts.setWidth(200);
     ts.setDataLength(20);
-    ts.zoomAt(100, 100); // extreme zoom in
+    ts.zoomAt(100, 1000); // extreme zoom in
     expect(ts.barSpacing).toBe(50);
   });
 
   it('zoomAt clamps barSpacing to minBarSpacing', () => {
     ts.setWidth(200);
     ts.setDataLength(20);
-    ts.zoomAt(100, 0.001); // extreme zoom out
+    ts.zoomAt(100, -1000); // extreme zoom out
     expect(ts.barSpacing).toBe(1);
+  });
+
+  it('zoomAt keeps the index under cursor stable', () => {
+    ts.setWidth(200);
+    ts.setDataLength(20);
+    const x = 100;
+    const idxBefore = ts.xToIndex(x);
+    ts.zoomAt(x, 1);
+    const idxAfter = ts.xToIndex(x);
+    expect(idxAfter).toBe(idxBefore);
   });
 
   // ── fitContent ─────────────────────────────────────────────────────────────
@@ -141,7 +163,7 @@ describe('TimeScale', () => {
     expect(ts.barSpacing).toBe(1);
   });
 
-  it('fitContent resets scroll offset to 0', () => {
+  it('fitContent resets scroll offset', () => {
     ts.setWidth(200);
     ts.setDataLength(20);
     ts.scrollByPixels(100);
@@ -154,5 +176,17 @@ describe('TimeScale', () => {
   it('setOptions updates barSpacing and clamps it', () => {
     ts.setOptions({ barSpacing: 100 }); // above maxBarSpacing=50
     expect(ts.barSpacing).toBe(50);
+  });
+
+  // ── rightOffset getter ────────────────────────────────────────────────────
+
+  it('rightOffset defaults to the options value', () => {
+    const ts2 = new TimeScale({ barSpacing: 10, rightOffset: 5, minBarSpacing: 1, maxBarSpacing: 50 });
+    expect(ts2.rightOffset).toBe(5);
+  });
+
+  it('setRightOffset sets the offset directly', () => {
+    ts.setRightOffset(7);
+    expect(ts.rightOffset).toBe(7);
   });
 });

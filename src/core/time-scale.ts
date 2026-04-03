@@ -14,24 +14,47 @@ const DEFAULT_OPTIONS: TimeScaleOptions = {
   maxBarSpacing: 50,
 };
 
+/**
+ * TimeScale following TradingView lightweight-charts' model.
+ *
+ * - `_rightOffset` = bars of empty space to the right of the last bar.
+ *   Default 0 means the last bar sits at the right edge.
+ * - `_barSpacing` controls zoom level.
+ * - Visible range: rightBorder = baseIndex + rightOffset,
+ *   leftBorder = rightBorder - width/barSpacing + 1
+ * - indexToCoordinate: deltaFromRight = baseIndex + rightOffset - index;
+ *   x = width - (deltaFromRight + 0.5) * barSpacing
+ * - Scrolling modifies rightOffset.
+ * - Auto-scroll on new data: rightOffset stays constant, so new bars
+ *   naturally appear if the last bar was visible.
+ */
 export class TimeScale {
   private _options: TimeScaleOptions;
   /** Canvas width in pixels. */
   private _width: number = 0;
   /** Total number of data bars. */
   private _dataLength: number = 0;
-  /**
-   * Scroll offset in bars from the right edge.
-   * Positive = scrolled left (older data visible).
-   */
-  private _scrollOffset: number = 0;
+  /** Bars of space to the right of the last bar. */
+  private _rightOffset: number = 0;
+  /** Bar spacing (zoom level). Stored separately from options so zoomAt can mutate it without cloning options. */
+  private _barSpacing: number;
 
   constructor(options?: Partial<TimeScaleOptions>) {
     this._options = { ...DEFAULT_OPTIONS, ...options };
+    this._barSpacing = this._options.barSpacing;
+    this._rightOffset = this._options.rightOffset;
+  }
+
+  // baseIndex = last bar index = dataLength - 1
+  private get _baseIndex(): number {
+    return this._dataLength - 1;
   }
 
   setOptions(options: Partial<TimeScaleOptions>): void {
     this._options = { ...this._options, ...options };
+    if (options.barSpacing !== undefined) {
+      this._barSpacing = options.barSpacing;
+    }
     this._clampBarSpacing();
   }
 
@@ -39,113 +62,135 @@ export class TimeScale {
     this._width = width;
   }
 
+  /**
+   * Set data length.
+   * Auto-scroll: rightOffset stays constant, so if the last bar was visible
+   * before new data arrived, the new bar naturally appears.
+   */
   setDataLength(length: number): void {
-    const oldLength = this._dataLength;
     this._dataLength = length;
-
-    // Auto-scroll: if user hasn't scrolled away from the right edge,
-    // keep the latest data in view as new bars arrive.
-    if (length > oldLength && Math.abs(this._scrollOffset) < 1) {
-      this._scrollOffset = 0;
-    }
   }
 
   get barSpacing(): number {
-    return this._options.barSpacing;
+    return this._barSpacing;
+  }
+
+  get rightOffset(): number {
+    return this._rightOffset;
   }
 
   // ── Visible range ──────────────────────────────────────────────────────────
 
   /**
-   * Compute the visible bar index range from current state.
-   * The rightmost visible bar index is: dataLength - 1 - rightOffset - scrollOffset.
-   * The leftmost is: rightmost - barsInView + 1.
-   * Results are clamped to [0, dataLength-1].
+   * Compute the visible bar index range.
+   * rightBorder = baseIndex + rightOffset
+   * leftBorder = rightBorder - width/barSpacing + 1
    */
   visibleRange(): VisibleRange {
     if (this._dataLength === 0 || this._width === 0) {
       return { fromIdx: 0, toIdx: 0 };
     }
 
-    const barsInView = this._width / this._options.barSpacing;
-    const rightmostIdx =
-      this._dataLength - 1 - this._options.rightOffset - this._scrollOffset;
-    const leftmostIdx = rightmostIdx - barsInView + 1;
+    const barsInView = this._width / this._barSpacing;
+    const rightBorder = this._baseIndex + this._rightOffset;
+    const leftBorder = rightBorder - barsInView + 1;
 
-    const fromIdx = Math.max(0, Math.floor(leftmostIdx));
-    const toIdx = Math.min(this._dataLength - 1, Math.ceil(rightmostIdx));
-
-    return { fromIdx, toIdx };
+    return {
+      fromIdx: Math.max(0, Math.ceil(leftBorder)),
+      toIdx: Math.min(this._dataLength - 1, Math.floor(rightBorder)),
+    };
   }
 
   // ── Coordinate conversion ─────────────────────────────────────────────────
 
   /**
    * Convert a bar index to the x-pixel of its center.
-   * The rightmost bar in the data sits at:
-   *   x = width - (rightOffset + scrollOffset) * barSpacing
-   * Each bar to the left is barSpacing pixels further left.
+   * deltaFromRight = baseIndex + rightOffset - index
+   * x = width - (deltaFromRight + 0.5) * barSpacing
    */
   indexToX(index: number): number {
-    const { barSpacing, rightOffset } = this._options;
-    const rightBarX = this._width - (rightOffset + this._scrollOffset) * barSpacing;
-    return rightBarX - (this._dataLength - 1 - index) * barSpacing;
+    const deltaFromRight = this._baseIndex + this._rightOffset - index;
+    return this._width - (deltaFromRight + 0.5) * this._barSpacing;
   }
 
-  /** Convert an x-pixel coordinate back to the nearest bar index (not clamped). */
+  /**
+   * Convert an x-pixel coordinate back to the nearest bar index (not clamped).
+   * Inverse of indexToX.
+   */
   xToIndex(x: number): number {
-    const { barSpacing, rightOffset } = this._options;
-    const rightBarX = this._width - (rightOffset + this._scrollOffset) * barSpacing;
-    const fromRight = (rightBarX - x) / barSpacing;
-    return Math.round(this._dataLength - 1 - fromRight);
+    const deltaFromRight = (this._width - x) / this._barSpacing - 0.5;
+    return Math.round(this._baseIndex + this._rightOffset - deltaFromRight);
+  }
+
+  /**
+   * Return the fractional (float) index at an x coordinate.
+   * Used internally for zoom stabilization.
+   */
+  private _floatIndexAtX(x: number): number {
+    const deltaFromRight = (this._width - x) / this._barSpacing - 0.5;
+    return this._baseIndex + this._rightOffset - deltaFromRight;
   }
 
   // ── Scrolling ─────────────────────────────────────────────────────────────
 
-  scrollByPixels(deltaX: number): void {
-    this._scrollOffset += deltaX / this._options.barSpacing;
+  /**
+   * Called by the pan handler. Computes the shift in logical bars from the
+   * start position and applies it to the saved right offset.
+   *
+   * Dragging right → x increases → shift is negative → rightOffset decreases
+   * → chart moves toward future/recent data.
+   */
+  scrollTo(startX: number, currentX: number, savedRightOffset: number): void {
+    const shift = (startX - currentX) / this._barSpacing;
+    this._rightOffset = savedRightOffset + shift;
   }
 
-  /** Scroll so the last bar is visible at the right edge (no rightOffset). */
+  /** Direct offset setter for kinetic scrolling etc. */
+  setRightOffset(offset: number): void {
+    this._rightOffset = offset;
+  }
+
+  /** Scroll so the last bar is visible at the right edge (reset to configured rightOffset). */
   scrollToEnd(): void {
-    this._scrollOffset = 0;
+    this._rightOffset = this._options.rightOffset;
   }
 
-  /** Set scroll offset directly in bars. */
+  /**
+   * Scroll by pixel amount. Kept for backwards compatibility with
+   * axis-drag, keyboard-nav, and kinetic scrolling.
+   *
+   * Positive deltaX → rightOffset increases → chart shifts to show older data.
+   */
+  scrollByPixels(deltaX: number): void {
+    this._rightOffset += deltaX / this._barSpacing;
+  }
+
+  /**
+   * Set scroll offset directly in bars.
+   * Kept for backwards compatibility with keyboard-nav (Home key).
+   */
   scrollToPosition(position: number): void {
-    this._scrollOffset = position;
+    this._rightOffset = position;
   }
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
 
   /**
-   * Zoom the bar spacing by `factor`, keeping the bar under cursor `x` stable.
+   * Zoom keeping the point under cursor stable.
+   * TV model: record float index under cursor, change barSpacing by
+   * `scale * (barSpacing / 10)`, then adjust rightOffset so that index
+   * stays at the same screen x.
    */
-  zoomAt(x: number, factor: number): void {
-    const oldSpacing = this._options.barSpacing;
-    const newSpacing = Math.min(
-      this._options.maxBarSpacing,
-      Math.max(this._options.minBarSpacing, oldSpacing * factor),
+  zoomAt(x: number, scale: number): void {
+    const oldIdx = this._floatIndexAtX(x);
+    const newSpacing = Math.max(
+      this._options.minBarSpacing,
+      Math.min(this._options.maxBarSpacing, this._barSpacing + scale * (this._barSpacing / 10)),
     );
-    if (newSpacing === oldSpacing) return;
-
-    // The bar index under the cursor must stay at x after the zoom.
-    // indexToX(idx) = rightBarX - (dataLength-1-idx) * spacing
-    // => rightBarX = x + (dataLength-1-idx) * spacing
-    // We need to adjust scrollOffset so that the new rightBarX satisfies this.
-    const { rightOffset } = this._options;
-    const rightBarX = this._width - (rightOffset + this._scrollOffset) * oldSpacing;
-    const barsFromRight = (rightBarX - x) / oldSpacing;
-    // After zoom the cursor should still be barsFromRight bars from the right bar
-    // x = newRightBarX - barsFromRight * newSpacing
-    // newRightBarX = x + barsFromRight * newSpacing
-    // newRightBarX = width - (rightOffset + newScrollOffset) * newSpacing
-    // => newScrollOffset = (width - newRightBarX) / newSpacing - rightOffset
-    const newRightBarX = x + barsFromRight * newSpacing;
-    const newScrollOffset = (this._width - newRightBarX) / newSpacing - rightOffset;
-
-    this._options = { ...this._options, barSpacing: newSpacing };
-    this._scrollOffset = newScrollOffset;
+    if (newSpacing === this._barSpacing) return;
+    this._barSpacing = newSpacing;
+    const newIdx = this._floatIndexAtX(x);
+    this._rightOffset += oldIdx - newIdx;
   }
 
   // ── Fit content ───────────────────────────────────────────────────────────
@@ -153,21 +198,19 @@ export class TimeScale {
   /** Adjust barSpacing so all data bars fit exactly in the current width. */
   fitContent(): void {
     if (this._dataLength === 0 || this._width === 0) return;
-    const spacing = this._width / this._dataLength;
-    this._options = {
-      ...this._options,
-      barSpacing: Math.min(
-        this._options.maxBarSpacing,
-        Math.max(this._options.minBarSpacing, spacing),
-      ),
-    };
-    this._scrollOffset = 0;
+    this._barSpacing = Math.max(
+      this._options.minBarSpacing,
+      Math.min(this._options.maxBarSpacing, this._width / this._dataLength),
+    );
+    this._rightOffset = this._options.rightOffset;
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private _clampBarSpacing(): void {
-    const { barSpacing, minBarSpacing, maxBarSpacing } = this._options;
-    this._options.barSpacing = Math.min(maxBarSpacing, Math.max(minBarSpacing, barSpacing));
+    this._barSpacing = Math.min(
+      this._options.maxBarSpacing,
+      Math.max(this._options.minBarSpacing, this._barSpacing),
+    );
   }
 }

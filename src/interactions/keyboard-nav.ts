@@ -29,15 +29,15 @@ export class KeyboardNavHandler implements EventHandler {
 
       case 'ArrowUp':
       case '+':
-        // Zoom in
-        this._timeScale.zoomAt(this._getCenterX(), 1.2);
+        // Zoom in: positive scale = increase bar spacing
+        this._timeScale.zoomAt(this._getCenterX(), 1);
         this._requestInvalidation();
         break;
 
       case 'ArrowDown':
       case '-':
-        // Zoom out
-        this._timeScale.zoomAt(this._getCenterX(), 1 / 1.2);
+        // Zoom out: negative scale = decrease bar spacing
+        this._timeScale.zoomAt(this._getCenterX(), -1);
         this._requestInvalidation();
         break;
 
