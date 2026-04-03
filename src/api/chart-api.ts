@@ -521,6 +521,25 @@ class ChartApi implements IChartApi {
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
     }
 
+    // Draw last close price line
+    if (this._options.lastPriceLine.visible && primaryStore.length > 0) {
+      const lastClose = primaryStore.close[primaryStore.length - 1];
+      const lastOpen = primaryStore.open[primaryStore.length - 1];
+      const isUp = lastClose >= lastOpen;
+      const lineColor = isUp ? '#26a69a' : '#ef5350';
+      const lastY = Math.round(priceToY(lastClose) * pixelRatio);
+
+      ctx.save();
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = pixelRatio;
+      ctx.setLineDash([4 * pixelRatio, 4 * pixelRatio]);
+      ctx.beginPath();
+      ctx.moveTo(0, lastY);
+      ctx.lineTo(Math.round(chartW * pixelRatio), lastY);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.restore();
 
     // Draw separator lines on chart canvas edges
@@ -713,6 +732,31 @@ class ChartApi implements IChartApi {
     ctx.moveTo(0, 0);
     ctx.lineTo(0, Math.round(chartH * pixelRatio));
     ctx.stroke();
+
+    // Current price label (last close)
+    if (this._options.lastPriceLine.visible && this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      if (store.length > 0) {
+        const lastClose = store.close[store.length - 1];
+        const lastOpen = store.open[store.length - 1];
+        const isUp = lastClose >= lastOpen;
+        const bgColor = isUp ? '#26a69a' : '#ef5350';
+        const y = Math.round(this._priceScale.priceToY(lastClose) * pixelRatio);
+        const priceText = lastClose.toFixed(2);
+        const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+        // Background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, y - lh / 2, axisRight, lh);
+
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(priceText, axisRight - padding, y);
+      }
+    }
 
     // Crosshair price label
     if (this._crosshair.visible) {

@@ -47,6 +47,10 @@ export interface GridOptions {
 
 // ─── Chart ──────────────────────────────────────────────────────────────────
 
+export interface LastPriceLineOptions {
+  visible: boolean;
+}
+
 export interface ChartOptions {
   width: number;
   height: number;
@@ -55,6 +59,7 @@ export interface ChartOptions {
   timeScale: TimeScaleApiOptions;
   crosshair: CrosshairOptions;
   grid: GridOptions;
+  lastPriceLine: LastPriceLineOptions;
   theme?: 'dark' | 'light';
 }
 
@@ -117,6 +122,9 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
     vertLinesColor: 'rgba(255, 255, 255, 0.06)',
     horzLinesVisible: true,
     horzLinesColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  lastPriceLine: {
+    visible: true,
   },
 };
 

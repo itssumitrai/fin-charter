@@ -54,3 +54,14 @@ export const FewBars: Story = {
     return container;
   },
 };
+
+export const WithoutLastPriceLine: Story = {
+  name: 'Without Last Price Line',
+  render: () => {
+    const container = createChartContainer();
+    const chart = createChart(container, { autoSize: true, lastPriceLine: { visible: false } });
+    const series = chart.addCandlestickSeries();
+    series.setData(AAPL_DAILY);
+    return container;
+  },
+};
