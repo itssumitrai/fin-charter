@@ -6,6 +6,8 @@ export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/char
 export type { ISeriesApi } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
 
+export { DARK_THEME, LIGHT_THEME } from './api/options';
+
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
   ChartOptions,

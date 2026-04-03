@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
-import { generateOHLCV } from './helpers';
+import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
   title: 'Charts/All Chart Types',
@@ -59,7 +59,7 @@ export const Overview: Story = {
     root.style.background = '#0d0d1a';
     root.style.minHeight = '100vh';
 
-    const bars = generateOHLCV(150);
+    const bars = AAPL_DAILY;
 
     const specs: ChartSpec[] = [
       {

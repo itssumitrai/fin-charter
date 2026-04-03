@@ -36,7 +36,7 @@ export class PanZoomHandler implements EventHandler {
     state.lastX = state.x;
     state.x = x;
 
-    this._timeScale.scrollByPixels(dx);
+    this._timeScale.scrollByPixels(-dx);
     this._requestInvalidation();
   }
 
@@ -82,7 +82,7 @@ export class PanZoomHandler implements EventHandler {
         return;
       }
 
-      this._timeScale.scrollByPixels(velocity);
+      this._timeScale.scrollByPixels(-velocity);
       this._requestInvalidation();
       this._kineticRafId = requestAnimationFrame(step);
     };

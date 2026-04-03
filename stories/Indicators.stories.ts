@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { computeSMA, computeEMA } from 'fin-charter/indicators';
 import type { Bar } from '../src/core/types';
-import { generateOHLCV, createChartContainer } from './helpers';
+import { createChartContainer } from './helpers';
+import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
   title: 'Charts/Indicators',
@@ -38,7 +39,7 @@ export const SMAandEMA: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const bars = generateOHLCV(300);
+    const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
 
     // Main candlestick chart
@@ -65,7 +66,7 @@ export const SMAOnly: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const bars = generateOHLCV(300);
+    const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
 
     const candleSeries = chart.addCandlestickSeries();
@@ -85,7 +86,7 @@ export const EMAOnly: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const bars = generateOHLCV(300);
+    const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
 
     const lineSeries = chart.addLineSeries({ color: '#aaaaaa', lineWidth: 1 });

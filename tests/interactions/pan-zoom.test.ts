@@ -38,7 +38,7 @@ describe('PanZoomHandler', () => {
     handler.onPointerDown(100, 0, 1);
     handler.onPointerMove(120, 0, 1);
 
-    expect(ts.scrollByPixels).toHaveBeenCalledWith(20);
+    expect(ts.scrollByPixels).toHaveBeenCalledWith(-20);
     expect(requestInvalidation).toHaveBeenCalled();
   });
 
@@ -73,8 +73,8 @@ describe('PanZoomHandler', () => {
     handler.onPointerMove(30, 0, 1);
 
     expect(ts.scrollByPixels).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(ts.scrollByPixels).mock.calls[0][0]).toBe(10);
-    expect(vi.mocked(ts.scrollByPixels).mock.calls[1][0]).toBe(20);
+    expect(vi.mocked(ts.scrollByPixels).mock.calls[0][0]).toBe(-10);
+    expect(vi.mocked(ts.scrollByPixels).mock.calls[1][0]).toBe(-20);
   });
 
   it('zooms in when wheel deltaY is negative', () => {

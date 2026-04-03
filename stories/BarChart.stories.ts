@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
-import { generateOHLCV, createChartContainer } from './helpers';
+import { createChartContainer } from './helpers';
+import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
   title: 'Charts/Bar (OHLC)',
@@ -22,7 +23,7 @@ export const Default: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
     const series = chart.addBarSeries();
-    series.setData(generateOHLCV(200));
+    series.setData(AAPL_DAILY);
     return container;
   },
 };
@@ -36,7 +37,7 @@ export const CustomColors: Story = {
       upColor: '#26a69a',
       downColor: '#ef5350',
     });
-    series.setData(generateOHLCV(200));
+    series.setData(AAPL_DAILY);
     return container;
   },
 };

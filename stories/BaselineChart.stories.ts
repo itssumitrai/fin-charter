@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
-import { generateOHLCV, createChartContainer } from './helpers';
+import { createChartContainer } from './helpers';
+import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
   title: 'Charts/Baseline',
@@ -23,7 +24,7 @@ export const Default: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
     const series = chart.addBaselineSeries();
-    series.setData(generateOHLCV(200));
+    series.setData(AAPL_DAILY);
     return container;
   },
 };
@@ -40,7 +41,7 @@ export const CustomBaseline: Story = {
       topFillColor: 'rgba(0, 229, 255, 0.28)',
       bottomFillColor: 'rgba(255, 107, 107, 0.28)',
     });
-    series.setData(generateOHLCV(200, 100));
+    series.setData(AAPL_DAILY);
     return container;
   },
 };

@@ -39,8 +39,15 @@ import {
   type PaneOptions,
   type SeriesOptionsMap,
   DEFAULT_CHART_OPTIONS,
+  DARK_THEME,
+  LIGHT_THEME,
   mergeOptions,
 } from './options';
+
+// ─── Axis constants ────────────────────────────────────────────────────────
+
+const PRICE_AXIS_WIDTH = 60;
+const TIME_AXIS_HEIGHT = 28;
 
 // ─── Crosshair event callback type ─────────────────────────────────────────
 
@@ -179,10 +186,10 @@ class ChartApi implements IChartApi {
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
-    this._timeScale.setWidth(this._width);
+    this._timeScale.setWidth(this._width - PRICE_AXIS_WIDTH);
 
     this._priceScale = new PriceScale('right');
-    this._priceScale.setHeight(this._height);
+    this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
 
     this._crosshair = new Crosshair();
 
@@ -320,8 +327,8 @@ class ChartApi implements IChartApi {
     this._wrapper.style.width = `${width}px`;
     this._wrapper.style.height = `${height}px`;
 
-    this._timeScale.setWidth(width);
-    this._priceScale.setHeight(height);
+    this._timeScale.setWidth(width - PRICE_AXIS_WIDTH);
+    this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
     this._options.width = width;
     this._options.height = height;
@@ -414,6 +421,8 @@ class ChartApi implements IChartApi {
     const ctx = this._mainCtx;
     const w = this._width;
     const h = this._height;
+    const chartW = w - PRICE_AXIS_WIDTH;
+    const chartH = h - TIME_AXIS_HEIGHT;
 
     // Clear
     ctx.clearRect(0, 0, Math.round(w * pixelRatio), Math.round(h * pixelRatio));
@@ -427,13 +436,19 @@ class ChartApi implements IChartApi {
     this._timeScale.setDataLength(primaryStore.length);
     const range = this._timeScale.visibleRange();
 
-    if (range.fromIdx >= range.toIdx || primaryStore.length === 0) return;
+    if (range.fromIdx > range.toIdx || primaryStore.length === 0) return;
 
     // Auto-scale price from visible data (scan all series)
     this._updateDataRange(range);
 
-    // Draw grid
-    this._drawGrid(ctx, w, h, range, primaryStore, pixelRatio);
+    // Draw grid (within chart area only)
+    this._drawGrid(ctx, chartW, chartH, range, primaryStore, pixelRatio);
+
+    // Clip series rendering to chart area
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+    ctx.clip();
 
     // Draw each series
     const target = this._createRenderTarget(this._mainCanvas, ctx, pixelRatio);
@@ -451,6 +466,28 @@ class ChartApi implements IChartApi {
 
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
     }
+
+    ctx.restore();
+
+    // Draw axes
+    this._drawPriceAxis(ctx, w, chartW, chartH, pixelRatio);
+    this._drawTimeAxis(ctx, chartW, chartH, h, range, primaryStore, pixelRatio);
+
+    // Draw axis separator lines
+    ctx.save();
+    ctx.strokeStyle = this._options.grid.horzLinesColor;
+    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    // Vertical separator (chart area | price axis)
+    ctx.beginPath();
+    ctx.moveTo(Math.round(chartW * pixelRatio), 0);
+    ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+    ctx.stroke();
+    // Horizontal separator (chart area / time axis)
+    ctx.beginPath();
+    ctx.moveTo(0, Math.round(chartH * pixelRatio));
+    ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+    ctx.stroke();
+    ctx.restore();
   }
 
   private _drawSeries(
@@ -572,6 +609,106 @@ class ChartApi implements IChartApi {
         ctx.lineTo(x, Math.round(h * pixelRatio));
         ctx.stroke();
       }
+    }
+
+    ctx.restore();
+  }
+
+  // ── Price axis ────────────────────────────────────────────────────────
+
+  private _drawPriceAxis(
+    ctx: CanvasRenderingContext2D,
+    totalW: number,
+    chartW: number,
+    chartH: number,
+    pixelRatio: number,
+  ): void {
+    const layout = this._options.layout;
+    const priceRange = this._priceScale.priceRange;
+    const pRange = priceRange.max - priceRange.min;
+    const targetSteps = Math.max(2, Math.floor(chartH / 60));
+    const step = niceStep(pRange, targetSteps);
+
+    ctx.save();
+    ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    const axisX = Math.round(chartW * pixelRatio);
+    const axisRight = Math.round(totalW * pixelRatio);
+    const padding = Math.round(6 * pixelRatio);
+    const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
+
+    const firstPrice = Math.ceil(priceRange.min / step) * step;
+    for (let price = firstPrice; price <= priceRange.max; price += step) {
+      const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
+      // Skip labels too close to edges
+      if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+
+      const text = price.toFixed(2);
+
+      // Draw background rect
+      ctx.fillStyle = this._options.layout.backgroundColor;
+      ctx.fillRect(axisX + 1, y - labelHeight / 2, axisRight - axisX - 1, labelHeight);
+
+      // Draw text
+      ctx.fillStyle = layout.textColor;
+      ctx.fillText(text, axisRight - padding, y);
+    }
+
+    ctx.restore();
+  }
+
+  // ── Time axis ─────────────────────────────────────────────────────────
+
+  private _drawTimeAxis(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    chartH: number,
+    totalH: number,
+    range: VisibleRange,
+    store: ColumnStore,
+    pixelRatio: number,
+  ): void {
+    if (store.length === 0) return;
+
+    const layout = this._options.layout;
+    const barsInRange = range.toIdx - range.fromIdx + 1;
+    const targetSteps = Math.max(2, Math.floor(chartW / 100));
+    const barStep = Math.max(1, Math.round(barsInRange / targetSteps));
+
+    ctx.save();
+    ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = layout.textColor;
+
+    const axisY = Math.round(chartH * pixelRatio);
+    const textY = axisY + Math.round(8 * pixelRatio);
+
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    for (let i = range.fromIdx; i <= range.toIdx; i += barStep) {
+      if (i >= store.length) break;
+      const x = Math.round(this._timeScale.indexToX(i) * pixelRatio);
+      if (x < 0 || x > Math.round(chartW * pixelRatio)) continue;
+
+      const timestamp = store.time[i];
+      const date = new Date(timestamp * 1000);
+
+      // Detect if data is intraday: check spacing between first two bars
+      let label: string;
+      if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+        // Intraday: HH:MM
+        const hh = date.getUTCHours().toString().padStart(2, '0');
+        const mm = date.getUTCMinutes().toString().padStart(2, '0');
+        label = `${hh}:${mm}`;
+      } else {
+        // Daily: MMM DD
+        label = `${months[date.getUTCMonth()]} ${date.getUTCDate().toString().padStart(2, '0')}`;
+      }
+
+      ctx.fillText(label, x, textY);
     }
 
     ctx.restore();
@@ -737,8 +874,19 @@ export function createChart(
   container: HTMLElement,
   options?: DeepPartial<ChartOptions>,
 ): IChartApi {
-  const resolved = options
-    ? mergeOptions(DEFAULT_CHART_OPTIONS, options)
-    : { ...DEFAULT_CHART_OPTIONS };
+  let resolved: ChartOptions;
+  if (options) {
+    // If a theme is specified, merge theme defaults first, then user options on top
+    const theme = options.theme;
+    if (theme === 'light') {
+      resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, LIGHT_THEME), options);
+    } else if (theme === 'dark') {
+      resolved = mergeOptions(mergeOptions(DEFAULT_CHART_OPTIONS, DARK_THEME), options);
+    } else {
+      resolved = mergeOptions(DEFAULT_CHART_OPTIONS, options);
+    }
+  } else {
+    resolved = { ...DEFAULT_CHART_OPTIONS };
+  }
   return new ChartApi(container, resolved);
 }

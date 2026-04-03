@@ -29,6 +29,5 @@ export function createChartContainer(): HTMLDivElement {
   const el = document.createElement('div');
   el.style.width = '100%';
   el.style.height = '500px';
-  el.style.background = '#1a1a2e';
   return el;
 }

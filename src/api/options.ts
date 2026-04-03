@@ -55,37 +55,68 @@ export interface ChartOptions {
   timeScale: TimeScaleApiOptions;
   crosshair: CrosshairOptions;
   grid: GridOptions;
+  theme?: 'dark' | 'light';
 }
+
+export const DARK_THEME: DeepPartial<ChartOptions> = {
+  layout: {
+    backgroundColor: '#1a1a2e',
+    textColor: '#d1d4dc',
+  },
+  crosshair: {
+    vertLineColor: '#758696',
+    horzLineColor: '#758696',
+  },
+  grid: {
+    vertLinesColor: 'rgba(255, 255, 255, 0.06)',
+    horzLinesColor: 'rgba(255, 255, 255, 0.06)',
+  },
+};
+
+export const LIGHT_THEME: DeepPartial<ChartOptions> = {
+  layout: {
+    backgroundColor: '#ffffff',
+    textColor: '#333333',
+  },
+  crosshair: {
+    vertLineColor: '#9598A1',
+    horzLineColor: '#9598A1',
+  },
+  grid: {
+    vertLinesColor: 'rgba(0, 0, 0, 0.06)',
+    horzLinesColor: 'rgba(0, 0, 0, 0.06)',
+  },
+};
 
 export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   width: 800,
   height: 400,
   autoSize: false,
   layout: {
-    backgroundColor: '#ffffff',
-    textColor: '#333333',
+    backgroundColor: '#1a1a2e',
+    textColor: '#d1d4dc',
     fontSize: 11,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   timeScale: {
     barSpacing: 6,
     rightOffset: 0,
-    minBarSpacing: 1,
+    minBarSpacing: 2,
     maxBarSpacing: 50,
   },
   crosshair: {
-    vertLineColor: '#9598A1',
+    vertLineColor: '#758696',
     vertLineWidth: 1,
     vertLineDash: [4, 4],
-    horzLineColor: '#9598A1',
+    horzLineColor: '#758696',
     horzLineWidth: 1,
     horzLineDash: [4, 4],
   },
   grid: {
     vertLinesVisible: true,
-    vertLinesColor: 'rgba(0, 0, 0, 0.06)',
+    vertLinesColor: 'rgba(255, 255, 255, 0.06)',
     horzLinesVisible: true,
-    horzLinesColor: 'rgba(0, 0, 0, 0.06)',
+    horzLinesColor: 'rgba(255, 255, 255, 0.06)',
   },
 };
 
