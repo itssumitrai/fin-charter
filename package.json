@@ -1,0 +1,71 @@
+{
+  "name": "fin-charter",
+  "version": "0.1.0",
+  "description": "Ultra-fast, tree-shakeable financial charting library",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./indicators": {
+      "types": "./dist/indicators/index.d.ts",
+      "import": "./dist/indicators/index.js"
+    },
+    "./indicators/*": {
+      "types": "./dist/indicators/*.d.ts",
+      "import": "./dist/indicators/*.js"
+    },
+    "./interactions/*": {
+      "types": "./dist/interactions/*.d.ts",
+      "import": "./dist/interactions/*.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite --config dev/vite.config.ts",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "format": "prettier --write \"src/**/*.{ts,svelte}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,svelte}\"",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static"
+  },
+  "keywords": [
+    "chart",
+    "financial",
+    "trading",
+    "candlestick",
+    "canvas",
+    "lightweight"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@storybook/html": "^10.3.4",
+    "@storybook/html-vite": "^10.3.4",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "eslint": "^10.1.0",
+    "eslint-plugin-svelte": "^3.17.0",
+    "jsdom": "^29.0.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1",
+    "storybook": "^10.3.4",
+    "svelte": "^5.55.1",
+    "svelte-check": "^4.4.6",
+    "terser": "^5.46.1",
+    "tslib": "2.8.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.0",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
+  }
+}
