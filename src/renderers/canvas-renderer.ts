@@ -1,4 +1,4 @@
-import type { GradientStop, PathCommand } from '@/core/types';
+import type { GradientStop, PathCommand } from '../core/types';
 import type { DrawStyle, IRenderer } from './renderer';
 
 /**
