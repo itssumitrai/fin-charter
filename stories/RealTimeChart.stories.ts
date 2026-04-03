@@ -4,7 +4,7 @@ import type { Bar } from '../src/core/types';
 import { generateOHLCV, createChartContainer } from './helpers';
 
 const meta: Meta = {
-  title: 'Charts/Real-Time',
+  title: 'Real-Time/Streaming',
   parameters: {
     docs: {
       description: {

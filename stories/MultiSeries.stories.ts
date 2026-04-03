@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
-import { createChartContainer, generateOHLCV } from './helpers';
+import { createChartContainer } from './helpers';
+import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
-  title: 'Charts/Multi-Series',
+  title: 'Features/Multiple Series',
   parameters: {
     docs: {
       description: {
@@ -22,14 +23,19 @@ export const TwoLineSeriesOverlaid: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const data1 = generateOHLCV(120, 100);
-    const data2 = generateOHLCV(120, 95);
+    const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
+    series1.setData(AAPL_DAILY);
 
-    const series1 = chart.addLineSeries({ color: '#2962FF' });
-    series1.setData(data1);
-
-    const series2 = chart.addLineSeries({ color: '#FF6D00' });
-    series2.setData(data2);
+    // Shift all prices by a fixed offset to simulate a second instrument
+    const shifted = AAPL_DAILY.map((b) => ({
+      ...b,
+      open: b.open - 10,
+      high: b.high - 10,
+      low: b.low - 10,
+      close: b.close - 10,
+    }));
+    const series2 = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+    series2.setData(shifted);
 
     return container;
   },
@@ -41,19 +47,17 @@ export const CandlestickWithLine: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const data = generateOHLCV(120, 100);
-
     const candleSeries = chart.addCandlestickSeries();
-    candleSeries.setData(data);
+    candleSeries.setData(AAPL_DAILY);
 
-    // SMA-like overlay: use same data shifted
-    const smaData = data.map((bar, i) => {
-      const window = data.slice(Math.max(0, i - 19), i + 1);
-      const avg = window.reduce((s, b) => s + b.close, 0) / window.length;
+    // SMA-like overlay computed from AAPL_DAILY
+    const smaData = AAPL_DAILY.map((bar, i) => {
+      const slice = AAPL_DAILY.slice(Math.max(0, i - 19), i + 1);
+      const avg = slice.reduce((s, b) => s + b.close, 0) / slice.length;
       return { ...bar, open: avg, high: avg, low: avg, close: avg };
     });
 
-    const lineSeries = chart.addLineSeries({ color: '#FF6D00' });
+    const lineSeries = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
     lineSeries.setData(smaData);
 
     return container;
@@ -69,9 +73,8 @@ export const WithVolumeOverlay: Story = {
       volume: { visible: true },
     });
 
-    const data = generateOHLCV(120, 100);
     const series = chart.addCandlestickSeries();
-    series.setData(data);
+    series.setData(AAPL_DAILY);
 
     return container;
   },
@@ -83,24 +86,21 @@ export const WithMarkersAndPriceLines: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
 
-    const data = generateOHLCV(120, 100);
     const series = chart.addCandlestickSeries();
-    series.setData(data);
+    series.setData(AAPL_DAILY);
 
-    // Add markers at a few points
     series.setMarkers([
-      { time: data[20].time, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy', size: 1.5 },
-      { time: data[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell', size: 1.5 },
-      { time: data[80].time, position: 'inBar', shape: 'circle', color: '#2962FF', text: 'Info' },
+      { time: AAPL_DAILY[20].time, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy', size: 1.5 },
+      { time: AAPL_DAILY[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell', size: 1.5 },
+      { time: AAPL_DAILY[80].time, position: 'inBar', shape: 'circle', color: '#2962FF', text: 'Info' },
     ]);
 
-    // Add price lines
     series.createPriceLine({
-      price: data[20].close, color: '#26a69a', lineWidth: 1, lineStyle: 'dashed',
+      price: AAPL_DAILY[20].close, color: '#26a69a', lineWidth: 1, lineStyle: 'dashed',
       title: 'Support', axisLabelVisible: true,
     });
     series.createPriceLine({
-      price: data[50].close, color: '#ef5350', lineWidth: 1, lineStyle: 'dotted',
+      price: AAPL_DAILY[50].close, color: '#ef5350', lineWidth: 1, lineStyle: 'dotted',
       title: 'Resistance', axisLabelVisible: true,
       axisLabelColor: '#ef5350', axisLabelTextColor: '#ffffff',
     });
@@ -125,9 +125,8 @@ export const WithWatermark: Story = {
       },
     });
 
-    const data = generateOHLCV(120, 100);
     const series = chart.addCandlestickSeries();
-    series.setData(data);
+    series.setData(AAPL_DAILY);
 
     return container;
   },

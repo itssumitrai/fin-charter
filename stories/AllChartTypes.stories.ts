@@ -3,7 +3,7 @@ import { createChart } from 'fin-charter';
 import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
-  title: 'Charts/All Chart Types',
+  title: 'Chart Types/All Chart Types',
   parameters: {
     docs: {
       description: {

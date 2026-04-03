@@ -4,7 +4,7 @@ import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
-  title: 'Charts/Bar (OHLC)',
+  title: 'Chart Types/OHLC Bar',
   parameters: {
     docs: {
       description: {

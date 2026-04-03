@@ -6,7 +6,7 @@ import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 
 const meta: Meta = {
-  title: 'Charts/Indicators',
+  title: 'Indicators/Moving Averages',
   parameters: {
     docs: {
       description: {
