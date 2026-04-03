@@ -1,0 +1,212 @@
+# Getting Started
+
+## Installation
+
+```bash
+npm install fin-charter
+```
+
+fin-charter is a pure ES module package. No CommonJS build is provided.
+
+## Basic Chart
+
+```ts
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart')!, {
+  width: 800,
+  height: 400,
+});
+
+const series = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
+
+series.setData([
+  { time: 1700000000, open: 100, high: 110, low: 95,  close: 107 },
+  { time: 1700086400, open: 107, high: 115, low: 104, close: 112 },
+  { time: 1700172800, open: 112, high: 118, low: 108, close: 109 },
+]);
+```
+
+The `time` field is a Unix timestamp (seconds). All other fields are numbers.
+
+## Chart Types
+
+### Candlestick
+
+```ts
+const series = chart.addCandlestickSeries({
+  upColor:        '#26a69a',
+  downColor:      '#ef5350',
+  wickUpColor:    '#26a69a',
+  wickDownColor:  '#ef5350',
+  borderUpColor:  '#26a69a',
+  borderDownColor:'#ef5350',
+});
+```
+
+OHLC candles with a filled body and wick. Up candles (close >= open) use `upColor`; down candles use `downColor`.
+
+### Line
+
+```ts
+const series = chart.addLineSeries({
+  color:     '#2196F3',
+  lineWidth: 2,
+});
+```
+
+Plots the close price as a continuous polyline.
+
+### Area
+
+```ts
+const series = chart.addAreaSeries({
+  lineColor:   '#2196F3',
+  lineWidth:   2,
+  topColor:    'rgba(33, 150, 243, 0.4)',
+  bottomColor: 'rgba(33, 150, 243, 0)',
+});
+```
+
+Close-price line with a vertical gradient fill beneath it.
+
+### Bar (OHLC)
+
+```ts
+const series = chart.addBarSeries({
+  upColor:   '#26a69a',
+  downColor: '#ef5350',
+  lineWidth: 1,
+});
+```
+
+Traditional OHLC bar chart: vertical high/low line with left open tick and right close tick.
+
+### Baseline
+
+```ts
+const series = chart.addBaselineSeries({
+  basePrice:       150,
+  topLineColor:    '#26a69a',
+  topFillColor:    'rgba(38, 166, 154, 0.28)',
+  bottomLineColor: '#ef5350',
+  bottomFillColor: 'rgba(239, 83, 80, 0.28)',
+  lineWidth:       2,
+});
+```
+
+Splits the price line at `basePrice`. Prices above are coloured in green, prices below in red. Both regions receive a translucent fill.
+
+### Hollow Candle
+
+```ts
+const series = chart.addHollowCandleSeries({
+  upColor:   '#26a69a',
+  downColor: '#ef5350',
+  wickColor: '#737375',
+});
+```
+
+Up candles are hollow (outline only); down candles are filled solid.
+
+### Histogram
+
+```ts
+const series = chart.addHistogramSeries({
+  upColor:   'rgba(38, 166, 154, 0.5)',
+  downColor: 'rgba(239, 83, 80, 0.5)',
+});
+```
+
+Vertical bars rising from the bottom of the pane. Useful for volume.
+
+## Chart Options
+
+```ts
+const chart = createChart(container, {
+  width:  800,
+  height: 400,
+
+  layout: {
+    backgroundColor: '#ffffff',
+    textColor:       '#333333',
+    fontSize:        11,
+    fontFamily:      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+
+  timeScale: {
+    barSpacing:    6,   // pixels per bar
+    rightOffset:   0,   // bars of empty space on the right
+    minBarSpacing: 1,
+    maxBarSpacing: 50,
+  },
+
+  crosshair: {
+    vertLineColor: '#9598A1',
+    vertLineWidth: 1,
+    vertLineDash:  [4, 4],
+    horzLineColor: '#9598A1',
+    horzLineWidth: 1,
+    horzLineDash:  [4, 4],
+  },
+
+  grid: {
+    vertLinesVisible: true,
+    vertLinesColor:   'rgba(0, 0, 0, 0.06)',
+    horzLinesVisible: true,
+    horzLinesColor:   'rgba(0, 0, 0, 0.06)',
+  },
+});
+```
+
+You can update any option after creation using `chart.applyOptions(partial)`.
+
+## Real-Time Updates
+
+`series.update(bar)` is O(1) for both appending a new bar and updating the current bar:
+
+```ts
+// Appends a new bar
+series.update({ time: 1700259200, open: 109, high: 120, low: 106, close: 118 });
+
+// Overwrites the last bar (same timestamp)
+series.update({ time: 1700259200, open: 109, high: 122, low: 106, close: 120 });
+```
+
+If the `time` matches the last bar's timestamp the bar is updated in-place. Otherwise a new bar is appended.
+
+## Auto-Sizing
+
+Set `autoSize: true` and the chart will attach a `ResizeObserver` to the container and call `resize()` automatically:
+
+```ts
+const chart = createChart(container, { autoSize: true });
+```
+
+The container must have a defined CSS size. The chart inherits it.
+
+To resize manually:
+
+```ts
+chart.resize(1200, 600);
+```
+
+## Tree-Shaking
+
+Import only the chart types you need to minimise bundle size:
+
+```ts
+// Only the core chart engine + line series are included in the bundle.
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container);
+const series = chart.addLineSeries();
+```
+
+Because unused renderers are never referenced the bundler excludes them. The package sets `"sideEffects": false` so this works out of the box with Vite, Rollup, and webpack.
+
+Indicators are in a separate entry point so they never appear in the core bundle unless imported:
+
+```ts
+import { computeSMA } from 'fin-charter/indicators';
+```
