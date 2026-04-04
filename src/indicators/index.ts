@@ -10,3 +10,4 @@ export { computeATR } from './atr';
 export { computeADX, type ADXResult } from './adx';
 export { computeOBV } from './obv';
 export { computeWilliamsR } from './williams-r';
+export { slidingMax, slidingMin } from './utils';
