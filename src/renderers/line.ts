@@ -23,6 +23,10 @@ export class LineRenderer {
     this._options = { ...this._options, ...options };
   }
 
+  options(): LineRendererOptions {
+    return this._options;
+  }
+
   draw(
     target: IRenderTarget,
     store: ColumnStore,

@@ -11,6 +11,9 @@ export interface PaneCanvases {
   overlayCtx: CanvasRenderingContext2D;
   rightPriceAxisCtx: CanvasRenderingContext2D;
   leftPriceAxisCtx: CanvasRenderingContext2D;
+  /** Optional WebGL canvas layered between chart and overlay canvases. */
+  webglCanvas?: HTMLCanvasElement;
+  webglCtx?: WebGL2RenderingContext;
 }
 
 /**
@@ -25,7 +28,7 @@ export class Pane {
 
   private _height: number;
 
-  constructor(id: string, height: number) {
+  constructor(id: string, height: number, useWebGL = false) {
     this.id = id;
     this._height = Math.max(MIN_PANE_HEIGHT, height);
 
@@ -51,7 +54,7 @@ export class Pane {
     overlayCanvas.style.position = 'absolute';
     overlayCanvas.style.left = '0';
     overlayCanvas.style.top = '0';
-    overlayCanvas.style.zIndex = '2';
+    overlayCanvas.style.zIndex = '3';
 
     // Right price axis canvas
     const rightPriceAxisCanvas = document.createElement('canvas');
@@ -71,7 +74,7 @@ export class Pane {
     this.row.appendChild(rightPriceAxisCanvas);
     this.row.appendChild(leftPriceAxisCanvas);
 
-    this.canvases = {
+    const canvases: PaneCanvases = {
       chartCanvas,
       overlayCanvas,
       rightPriceAxisCanvas,
@@ -81,6 +84,47 @@ export class Pane {
       rightPriceAxisCtx: rightPriceAxisCanvas.getContext('2d')!,
       leftPriceAxisCtx: leftPriceAxisCanvas.getContext('2d')!,
     };
+
+    // Optionally create a WebGL canvas layered between chart and overlay
+    if (useWebGL) {
+      const webglCanvas = document.createElement('canvas');
+      webglCanvas.style.position = 'absolute';
+      webglCanvas.style.left = '0';
+      webglCanvas.style.top = '0';
+      webglCanvas.style.zIndex = '2';
+      // Insert before overlay so stacking order is: chart(1) < webgl(2) < overlay(3)
+      this.row.insertBefore(webglCanvas, overlayCanvas);
+
+      const glCtx = webglCanvas.getContext('webgl2', {
+        alpha: true,
+        premultipliedAlpha: false,
+        antialias: true,
+        preserveDrawingBuffer: false,
+      });
+
+      // Handle context loss gracefully
+      webglCanvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        this.canvases.webglCtx = undefined;
+      });
+      webglCanvas.addEventListener('webglcontextrestored', () => {
+        const restored = webglCanvas.getContext('webgl2', {
+          alpha: true,
+          premultipliedAlpha: false,
+          antialias: true,
+          preserveDrawingBuffer: false,
+        });
+        if (restored) {
+          this.canvases.webglCtx = restored;
+        }
+      });
+      if (glCtx) {
+        canvases.webglCanvas = webglCanvas;
+        canvases.webglCtx = glCtx;
+      }
+    }
+
+    this.canvases = canvases;
   }
 
   get height(): number {
@@ -132,6 +176,24 @@ export class Pane {
     this.canvases.leftPriceAxisCanvas.style.height = `${h}px`;
     this.canvases.leftPriceAxisCanvas.style.left = '0px';
     this.canvases.leftPriceAxisCanvas.style.display = leftScaleVisible ? '' : 'none';
+
+    // WebGL canvas (mirrors chart canvas sizing)
+    if (this.canvases.webglCanvas) {
+      this.canvases.webglCanvas.width = Math.round(chartW * pixelRatio);
+      this.canvases.webglCanvas.height = Math.round(h * pixelRatio);
+      this.canvases.webglCanvas.style.width = `${chartW}px`;
+      this.canvases.webglCanvas.style.height = `${h}px`;
+      this.canvases.webglCanvas.style.left = `${leftScaleW}px`;
+
+      // Update WebGL viewport to match canvas size
+      if (this.canvases.webglCtx) {
+        this.canvases.webglCtx.viewport(
+          0, 0,
+          Math.round(chartW * pixelRatio),
+          Math.round(h * pixelRatio),
+        );
+      }
+    }
 
     // Update row height
     this.row.style.height = `${h}px`;
