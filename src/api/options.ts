@@ -237,6 +237,37 @@ export interface SeriesOptionsMap {
   'hollow-candle': HollowCandleSeriesOptions;
 }
 
+// ─── Indicators ────────────────────────────────────────────────────────────
+
+export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger'
+  | 'vwap' | 'stochastic' | 'atr' | 'adx' | 'obv' | 'williams-r';
+
+export interface IndicatorOptions {
+  source: import('./series-api').ISeriesApi<import('../core/types').SeriesType>;
+  params?: Record<string, number>;
+  paneId?: string;
+  color?: string;
+  lineWidth?: number;
+  visible?: boolean;
+  label?: string;
+}
+
+export const OVERLAY_INDICATORS: Set<IndicatorType> = new Set(['sma', 'ema', 'bollinger', 'vwap']);
+
+export const DEFAULT_INDICATOR_PARAMS: Record<IndicatorType, Record<string, number>> = {
+  sma: { period: 20 },
+  ema: { period: 20 },
+  rsi: { period: 14 },
+  macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  bollinger: { period: 20, stdDev: 2 },
+  stochastic: { kPeriod: 14, dPeriod: 3 },
+  atr: { period: 14 },
+  adx: { period: 14 },
+  obv: {},
+  vwap: {},
+  'williams-r': { period: 14 },
+};
+
 // ─── Utility ────────────────────────────────────────────────────────────────
 
 /** Deep merge `overrides` into a copy of `defaults`. */

@@ -1,4 +1,5 @@
 import type {
+  Bar,
   ColumnStore,
   DeepPartial,
   IRenderTarget,
@@ -30,6 +31,8 @@ import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
 import type { IPaneApi } from './pane-api';
 import { PaneApi } from './pane-api';
+import type { IIndicatorApi } from './indicator-api';
+import { IndicatorApi } from './indicator-api';
 import {
   type ChartOptions,
   type CandlestickSeriesOptions,
@@ -41,12 +44,28 @@ import {
   type HistogramSeriesOptions,
   type PaneOptions,
   type SeriesOptionsMap,
+  type IndicatorType,
+  type IndicatorOptions,
   DEFAULT_CHART_OPTIONS,
+  DEFAULT_INDICATOR_PARAMS,
+  OVERLAY_INDICATORS,
   DARK_THEME,
   LIGHT_THEME,
   COLORFUL_THEME,
   mergeOptions,
 } from './options';
+
+import { computeSMA } from '../indicators/sma';
+import { computeEMA } from '../indicators/ema';
+import { computeRSI } from '../indicators/rsi';
+import { computeMACD } from '../indicators/macd';
+import { computeBollinger } from '../indicators/bollinger';
+import { computeVWAP } from '../indicators/vwap';
+import { computeStochastic } from '../indicators/stochastic';
+import { computeATR } from '../indicators/atr';
+import { computeADX } from '../indicators/adx';
+import { computeOBV } from '../indicators/obv';
+import { computeWilliamsR } from '../indicators/williams-r';
 
 // ─── Axis constants ────────────────────────────────────────────────────────
 
@@ -97,6 +116,9 @@ export interface IChartApi {
   // ── Feature 4: Fit Content & Screenshot ──────────────────────────────────
   fitContent(): void;
   takeScreenshot(): HTMLCanvasElement;
+  // ── Feature 5: Indicator API ────────────────────────────────────────────
+  addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi;
+  removeIndicator(indicator: IIndicatorApi): void;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -201,6 +223,10 @@ class ChartApi implements IChartApi {
 
   // Track next pane id
   private _nextPaneId = 0;
+
+  // Indicator management
+  private _indicators: IndicatorApi[] = [];
+  private _nextIndicatorId = 0;
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -695,6 +721,221 @@ class ChartApi implements IChartApi {
     ctx.drawImage(this._timeAxisCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
 
     return offscreen;
+  }
+
+  // ── Feature 5: Indicator API ────────────────────────────────────────────
+
+  addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi {
+    const id = `indicator-${this._nextIndicatorId++}`;
+
+    // 1. Resolve params
+    const defaults = DEFAULT_INDICATOR_PARAMS[type] ?? {};
+    const params = { ...defaults, ...(options.params ?? {}) };
+
+    // 2. Determine pane
+    let paneId: string;
+    let autoCreatedPaneId: string | null = null;
+    if (options.paneId) {
+      paneId = options.paneId;
+    } else if (OVERLAY_INDICATORS.has(type)) {
+      paneId = this._mainPaneId;
+    } else {
+      const newPane = this.addPane({ height: 150 });
+      paneId = newPane.id;
+      autoCreatedPaneId = paneId;
+    }
+
+    // 3. Read source series data
+    const sourceApi = options.source as SeriesApi<SeriesType>;
+    const store = sourceApi.getDataLayer().store;
+
+    // 4. Compute indicator
+    const result = this._computeIndicator(type, store, params);
+
+    // 5-6. Create internal series
+    const color = options.color ?? '#2962ff';
+    const lineWidth = options.lineWidth ?? 2;
+
+    const indicator = new IndicatorApi(id, type, options, paneId, () => {
+      this.removeIndicator(indicator);
+    });
+    indicator.autoCreatedPaneId = autoCreatedPaneId;
+
+    this._createIndicatorSeries(indicator, result, store, paneId, color, lineWidth);
+
+    // 7. Subscribe to source's dataChanged for auto-recompute
+    const dataChangedCallback = (): void => {
+      const updatedStore = sourceApi.getDataLayer().store;
+      const updatedResult = this._computeIndicator(type, updatedStore, params);
+
+      // Remove old internal series
+      for (const s of indicator.internalSeries) {
+        this.removeSeries(s);
+      }
+      indicator.internalSeries = [];
+
+      // Recreate with updated data
+      this._createIndicatorSeries(indicator, updatedResult, updatedStore, paneId, color, lineWidth);
+    };
+    indicator._dataChangedCallback = dataChangedCallback;
+    options.source.subscribeDataChanged(dataChangedCallback);
+
+    this._indicators.push(indicator);
+    return indicator;
+  }
+
+  removeIndicator(indicator: IIndicatorApi): void {
+    const impl = indicator as IndicatorApi;
+    const idx = this._indicators.indexOf(impl);
+    if (idx === -1) return;
+
+    // 1. Remove all internal series
+    for (const s of impl.internalSeries) {
+      this.removeSeries(s);
+    }
+    impl.internalSeries = [];
+
+    // 2. If auto-created pane and no other series/indicators use it, remove the pane
+    if (impl.autoCreatedPaneId) {
+      const autoPaneId = impl.autoCreatedPaneId;
+      const otherSeriesInPane = this._series.some(s => s.paneId === autoPaneId);
+      const otherIndicatorsInPane = this._indicators.some(
+        (ind, i) => i !== idx && ind.paneId() === autoPaneId,
+      );
+      if (!otherSeriesInPane && !otherIndicatorsInPane) {
+        const paneApi = this._paneApis.get(autoPaneId);
+        if (paneApi) {
+          this.removePane(paneApi);
+        }
+      }
+    }
+
+    // 3. Unsubscribe from source dataChanged
+    if (impl._dataChangedCallback) {
+      impl.options().source.unsubscribeDataChanged(impl._dataChangedCallback);
+      impl._dataChangedCallback = null;
+    }
+
+    // 4. Remove from _indicators array
+    this._indicators.splice(idx, 1);
+  }
+
+  private _computeIndicator(
+    type: IndicatorType,
+    store: ColumnStore,
+    params: Record<string, number>,
+  ): Record<string, Float64Array> {
+    const len = store.length;
+    const close = store.close;
+    const high = store.high;
+    const low = store.low;
+    const volume = store.volume;
+
+    switch (type) {
+      case 'sma':
+        return { value: computeSMA(close, len, params.period) };
+      case 'ema':
+        return { value: computeEMA(close, len, params.period) };
+      case 'rsi':
+        return { value: computeRSI(close, len, params.period) };
+      case 'macd': {
+        const r = computeMACD(close, len, params.fastPeriod, params.slowPeriod, params.signalPeriod);
+        return { macd: r.macd, signal: r.signal, histogram: r.histogram };
+      }
+      case 'bollinger': {
+        const r = computeBollinger(close, len, params.period, params.stdDev);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'vwap':
+        return { value: computeVWAP(high, low, close, volume, len) };
+      case 'stochastic': {
+        const r = computeStochastic(high, low, close, len, params.kPeriod, params.dPeriod);
+        return { k: r.k, d: r.d };
+      }
+      case 'atr':
+        return { value: computeATR(high, low, close, len, params.period) };
+      case 'adx': {
+        const r = computeADX(high, low, close, len, params.period);
+        return { adx: r.adx, plusDI: r.plusDI, minusDI: r.minusDI };
+      }
+      case 'obv':
+        return { value: computeOBV(close, volume, len) };
+      case 'williams-r':
+        return { value: computeWilliamsR(high, low, close, len, params.period) };
+      default:
+        throw new Error(`Unknown indicator type: ${type}`);
+    }
+  }
+
+  private _createIndicatorSeries(
+    indicator: IndicatorApi,
+    result: Record<string, Float64Array>,
+    store: ColumnStore,
+    paneId: string,
+    primaryColor: string,
+    lineWidth: number,
+  ): void {
+    const type = indicator.indicatorType();
+
+    // Color map for multi-output indicators
+    const colorMap = this._getIndicatorColorMap(type, primaryColor);
+
+    for (const key of Object.keys(result)) {
+      const values = result[key];
+      const color = colorMap[key] ?? primaryColor;
+
+      // Build Bar[] data from time + indicator values
+      const bars: Bar[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const v = values[i];
+        if (isNaN(v)) continue;
+        bars.push({
+          time: store.time[i],
+          open: v,
+          high: v,
+          low: v,
+          close: v,
+          volume: 0,
+        });
+      }
+
+      let series: ISeriesApi<SeriesType>;
+      if (key === 'histogram') {
+        series = this._addSeries('histogram', {
+          paneId,
+          data: bars,
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+        });
+      } else {
+        series = this._addSeries('line', {
+          paneId,
+          data: bars,
+          color,
+          lineWidth,
+        });
+      }
+
+      indicator.internalSeries.push(series);
+    }
+  }
+
+  private _getIndicatorColorMap(
+    type: IndicatorType,
+    primaryColor: string,
+  ): Record<string, string> {
+    switch (type) {
+      case 'macd':
+        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#26a69a' };
+      case 'bollinger':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'stochastic':
+        return { k: primaryColor, d: '#ff6d00' };
+      case 'adx':
+        return { adx: primaryColor, plusDI: '#26a69a', minusDI: '#ef5350' };
+      default:
+        return { value: primaryColor };
+    }
   }
 
   // ── Feature 3: Visible Range Change Subscription ──────────────────────

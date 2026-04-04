@@ -5,6 +5,7 @@ export { createChart } from './api/chart-api';
 export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/chart-api';
 export type { ISeriesApi, DataChangedCallback } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
+export type { IIndicatorApi } from './api/indicator-api';
 
 export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
 
@@ -41,6 +42,8 @@ export type {
   VolumeOverlayOptions,
   PriceScaleOptions,
   TimeGapsOptions,
+  IndicatorType,
+  IndicatorOptions,
 } from './api/options';
 
 // ─── Core types ─────────────────────────────────────────────────────────────
