@@ -104,22 +104,32 @@ chart.addSeries({ type: 'candlestick',
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
-    chart.applyOptions(COLORFUL_THEME);
     const series = chart.addSeries({ type: 'candlestick',
-      upColor: '#00c176',
-      downColor: '#ff4a68',
-      wickUpColor: '#00c176',
-      wickDownColor: '#ff4a68',
+      upColor: '#e53170',
+      downColor: '#2cb67d',
+      wickUpColor: '#e53170',
+      wickDownColor: '#2cb67d',
+      borderUpColor: '#e53170',
+      borderDownColor: '#2cb67d',
     });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
-        '<strong>Colorful Theme</strong> — Vibrant colorful theme ideal for dashboards. ' +
-        'Apply with <code>chart.applyOptions(COLORFUL_THEME)</code> or pass <code>theme: \'colorful\'</code> to <code>createChart()</code>.',
-      code: `import { createChart, COLORFUL_THEME } from 'fin-charter';
+        '<strong>Colorful Theme</strong> — A vibrant, high-contrast theme with warm accent colors, ideal for dashboards and presentations. ' +
+        'The theme uses a deep dark background with orange crosshair accents. Pair with custom candle colors for a distinctive look.\n' +
+        'Apply with <code>chart.applyOptions(COLORFUL_THEME)</code> or pass <code>theme: &quot;colorful&quot;</code> to <code>createChart()</code>.',
+      code: `
+import { createChart, COLORFUL_THEME } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
-chart.applyOptions(COLORFUL_THEME);`,
+const series = chart.addSeries({ type: 'candlestick',
+  upColor: '#e53170',
+  downColor: '#2cb67d',
+  wickUpColor: '#e53170',
+  wickDownColor: '#2cb67d',
+});
+series.setData(data);
+      `,
     });
   },
 };

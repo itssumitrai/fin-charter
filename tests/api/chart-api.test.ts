@@ -465,17 +465,17 @@ describe('createChart', () => {
 
     // Apply colorful theme values manually (same as COLORFUL_THEME)
     chart.applyOptions({
-      layout: { backgroundColor: '#131722', textColor: '#b2b5be' },
+      layout: { backgroundColor: '#0f0e17', textColor: '#a7a9be' },
       grid: {
-        vertLinesColor: 'rgba(42, 46, 57, 0.8)',
-        horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+        vertLinesColor: 'rgba(255, 255, 255, 0.03)',
+        horzLinesColor: 'rgba(255, 255, 255, 0.03)',
       },
     });
 
     const opts = chart.options();
-    expect(opts.layout.backgroundColor).toBe('#131722');
-    expect(opts.layout.textColor).toBe('#b2b5be');
-    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    expect(opts.layout.backgroundColor).toBe('#0f0e17');
+    expect(opts.layout.textColor).toBe('#a7a9be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(255, 255, 255, 0.03)');
     // Other options should be preserved
     expect(opts.layout.fontSize).toBe(11);
     expect(opts.lastPriceLine.visible).toBe(true);
@@ -485,9 +485,9 @@ describe('createChart', () => {
     chart = createChart(container, { width: 600, height: 300, theme: 'colorful' });
 
     const opts = chart.options();
-    expect(opts.layout.backgroundColor).toBe('#131722');
-    expect(opts.layout.textColor).toBe('#b2b5be');
-    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    expect(opts.layout.backgroundColor).toBe('#0f0e17');
+    expect(opts.layout.textColor).toBe('#a7a9be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(255, 255, 255, 0.03)');
   });
 
   it('createChart with theme: dark applies DARK_THEME', () => {
