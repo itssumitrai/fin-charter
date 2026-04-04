@@ -1,9 +1,14 @@
 export interface EventHandler {
-  onPointerDown?(x: number, y: number, pointerId: number): void;
-  onPointerMove?(x: number, y: number, pointerId: number): void;
-  onPointerUp?(pointerId: number): void;
+  /**
+   * Called on pointer down. Return `true` to consume the event and prevent
+   * subsequent handlers from receiving it; return `false` or `undefined` to
+   * let the event propagate.
+   */
+  onPointerDown?(x: number, y: number, pointerId: number): boolean | void;
+  onPointerMove?(x: number, y: number, pointerId: number): boolean | void;
+  onPointerUp?(pointerId: number): boolean | void;
   onWheel?(x: number, y: number, deltaY: number): void;
-  onKeyDown?(key: string, shiftKey: boolean): void;
+  onKeyDown?(key: string, shiftKey: boolean): boolean | void;
 }
 
 export class EventRouter {
@@ -81,26 +86,26 @@ export class EventRouter {
   private _handlePointerDown(e: PointerEvent): void {
     const { x, y } = this._getLocalCoords(e);
     for (const h of this._handlers) {
-      h.onPointerDown?.(x, y, e.pointerId);
+      if (h.onPointerDown?.(x, y, e.pointerId) === true) break;
     }
   }
 
   private _handlePointerMove(e: PointerEvent): void {
     const { x, y } = this._getLocalCoords(e);
     for (const h of this._handlers) {
-      h.onPointerMove?.(x, y, e.pointerId);
+      if (h.onPointerMove?.(x, y, e.pointerId) === true) break;
     }
   }
 
   private _handlePointerUp(e: PointerEvent): void {
     for (const h of this._handlers) {
-      h.onPointerUp?.(e.pointerId);
+      if (h.onPointerUp?.(e.pointerId) === true) break;
     }
   }
 
   private _handlePointerLeave(e: PointerEvent): void {
     for (const h of this._handlers) {
-      h.onPointerUp?.(e.pointerId);
+      if (h.onPointerUp?.(e.pointerId) === true) break;
     }
   }
 
@@ -121,7 +126,7 @@ export class EventRouter {
 
   private _handleKeyDown(e: KeyboardEvent): void {
     for (const h of this._handlers) {
-      h.onKeyDown?.(e.key, e.shiftKey);
+      if (h.onKeyDown?.(e.key, e.shiftKey) === true) break;
     }
   }
 }

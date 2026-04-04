@@ -82,6 +82,14 @@ addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'h
 
 Adds a histogram series (vertical bars from the pane bottom).
 
+#### `addHeikinAshiSeries(options?)`
+
+```ts
+addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>
+```
+
+Adds a Heikin-Ashi candlestick series. Bar data supplied via `setData` is automatically transformed to Heikin-Ashi values before rendering. Accepts the same options as `addCandlestickSeries`.
+
 #### `removeSeries(series)`
 
 ```ts
@@ -213,6 +221,278 @@ unsubscribeClick(callback: ClickCallback): void
 
 Removes a previously registered click callback.
 
+#### `subscribeVisibleRangeChange(callback)` / `unsubscribeVisibleRangeChange(callback)`
+
+```ts
+subscribeVisibleRangeChange(callback: (range: { from: number; to: number } | null) => void): void
+unsubscribeVisibleRangeChange(callback: (range: { from: number; to: number } | null) => void): void
+```
+
+Fires whenever the visible bar-index range changes. Used to implement infinite-history pagination. See [Data Integration](data-integration.md) for a full example.
+
+### Navigation
+
+#### `fitContent()`
+
+```ts
+fitContent(): void
+```
+
+Adjusts bar spacing so that all loaded bars fit within the current chart width.
+
+#### `scrollToRealTime()`
+
+```ts
+scrollToRealTime(): void
+```
+
+Snaps the view so the latest bar is at the right edge.
+
+#### `setVisibleRange(from, to)`
+
+```ts
+setVisibleRange(from: number, to: number): void
+```
+
+Sets the visible time range by Unix timestamps (seconds). Adjusts bar spacing and right offset automatically.
+
+#### `setVisibleLogicalRange(from, to)`
+
+```ts
+setVisibleLogicalRange(from: number, to: number): void
+```
+
+Sets the visible range by bar indices directly.
+
+#### `takeScreenshot()`
+
+```ts
+takeScreenshot(): HTMLCanvasElement
+```
+
+Composites all panes into a single canvas and returns it. The caller can convert to a PNG via `canvas.toDataURL('image/png')` or display it in the DOM.
+
+```ts
+const canvas = chart.takeScreenshot();
+const link = document.createElement('a');
+link.href = canvas.toDataURL('image/png');
+link.download = 'chart.png';
+link.click();
+```
+
+### Drawing Tools
+
+See [Drawing Tools](drawings.md) for full documentation.
+
+#### `addDrawing(type, points, options?)`
+
+```ts
+addDrawing(
+  type:    string,
+  points:  AnchorPoint[],
+  options?: DrawingOptions,
+): IDrawingApi
+```
+
+Creates a drawing of the given type and returns its API handle. For built-in types see the [Drawing Types table](drawings.md#built-in-drawing-types).
+
+#### `removeDrawing(drawing)`
+
+```ts
+removeDrawing(drawing: IDrawingApi): void
+```
+
+Removes a drawing and detaches it from the series.
+
+#### `getDrawings()`
+
+```ts
+getDrawings(): IDrawingApi[]
+```
+
+Returns all current drawings.
+
+#### `setActiveDrawingTool(type)`
+
+```ts
+setActiveDrawingTool(type: string | null): void
+```
+
+Activates an interactive drawing tool. Pass `null` to return to pan/zoom mode.
+
+#### `registerDrawingType(type, factory)`
+
+```ts
+registerDrawingType(
+  type:    string,
+  factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive,
+): void
+```
+
+Registers a custom drawing type. See [Custom Drawing Types](drawings.md#custom-drawing-types).
+
+#### `serializeDrawings()`
+
+```ts
+serializeDrawings(): SerializedDrawing[]
+```
+
+Returns all drawings as plain objects suitable for JSON serialization.
+
+#### `deserializeDrawings(data)`
+
+```ts
+deserializeDrawings(data: SerializedDrawing[]): void
+```
+
+Recreates drawings from a previously serialized array.
+
+### Comparison Mode
+
+#### `setComparisonMode(enabled)`
+
+```ts
+setComparisonMode(enabled: boolean): void
+```
+
+Enables or disables comparison mode. When enabled, the Y-axis shows percentage change from each series' first visible bar's close.
+
+#### `isComparisonMode()`
+
+```ts
+isComparisonMode(): boolean
+```
+
+Returns `true` when comparison mode is active.
+
+### Periodicity
+
+#### `setPeriodicity(periodicity)`
+
+```ts
+setPeriodicity(periodicity: Periodicity): void
+```
+
+Sets the current bar interval and fires `subscribePeriodicityChange` callbacks.
+
+#### `getPeriodicity()`
+
+```ts
+getPeriodicity(): Periodicity
+```
+
+Returns the current periodicity.
+
+#### `subscribePeriodicityChange(handler)` / `unsubscribePeriodicityChange(handler)`
+
+```ts
+subscribePeriodicityChange(handler: (p: Periodicity) => void): void
+unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void
+```
+
+Subscribe to periodicity changes. Use this to reload bar data at the new interval.
+
+### Market Sessions
+
+#### `setMarketSessions(sessions)`
+
+```ts
+setMarketSessions(sessions: MarketSession[]): void
+```
+
+Configures the market session definitions (pre-market, regular, post-market, etc.). Each session specifies a time range in minutes from midnight in the exchange timezone, and an optional background colour.
+
+```ts
+import { US_EQUITY_SESSIONS } from 'fin-charter';
+
+chart.setMarketSessions(US_EQUITY_SESSIONS);
+```
+
+#### `setSessionFilter(filter)`
+
+```ts
+setSessionFilter(filter: 'regular' | 'extended' | 'all'): void
+```
+
+Filters which bars are visible based on their session.
+
+| Value | Effect |
+|---|---|
+| `'all'` | All bars visible (default) |
+| `'regular'` | Only bars within regular-session hours |
+| `'extended'` | Regular + pre/post-market bars |
+
+### Chart State Save/Restore
+
+#### `exportState()`
+
+```ts
+exportState(): ChartState
+```
+
+Exports the current chart configuration (options, pane layout, series list, indicators, drawings, periodicity, visible range) as a plain serializable object. Bar data is **not** included.
+
+```ts
+const state = chart.exportState();
+localStorage.setItem('chartState', JSON.stringify(state));
+```
+
+#### `importState(state, dataLoader)`
+
+```ts
+importState(
+  state:      ChartState,
+  dataLoader: (seriesId: string) => Promise<Bar[]>,
+): Promise<void>
+```
+
+Restores a previously exported state. The `dataLoader` callback is called for each series in the state; it receives the series id and must return the bar data to load. Returns a `Promise` that resolves when all data has been loaded and applied.
+
+```ts
+const raw = localStorage.getItem('chartState');
+if (raw) {
+  await chart.importState(JSON.parse(raw), async (seriesId) => {
+    return fetchBarsForSeries(seriesId);
+  });
+}
+```
+
+### `ChartState` Type
+
+```ts
+interface ChartState {
+  version:        number;
+  options:        DeepPartial<ChartOptions>;
+  periodicity?:   Periodicity;
+  comparisonMode?: boolean;
+  timeScale:      { barSpacing: number; rightOffset: number };
+  series:         Array<{ id: string; type: SeriesType; options: Record<string, unknown> }>;
+  indicators:     Array<{ type: IndicatorType; sourceSeriesId: string; params: Record<string, number>; color?: string }>;
+  panes:          Array<{ id: string; height: number }>;
+  drawings:       SerializedDrawing[];
+  marketSessions?: MarketSession[];
+  sessionFilter?:  string;
+  visibleRange?:  { from: number; to: number };
+}
+```
+
+---
+
+## `IDrawingApi`
+
+Returned by `chart.addDrawing()`.
+
+```ts
+interface IDrawingApi {
+  readonly id:  string;
+  drawingType(): string;
+  points():     AnchorPoint[];
+  applyOptions(options: Partial<DrawingOptions>): void;
+  options():    DrawingOptions;
+  remove():     void;
+}
+```
+
 ---
 
 ## `ISeriesApi<T>`
@@ -288,6 +568,56 @@ seriesType(): T
 ```
 
 Returns the series type string, e.g. `'candlestick'`.
+
+### `prependData(data)`
+
+```ts
+prependData(data: Bar[] | ColumnData): void
+```
+
+Inserts bars at the beginning of the series for infinite-history pagination. Bars must be in ascending time order and earlier than the current first bar. See [Data Integration — Pagination](data-integration.md#pagination--loading-historical-bars-on-demand).
+
+### `barsInLogicalRange(range)`
+
+```ts
+barsInLogicalRange(range: { from: number; to: number }): {
+  barsBefore: number;
+  barsAfter:  number;
+  from:       number;
+  to:         number;
+}
+```
+
+Returns how many loaded bars fall before and after the given logical index range. Used together with `subscribeVisibleRangeChange` to trigger pagination. See [Data Integration — Pagination](data-integration.md#pagination--loading-historical-bars-on-demand).
+
+### `setEvents(events)` / `getEvents()`
+
+```ts
+setEvents(events: ChartEvent[]): void
+getEvents(): readonly ChartEvent[]
+```
+
+Attaches chart event markers to the series (e.g. earnings releases, dividends). Events are rendered as distinct shapes above or below the relevant bar.
+
+```ts
+interface ChartEvent {
+  time:        number;      // Unix timestamp (seconds)
+  eventType:   EventType;   // 'earnings' | 'dividend' | 'split' | 'ipo' | 'other'
+  title:       string;      // short label
+  description?: string;     // tooltip text
+  value?:      string;      // e.g. EPS amount
+  color?:      string;
+}
+```
+
+### `subscribeDataChanged(callback)` / `unsubscribeDataChanged(callback)`
+
+```ts
+subscribeDataChanged(callback: () => void): void
+unsubscribeDataChanged(callback: () => void): void
+```
+
+Subscribe to any data mutation on the series (`setData`, `update`, `prependData`). Useful for recomputing derived indicators in response to new data.
 
 ---
 
@@ -482,5 +812,82 @@ type SeriesType =
   | 'area'
   | 'histogram'
   | 'baseline'
-  | 'hollow-candle';
+  | 'hollow-candle'
+  | 'heikin-ashi';
+```
+
+---
+
+## Drawing Types
+
+### `AnchorPoint`
+
+```ts
+interface AnchorPoint {
+  time:  number;  // Unix timestamp (seconds)
+  price: number;  // Price coordinate
+}
+```
+
+### `DrawingOptions`
+
+```ts
+interface DrawingOptions {
+  color?:     string;
+  lineWidth?: number;
+  lineStyle?: 'solid' | 'dashed' | 'dotted';
+  fillColor?: string;
+  text?:      string;
+  fontSize?:  number;
+}
+```
+
+### `SerializedDrawing`
+
+```ts
+interface SerializedDrawing {
+  type:    string;
+  id:      string;
+  points:  AnchorPoint[];
+  options: DrawingOptions;
+}
+```
+
+---
+
+## `Periodicity`
+
+```ts
+interface Periodicity {
+  interval: number;
+  unit: 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month';
+}
+```
+
+Helper functions exported from the main entry point:
+
+```ts
+periodicityToSeconds(p: Periodicity): number
+periodicityToLabel(p: Periodicity): string  // e.g. '5m', '1D', '4h'
+```
+
+---
+
+## `MarketSession`
+
+```ts
+interface MarketSession {
+  id:          string;   // e.g. 'premarket'
+  label:       string;   // e.g. 'PRE'
+  startMinute: number;   // minutes from midnight in exchange timezone
+  endMinute:   number;
+  bgColor:     string;   // CSS color for the session background
+}
+```
+
+A pre-built set of US equity sessions is exported for convenience:
+
+```ts
+import { US_EQUITY_SESSIONS } from 'fin-charter';
+// [{ id: 'premarket', … }, { id: 'regular', … }, { id: 'postmarket', … }]
 ```

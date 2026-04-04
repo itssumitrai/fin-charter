@@ -23,6 +23,7 @@ export interface TimeScaleApiOptions {
   rightOffset: number;
   minBarSpacing: number;
   maxBarSpacing: number;
+  tickMarkFormatter?: (time: number, tickType: 'year' | 'month' | 'day' | 'time') => string;
 }
 
 // ─── Crosshair ──────────────────────────────────────────────────────────────
@@ -210,6 +211,8 @@ export interface BaseSeriesOptions {
   data?: Bar[] | ColumnData;
   priceScaleId?: string;
   visible?: boolean;
+  paneId?: string;
+  label?: string;
 }
 
 export type CandlestickSeriesOptions = BaseSeriesOptions & Partial<CandlestickRendererOptions>;
@@ -232,12 +235,55 @@ export interface SeriesOptionsMap {
   histogram: HistogramSeriesOptions;
   baseline: BaselineSeriesOptions;
   'hollow-candle': HollowCandleSeriesOptions;
+  'heikin-ashi': CandlestickSeriesOptions;
 }
+
+// ─── Indicators ────────────────────────────────────────────────────────────
+
+export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger'
+  | 'vwap' | 'stochastic' | 'atr' | 'adx' | 'obv' | 'williams-r'
+  | 'ichimoku' | 'parabolic-sar' | 'keltner' | 'donchian' | 'cci' | 'pivot-points';
+
+export interface IndicatorOptions {
+  source: import('./series-api').ISeriesApi<import('../core/types').SeriesType>;
+  params?: Record<string, number>;
+  paneId?: string;
+  color?: string;
+  lineWidth?: number;
+  visible?: boolean;
+  label?: string;
+}
+
+export const OVERLAY_INDICATORS: Set<IndicatorType> = new Set([
+  'sma', 'ema', 'bollinger', 'vwap',
+  'ichimoku', 'parabolic-sar', 'keltner', 'donchian',
+]);
+
+export const DEFAULT_INDICATOR_PARAMS: Record<IndicatorType, Record<string, number>> = {
+  sma: { period: 20 },
+  ema: { period: 20 },
+  rsi: { period: 14 },
+  macd: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  bollinger: { period: 20, stdDev: 2 },
+  stochastic: { kPeriod: 14, dPeriod: 3 },
+  atr: { period: 14 },
+  adx: { period: 14 },
+  obv: {},
+  vwap: {},
+  'williams-r': { period: 14 },
+  ichimoku: { tenkanPeriod: 9, kijunPeriod: 26, senkouPeriod: 52 },
+  'parabolic-sar': { afStep: 0.02, afMax: 0.20 },
+  keltner: { emaPeriod: 20, atrPeriod: 10, multiplier: 2 },
+  donchian: { period: 20 },
+  cci: { period: 20 },
+  'pivot-points': {},
+};
 
 // ─── Utility ────────────────────────────────────────────────────────────────
 
 /** Deep merge `overrides` into a copy of `defaults`. */
-export function mergeOptions<T extends Record<string, unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mergeOptions<T extends object>(
   defaults: T,
   overrides: DeepPartial<T>,
 ): T {

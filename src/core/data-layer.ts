@@ -112,6 +112,68 @@ export class DataLayer {
     };
   }
 
+  /**
+   * Prepend bars to the beginning of the store.
+   * Accepts either an array of Bar objects or a ColumnData (typed arrays).
+   * The prepended data must be strictly older than the existing data.
+   */
+  prepend(data: Bar[] | ColumnData): void {
+    // Validate ColumnData column lengths before conversion
+    if (!Array.isArray(data)) {
+      const len = data.time.length;
+      for (const field of ['open', 'high', 'low', 'close', 'volume'] as const) {
+        if (data[field].length !== len) {
+          throw new Error(`ColumnData field '${field}' has length ${data[field].length}, expected ${len}`);
+        }
+      }
+    }
+
+    const bars: Bar[] = Array.isArray(data)
+      ? data
+      : Array.from({ length: data.time.length }, (_, i) => ({
+          time: data.time[i],
+          open: data.open[i],
+          high: data.high[i],
+          low: data.low[i],
+          close: data.close[i],
+          volume: data.volume[i],
+        }));
+
+    if (bars.length === 0) return;
+
+    // Validate that prepended bars are strictly increasing by time
+    for (let i = 1; i < bars.length; i++) {
+      if (bars[i - 1].time >= bars[i].time) {
+        throw new Error('Prepended bars must be strictly increasing by time');
+      }
+    }
+    const oldLen = this.store.length;
+    if (oldLen > 0 && bars[bars.length - 1].time >= this.store.time[0]) {
+      throw new Error('Prepended bars must be strictly older than existing data');
+    }
+    const newLen = oldLen + bars.length;
+    const newCapacity = Math.max(Math.ceil(newLen * 1.5), 2048);
+    const newStore = createColumnStore(newCapacity);
+    newStore.length = newLen;
+
+    // Copy new data at front
+    for (let i = 0; i < bars.length; i++) {
+      newStore.time[i] = bars[i].time;
+      newStore.open[i] = bars[i].open;
+      newStore.high[i] = bars[i].high;
+      newStore.low[i] = bars[i].low;
+      newStore.close[i] = bars[i].close;
+      newStore.volume[i] = bars[i].volume ?? 0;
+    }
+
+    // Copy existing data after new data using typed array set
+    for (const field of ['time', 'open', 'high', 'low', 'close', 'volume'] as const) {
+      newStore[field].set(this.store[field].subarray(0, oldLen), bars.length);
+    }
+
+    this.store = newStore;
+  }
+
   /** Double the capacity of the store, preserving existing data. */
   private grow(): void {
     const { store } = this;

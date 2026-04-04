@@ -2,11 +2,27 @@ export const VERSION = '0.1.0';
 
 // ─── API layer ──────────────────────────────────────────────────────────────
 export { createChart } from './api/chart-api';
-export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/chart-api';
-export type { ISeriesApi } from './api/series-api';
+export type { IChartApi, IDrawingApi, CrosshairMoveCallback, ClickCallback } from './api/chart-api';
+export type { ISeriesApi, DataChangedCallback } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
+export type { IIndicatorApi } from './api/indicator-api';
 
 export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
+
+// ─── Periodicity ──────────────────────────────────────────────────────
+export type { Periodicity } from './core/periodicity';
+export { periodicityToSeconds, periodicityToLabel } from './core/periodicity';
+
+// ─── Market Sessions ──────────────────────────────────────────────────
+export type { MarketSession } from './core/market-session';
+export { US_EQUITY_SESSIONS, isInSession, getSessionForTime, timestampToMinuteOfDay } from './core/market-session';
+
+// ─── Chart State ──────────────────────────────────────────────────────
+export type { ChartState } from './core/chart-state';
+export { CHART_STATE_VERSION, validateChartState } from './core/chart-state';
+
+// ─── Chart Events ─────────────────────────────────────────────────────
+export type { ChartEvent, EventType } from './core/series-markers';
 
 // ─── Series markers ────────────────────────────────────────────────────
 export type {
@@ -41,6 +57,8 @@ export type {
   VolumeOverlayOptions,
   PriceScaleOptions,
   TimeGapsOptions,
+  IndicatorType,
+  IndicatorOptions,
 } from './api/options';
 
 // ─── Core types ─────────────────────────────────────────────────────────────
@@ -59,3 +77,14 @@ export type {
 } from './core/types';
 
 export { InvalidationLevel } from './core/types';
+
+// ─── Drawing tools ────────────────────────────────────────────────────
+export type {
+  AnchorPoint,
+  DrawingOptions,
+  SerializedDrawing,
+  DrawingPrimitive,
+  DrawingHitTestResult,
+  DrawingFactory,
+} from './drawings/index';
+export { DRAWING_REGISTRY, createBuiltinDrawing, distToSegment, pointInRect } from './drawings/index';

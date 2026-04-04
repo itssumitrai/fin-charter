@@ -1,4 +1,5 @@
 import type {
+  Bar,
   ColumnStore,
   DeepPartial,
   IRenderTarget,
@@ -12,9 +13,20 @@ import { Crosshair, type CrosshairState } from '../core/crosshair';
 import { InvalidateMask } from '../core/invalidation';
 import { DataLayer } from '../core/data-layer';
 import type { SeriesMarker } from '../core/series-markers';
+import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../core/chart-state';
+import { Pane } from '../core/pane';
+import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
+
+import { DrawingHandler } from '../interactions/drawing-handler';
+import type { AnchorPoint, DrawingOptions, SerializedDrawing, DrawingPrimitive, DrawingContext } from '../drawings/index';
+import { DRAWING_REGISTRY, createBuiltinDrawing, BaseDrawing } from '../drawings/index';
+import type { ISeriesPrimitive } from '../core/types';
+
+import { HudManager } from '../ui/hud';
+import type { SettingsField } from '../ui/settings-popup';
 
 import { CandlestickRenderer } from '../renderers/candlestick';
 import { LineRenderer } from '../renderers/line';
@@ -28,6 +40,8 @@ import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
 import type { IPaneApi } from './pane-api';
 import { PaneApi } from './pane-api';
+import type { IIndicatorApi } from './indicator-api';
+import { IndicatorApi } from './indicator-api';
 import {
   type ChartOptions,
   type CandlestickSeriesOptions,
@@ -39,12 +53,36 @@ import {
   type HistogramSeriesOptions,
   type PaneOptions,
   type SeriesOptionsMap,
+  type IndicatorType,
+  type IndicatorOptions,
   DEFAULT_CHART_OPTIONS,
+  DEFAULT_INDICATOR_PARAMS,
+  OVERLAY_INDICATORS,
   DARK_THEME,
   LIGHT_THEME,
   COLORFUL_THEME,
   mergeOptions,
 } from './options';
+
+import { computeSMA } from '../indicators/sma';
+import { computeEMA } from '../indicators/ema';
+import { computeRSI } from '../indicators/rsi';
+import { computeMACD } from '../indicators/macd';
+import { computeBollinger } from '../indicators/bollinger';
+import { computeVWAP } from '../indicators/vwap';
+import { computeStochastic } from '../indicators/stochastic';
+import { computeATR } from '../indicators/atr';
+import { computeADX } from '../indicators/adx';
+import { computeOBV } from '../indicators/obv';
+import { computeWilliamsR } from '../indicators/williams-r';
+import { computeIchimoku } from '../indicators/ichimoku';
+import { computeParabolicSAR } from '../indicators/parabolic-sar';
+import { computeKeltner } from '../indicators/keltner';
+import { computeDonchian } from '../indicators/donchian';
+import { computeCCI } from '../indicators/cci';
+import { computePivotPoints } from '../indicators/pivot-points';
+import type { Periodicity } from '../core/periodicity';
+import type { MarketSession } from '../core/market-session';
 
 // ─── Axis constants ────────────────────────────────────────────────────────
 
@@ -59,6 +97,17 @@ export type ClickCallback = (state: { x: number; y: number; time: number; price:
 // ─── IChartApi ──────────────────────────────────────────────────────────────
 
 export type VisibleRangeChangeCallback = (range: { from: number; to: number } | null) => void;
+
+// ─── IDrawingApi ──────────────────────────────────────────────────────────────
+
+export interface IDrawingApi {
+  readonly id: string;
+  drawingType(): string;
+  points(): AnchorPoint[];
+  applyOptions(options: Partial<DrawingOptions>): void;
+  options(): DrawingOptions;
+  remove(): void;
+}
 
 export interface IChartApi {
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
@@ -92,6 +141,41 @@ export interface IChartApi {
   // ── Feature 3: Infinite History Loading ──────────────────────────────────
   subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
   unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
+  // ── Feature 4: Fit Content & Screenshot ──────────────────────────────────
+  fitContent(): void;
+  takeScreenshot(): HTMLCanvasElement;
+  // ── Feature 5: Indicator API ────────────────────────────────────────────
+  addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi;
+  removeIndicator(indicator: IIndicatorApi): void;
+  // ── Feature 6: Comparison Mode ───────────────────────────────────────────
+  /** Enable/disable comparison mode. When on, the Y-axis shows percentage change from the first visible bar. */
+  setComparisonMode(enabled: boolean): void;
+  isComparisonMode(): boolean;
+  // ── Feature 8: Drawing Tools ──────────────────────────────────────────
+  addDrawing(type: string, points: AnchorPoint[], options?: DrawingOptions): IDrawingApi;
+  removeDrawing(drawing: IDrawingApi): void;
+  getDrawings(): IDrawingApi[];
+  setActiveDrawingTool(type: string | null): void;
+  registerDrawingType(type: string, factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive): void;
+  serializeDrawings(): SerializedDrawing[];
+  deserializeDrawings(data: SerializedDrawing[]): void;
+  // ── Feature 9/10: Chart State Save/Restore ────────────────────────────────
+  /** Export the current chart configuration (no bar data) as a serializable state object. */
+  exportState(): ChartState;
+  /** Restore a previously exported chart state, loading bar data via the provided loader. */
+  importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
+  // ── Feature 11a: Heikin-Ashi ──────────────────────────────────────────────
+  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>;
+  // ── Feature 11b: Periodicity ──────────────────────────────────────────────
+  setPeriodicity(periodicity: Periodicity): void;
+  getPeriodicity(): Periodicity;
+  subscribePeriodicityChange(handler: (p: Periodicity) => void): void;
+  unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void;
+  // ── Feature 11c: Market Sessions ──────────────────────────────────────────
+  setMarketSessions(sessions: MarketSession[]): void;
+  getMarketSessions(): MarketSession[];
+  setSessionFilter(filter: 'regular' | 'extended' | 'all'): void;
+  getSessionFilter(): string;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -107,6 +191,7 @@ interface SeriesEntry {
     | HollowCandleRenderer
     | HistogramRenderer;
   type: SeriesType;
+  paneId: string;
 }
 
 // ─── niceStep utility ───────────────────────────────────────────────────────
@@ -130,31 +215,26 @@ class ChartApi implements IChartApi {
   private _options: ChartOptions;
   private _container: HTMLElement;
   private _wrapper: HTMLDivElement;
-  private _chartCanvas: HTMLCanvasElement;
-  private _overlayCanvas: HTMLCanvasElement;
-  private _priceAxisCanvas: HTMLCanvasElement;
-  private _leftPriceAxisCanvas: HTMLCanvasElement;
+  private _paneContainer: HTMLDivElement;
   private _timeAxisCanvas: HTMLCanvasElement;
-  private _chartCtx: CanvasRenderingContext2D;
-  private _overlayCtx: CanvasRenderingContext2D;
-  private _priceAxisCtx: CanvasRenderingContext2D;
-  private _leftPriceAxisCtx: CanvasRenderingContext2D;
   private _timeAxisCtx: CanvasRenderingContext2D;
-  private _legendEl: HTMLDivElement;
   private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
-  private _priceScale: PriceScale;
-  private _leftPriceScale: PriceScale;
   private _crosshair: Crosshair;
   private _mask: InvalidateMask;
+
+  // Per-pane system
+  private _paneMap: Map<string, Pane> = new Map();
+  private _paneOrder: string[] = []; // ordered list of pane ids (main first)
+  private _paneApis: Map<string, PaneApi> = new Map();
+  private _dividers: PaneDivider[] = [];
 
   private _eventRouter: EventRouter;
   private _panZoomHandler: PanZoomHandler;
   private _crosshairHandler: CrosshairHandler | null = null;
 
   private _series: SeriesEntry[] = [];
-  private _panes: PaneApi[] = [];
 
   private _rafId: number | null = null;
   private _resizeObserver: ResizeObserver | null = null;
@@ -171,7 +251,6 @@ class ChartApi implements IChartApi {
 
   // ── Tooltip/Legend caching ──────────────────────────────────────────────
   private _lastTooltipBarIdx: number = -1;
-  private _lastLegendBarIdx: number = -1;
   private _tooltipWidth: number = 140;
   private _tooltipHeight: number = 80;
   private _volumeFormatter = new Intl.NumberFormat();
@@ -182,17 +261,8 @@ class ChartApi implements IChartApi {
   private _tooltipLCEl!: HTMLDivElement;
   private _tooltipVEl!: HTMLDivElement;
 
-  // Pre-created legend child elements
-  private _legendOLabelEl!: HTMLSpanElement;
-  private _legendOValEl!: HTMLSpanElement;
-  private _legendHLabelEl!: HTMLSpanElement;
-  private _legendHValEl!: HTMLSpanElement;
-  private _legendLLabelEl!: HTMLSpanElement;
-  private _legendLValEl!: HTMLSpanElement;
-  private _legendCLabelEl!: HTMLSpanElement;
-  private _legendCValEl!: HTMLSpanElement;
-  private _legendVLabelEl!: HTMLSpanElement;
-  private _legendVValEl!: HTMLSpanElement;
+  // HUD management (per-pane heads-up display)
+  private _huds: Map<string, HudManager> = new Map();
 
   // The "primary" pane id for the mask
   private readonly _mainPaneId = 'main';
@@ -200,10 +270,37 @@ class ChartApi implements IChartApi {
   // Track next pane id
   private _nextPaneId = 0;
 
+  // Indicator management
+  private _indicators: IndicatorApi[] = [];
+  private _nextIndicatorId = 0;
+
+  // Comparison mode
+  private _comparisonMode: boolean = false;
+  private _basisPrices: Map<SeriesApi<SeriesType>, number> = new Map(); // series -> basis price (first visible bar's close)
+
+  // Drawing tools
+  private _drawings: (ISeriesPrimitive & DrawingPrimitive)[] = [];
+  private _drawingApis: Map<string, DrawingApiImpl> = new Map();
+  private _drawingHandler: DrawingHandler | null = null;
+  private _nextDrawingId = 0;
+
+  // Periodicity
+  private _periodicity: Periodicity = { interval: 1, unit: 'day' };
+  private _periodicityCallbacks: ((p: Periodicity) => void)[] = [];
+
+  // Market sessions
+  private _marketSessions: MarketSession[] = [];
+  private _sessionFilter: string = 'all';
+
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     return this._width - leftScaleW - rightScaleW;
+  }
+
+  /** Get the main Pane instance. */
+  private get _mainPane(): Pane {
+    return this._paneMap.get(this._mainPaneId)!;
   }
 
   constructor(container: HTMLElement, options: ChartOptions) {
@@ -220,49 +317,30 @@ class ChartApi implements IChartApi {
     this._wrapper.style.height = `${this._height}px`;
     this._wrapper.style.backgroundColor = options.layout.backgroundColor;
 
-    // Chart canvas (series + grid) — top-left
-    this._chartCanvas = document.createElement('canvas');
-    this._chartCanvas.style.position = 'absolute';
-    this._chartCanvas.style.left = '0';
-    this._chartCanvas.style.top = '0';
-    this._chartCanvas.style.zIndex = '1';
+    // Pane container (flex column holds all pane rows + dividers)
+    this._paneContainer = document.createElement('div');
+    this._paneContainer.style.display = 'flex';
+    this._paneContainer.style.flexDirection = 'column';
+    this._paneContainer.style.width = '100%';
 
-    // Overlay canvas (crosshair only) — same position as chart canvas, z+1
-    this._overlayCanvas = document.createElement('canvas');
-    this._overlayCanvas.style.position = 'absolute';
-    this._overlayCanvas.style.left = '0';
-    this._overlayCanvas.style.top = '0';
-    this._overlayCanvas.style.zIndex = '2';
+    // Create main pane
+    const mainPaneHeight = this._height - TIME_AXIS_HEIGHT;
+    const mainPane = new Pane(this._mainPaneId, mainPaneHeight);
+    this._paneMap.set(this._mainPaneId, mainPane);
+    this._paneOrder.push(this._mainPaneId);
+    this._paneContainer.appendChild(mainPane.row);
 
-    // Price axis canvas — top-right
-    this._priceAxisCanvas = document.createElement('canvas');
-    this._priceAxisCanvas.style.position = 'absolute';
-    this._priceAxisCanvas.style.top = '0';
-    this._priceAxisCanvas.style.zIndex = '1';
+    this._wrapper.appendChild(this._paneContainer);
 
-    // Left price axis canvas — top-left (visible only when leftPriceScale.visible)
-    this._leftPriceAxisCanvas = document.createElement('canvas');
-    this._leftPriceAxisCanvas.style.position = 'absolute';
-    this._leftPriceAxisCanvas.style.top = '0';
-    this._leftPriceAxisCanvas.style.left = '0';
-    this._leftPriceAxisCanvas.style.zIndex = '1';
-
-    // Time axis canvas — bottom-left
+    // Time axis canvas — below all panes
     this._timeAxisCanvas = document.createElement('canvas');
     this._timeAxisCanvas.style.position = 'absolute';
     this._timeAxisCanvas.style.left = '0';
     this._timeAxisCanvas.style.zIndex = '1';
-
-    this._wrapper.appendChild(this._chartCanvas);
-    this._wrapper.appendChild(this._overlayCanvas);
-    this._wrapper.appendChild(this._priceAxisCanvas);
-    this._wrapper.appendChild(this._leftPriceAxisCanvas);
     this._wrapper.appendChild(this._timeAxisCanvas);
 
-    // Legend overlay (DOM-based)
-    this._legendEl = document.createElement('div');
-    this._legendEl.style.cssText = `position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:${options.layout.fontFamily};display:flex;gap:8px;pointer-events:none;color:${options.layout.textColor}`;
-    this._wrapper.appendChild(this._legendEl);
+    // HUD overlay for main pane
+    this._createHudForPane(this._mainPaneId, mainPane);
 
     // Tooltip overlay (DOM-based)
     this._tooltipEl = document.createElement('div');
@@ -285,49 +363,19 @@ class ChartApi implements IChartApi {
 
     this._wrapper.appendChild(this._tooltipEl);
 
-    // Pre-create legend child elements
-    const createLegendPair = (): [HTMLSpanElement, HTMLSpanElement] => {
-      const label = document.createElement('span');
-      const val = document.createElement('span');
-      return [label, val];
-    };
-    [this._legendOLabelEl, this._legendOValEl] = createLegendPair();
-    [this._legendHLabelEl, this._legendHValEl] = createLegendPair();
-    [this._legendLLabelEl, this._legendLValEl] = createLegendPair();
-    [this._legendCLabelEl, this._legendCValEl] = createLegendPair();
-    [this._legendVLabelEl, this._legendVValEl] = createLegendPair();
-    for (const el of [
-      this._legendOLabelEl, this._legendOValEl,
-      this._legendHLabelEl, this._legendHValEl,
-      this._legendLLabelEl, this._legendLValEl,
-      this._legendCLabelEl, this._legendCValEl,
-      this._legendVLabelEl, this._legendVValEl,
-    ]) {
-      this._legendEl.appendChild(el);
-    }
-
     container.appendChild(this._wrapper);
 
-    const pixelRatio = window.devicePixelRatio || 1;
-    this._setCanvasSize(this._width, this._height, pixelRatio);
-
-    this._chartCtx = this._chartCanvas.getContext('2d')!;
-    this._overlayCtx = this._overlayCanvas.getContext('2d')!;
-    this._priceAxisCtx = this._priceAxisCanvas.getContext('2d')!;
-    this._leftPriceAxisCtx = this._leftPriceAxisCanvas.getContext('2d')!;
+    // Get contexts
     this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
+
+    // Layout panes and canvases
+    this._layoutPanes();
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
     const leftScaleW = options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     this._timeScale.setWidth(this._width - leftScaleW - rightScaleW);
-
-    this._priceScale = new PriceScale('right');
-    this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
-
-    this._leftPriceScale = new PriceScale('left');
-    this._leftPriceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
 
     this._crosshair = new Crosshair();
 
@@ -340,10 +388,10 @@ class ChartApi implements IChartApi {
       this.requestRepaint(InvalidationLevel.Full),
     );
     this._eventRouter.addHandler(this._panZoomHandler);
-    this._eventRouter.attach(this._overlayCanvas);
+    this._eventRouter.attach(mainPane.canvases.overlayCanvas);
 
     // ── Click detection via overlay canvas ─────────────────────────────────
-    this._overlayCanvas.addEventListener('click', this._handleClick);
+    mainPane.canvases.overlayCanvas.addEventListener('click', this._handleClick);
 
     // ── AutoSize ───────────────────────────────────────────────────────────
     if (options.autoSize) {
@@ -398,9 +446,22 @@ class ChartApi implements IChartApi {
     return this._addSeries('histogram', options ?? {});
   }
 
+  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'> {
+    return this._addSeries('heikin-ashi', options ?? {});
+  }
+
   removeSeries(series: ISeriesApi<SeriesType>): void {
     const idx = this._series.findIndex((e) => e.api === series);
     if (idx !== -1) {
+      const entry = this._series[idx];
+
+      // Remove HUD row for this series
+      const hudRowId = `series-${entry.type}-${idx}`;
+      const hud = this._huds.get(entry.paneId);
+      if (hud) {
+        hud.removeRow(hudRowId);
+      }
+
       this._series.splice(idx, 1);
 
       // If we removed the primary (first) series the crosshair handler holds a
@@ -416,7 +477,7 @@ class ChartApi implements IChartApi {
             this._crosshair,
             this._series[0].api.getDataLayer(),
             this._timeScale,
-            this._priceScale,
+            this._mainPane.priceScale,
             () => this.requestRepaint(InvalidationLevel.Cursor),
           );
           this._eventRouter.addHandler(this._crosshairHandler);
@@ -431,21 +492,79 @@ class ChartApi implements IChartApi {
 
   addPane(options?: PaneOptions): IPaneApi {
     const id = `pane-${this._nextPaneId++}`;
-    const pane = new PaneApi(id, options?.height ?? 100, () =>
+    const defaultHeight = options?.height ?? 150;
+    const pane = new Pane(id, defaultHeight);
+    this._paneMap.set(id, pane);
+    this._paneOrder.push(id);
+
+    // Create divider between the previous last pane and this new one
+    const prevPaneId = this._paneOrder[this._paneOrder.length - 2];
+    const prevPane = this._paneMap.get(prevPaneId)!;
+    const divider = new PaneDivider(
+      () => prevPane.height,
+      (h) => { prevPane.height = h; },
+      () => pane.height,
+      (h) => { pane.height = h; },
+      () => this._layoutPanes(),
+    );
+    this._dividers.push(divider);
+
+    // Append divider and pane row to container
+    this._paneContainer.appendChild(divider.el);
+    this._paneContainer.appendChild(pane.row);
+
+    this._mask.addPane(id);
+    this._createHudForPane(id, pane);
+
+    const paneApi = new PaneApi(id, pane, () =>
       this.requestRepaint(InvalidationLevel.Full),
     );
-    this._panes.push(pane);
-    this._mask.addPane(id);
-    return pane;
+    this._paneApis.set(id, paneApi);
+
+    // Recalculate main pane height to accommodate new pane
+    this._layoutPanes();
+    this.requestRepaint(InvalidationLevel.Full);
+
+    return paneApi;
   }
 
   removePane(pane: IPaneApi): void {
-    const idx = this._panes.findIndex((p) => p.id === pane.id);
-    if (idx !== -1) {
-      this._panes.splice(idx, 1);
-      this._mask.removePane(pane.id);
-      this.requestRepaint(InvalidationLevel.Full);
+    const paneId = pane.id;
+    if (paneId === this._mainPaneId) return; // Can't remove main pane
+
+    const orderIdx = this._paneOrder.indexOf(paneId);
+    if (orderIdx === -1) return;
+
+    // Remove the pane and its preceding divider
+    const internalPane = this._paneMap.get(paneId)!;
+    internalPane.row.remove();
+
+    // The divider before this pane (divider index = orderIdx - 1 since main has no preceding divider)
+    const dividerIdx = orderIdx - 1;
+    if (dividerIdx >= 0 && dividerIdx < this._dividers.length) {
+      const divider = this._dividers[dividerIdx];
+      divider.el.remove();
+      divider.destroy();
+      this._dividers.splice(dividerIdx, 1);
     }
+
+    this._paneMap.delete(paneId);
+    this._paneOrder.splice(orderIdx, 1);
+    this._paneApis.delete(paneId);
+    this._mask.removePane(paneId);
+
+    // Destroy HUD for this pane
+    const hud = this._huds.get(paneId);
+    if (hud) {
+      hud.destroy();
+      this._huds.delete(paneId);
+    }
+
+    // Remove series assigned to this pane
+    this._series = this._series.filter((s) => s.paneId !== paneId);
+
+    this._layoutPanes();
+    this.requestRepaint(InvalidationLevel.Full);
   }
 
   // ── Scale access ────────────────────────────────────────────────────────
@@ -454,9 +573,15 @@ class ChartApi implements IChartApi {
     return this._timeScale;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  priceScale(_id?: string): PriceScale {
-    return this._priceScale;
+  priceScale(id?: string): PriceScale {
+    if (id) {
+      // Check if it's a pane id
+      const pane = this._paneMap.get(id);
+      if (pane) return pane.priceScale;
+      // Check if it's 'left' for the main pane
+      if (id === 'left') return this._mainPane.leftPriceScale;
+    }
+    return this._mainPane.priceScale;
   }
 
   // ── Options ─────────────────────────────────────────────────────────────
@@ -491,21 +616,17 @@ class ChartApi implements IChartApi {
     this._width = width;
     this._height = height;
 
-    const pixelRatio = window.devicePixelRatio || 1;
-    this._setCanvasSize(width, height, pixelRatio);
-
     this._wrapper.style.width = `${width}px`;
     this._wrapper.style.height = `${height}px`;
 
     const leftScaleWidthR = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleWidthR = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     this._timeScale.setWidth(width - leftScaleWidthR - rightScaleWidthR);
-    this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
-    this._leftPriceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
     this._options.width = width;
     this._options.height = height;
 
+    this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
   }
 
@@ -521,7 +642,15 @@ class ChartApi implements IChartApi {
     this._resizeObserver?.disconnect();
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
-    this._overlayCanvas.removeEventListener('click', this._handleClick);
+    this._mainPane.canvases.overlayCanvas.removeEventListener('click', this._handleClick);
+
+    // Clean up HUDs
+    for (const hud of this._huds.values()) hud.destroy();
+    this._huds.clear();
+
+    // Clean up dividers
+    for (const d of this._dividers) d.destroy();
+    this._dividers.length = 0;
 
     this._visibleRangeChangeCallbacks.length = 0;
     this._crosshairMoveCallbacks.length = 0;
@@ -582,7 +711,7 @@ class ChartApi implements IChartApi {
     this._timeScale.setOptions({ barSpacing: newBarSpacing });
 
     // Compute rightOffset so that `to` sits at the right edge.
-    // rightBorder = baseIndex + rightOffset = to  →  rightOffset = to - baseIndex
+    // rightBorder = baseIndex + rightOffset = to  ->  rightOffset = to - baseIndex
     const baseIndex = this._timeScale.dataLength > 0
       ? this._timeScale.dataLength - 1
       : 0;
@@ -597,6 +726,635 @@ class ChartApi implements IChartApi {
   scrollToRealTime(): void {
     this._timeScale.scrollToEnd();
     this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 4: Fit Content & Screenshot ───────────────────────────────
+
+  fitContent(): void {
+    this._timeScale.fitContent();
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  takeScreenshot(): HTMLCanvasElement {
+    // Force a synchronous paint so canvases are up to date
+    this._paint();
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    const totalW = Math.round(this._width * pixelRatio);
+    const totalH = Math.round(this._height * pixelRatio);
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = totalW;
+    offscreen.height = totalH;
+    const ctx = offscreen.getContext('2d')!;
+
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const chartW = this._chartWidth;
+
+    let yOffset = 0;
+
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      const paneH = Math.round(pane.height * pixelRatio);
+      const cvs = pane.canvases;
+
+      // Left price axis
+      if (this._options.leftPriceScale.visible) {
+        ctx.drawImage(cvs.leftPriceAxisCanvas, 0, yOffset);
+      }
+
+      // Chart canvas
+      ctx.drawImage(cvs.chartCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+      // Overlay canvas (same position, layered on top)
+      ctx.drawImage(cvs.overlayCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+      // Right price axis
+      if (this._options.rightPriceScale.visible) {
+        ctx.drawImage(cvs.rightPriceAxisCanvas, Math.round((leftScaleW + chartW) * pixelRatio), yOffset);
+      }
+
+      yOffset += paneH;
+
+      // Account for divider between panes (4px logical = DIVIDER_HEIGHT)
+      if (paneId !== this._paneOrder[this._paneOrder.length - 1]) {
+        yOffset += Math.round(DIVIDER_HEIGHT * pixelRatio);
+      }
+    }
+
+    // Draw time axis at the bottom
+    ctx.drawImage(this._timeAxisCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+    return offscreen;
+  }
+
+  // ── Feature 5: Indicator API ────────────────────────────────────────────
+
+  addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi {
+    const id = `indicator-${this._nextIndicatorId++}`;
+
+    // 1. Resolve params
+    const defaults = DEFAULT_INDICATOR_PARAMS[type] ?? {};
+    const params = { ...defaults, ...(options.params ?? {}) };
+
+    // 2. Determine pane
+    let paneId: string;
+    let autoCreatedPaneId: string | null = null;
+    if (options.paneId) {
+      paneId = options.paneId;
+    } else if (OVERLAY_INDICATORS.has(type)) {
+      paneId = this._mainPaneId;
+    } else {
+      const newPane = this.addPane({ height: 150 });
+      paneId = newPane.id;
+      autoCreatedPaneId = paneId;
+    }
+
+    // 3. Read source series data
+    const sourceApi = options.source as SeriesApi<SeriesType>;
+    const store = sourceApi.getDataLayer().store;
+
+    // 4. Compute indicator
+    const result = this._computeIndicator(type, store, params);
+
+    // 5-6. Create internal series
+    const color = options.color ?? '#2962ff';
+    const lineWidth = options.lineWidth ?? 2;
+
+    const indicator = new IndicatorApi(id, type, options, paneId, () => {
+      this.removeIndicator(indicator);
+    });
+    indicator.autoCreatedPaneId = autoCreatedPaneId;
+
+    this._createIndicatorSeries(indicator, result, store, paneId, color, lineWidth);
+
+    // 7. Subscribe to source's dataChanged for auto-recompute
+    const dataChangedCallback = (): void => {
+      const updatedStore = sourceApi.getDataLayer().store;
+      const updatedResult = this._computeIndicator(type, updatedStore, params);
+
+      // Remove old internal series
+      for (const s of indicator.internalSeries) {
+        this.removeSeries(s);
+      }
+      indicator.internalSeries = [];
+
+      // Recreate with updated data
+      this._createIndicatorSeries(indicator, updatedResult, updatedStore, paneId, color, lineWidth);
+    };
+    indicator._dataChangedCallback = dataChangedCallback;
+    options.source.subscribeDataChanged(dataChangedCallback);
+
+    this._indicators.push(indicator);
+
+    // Register HUD row for this indicator
+    this._registerIndicatorHudRow(indicator, options);
+
+    return indicator;
+  }
+
+  removeIndicator(indicator: IIndicatorApi): void {
+    const impl = indicator as IndicatorApi;
+    const idx = this._indicators.indexOf(impl);
+    if (idx === -1) return;
+
+    // Remove HUD row for this indicator
+    const hud = this._huds.get(impl.paneId());
+    if (hud) {
+      hud.removeRow(`indicator-${impl.id}`);
+    }
+
+    // 1. Remove all internal series
+    for (const s of impl.internalSeries) {
+      this.removeSeries(s);
+    }
+    impl.internalSeries = [];
+
+    // 2. If auto-created pane and no other series/indicators use it, remove the pane
+    if (impl.autoCreatedPaneId) {
+      const autoPaneId = impl.autoCreatedPaneId;
+      const otherSeriesInPane = this._series.some(s => s.paneId === autoPaneId);
+      const otherIndicatorsInPane = this._indicators.some(
+        (ind, i) => i !== idx && ind.paneId() === autoPaneId,
+      );
+      if (!otherSeriesInPane && !otherIndicatorsInPane) {
+        const paneApi = this._paneApis.get(autoPaneId);
+        if (paneApi) {
+          this.removePane(paneApi);
+        }
+      }
+    }
+
+    // 3. Unsubscribe from source dataChanged
+    if (impl._dataChangedCallback) {
+      impl.options().source.unsubscribeDataChanged(impl._dataChangedCallback);
+      impl._dataChangedCallback = null;
+    }
+
+    // 4. Remove from _indicators array
+    this._indicators.splice(idx, 1);
+  }
+
+  private _computeIndicator(
+    type: IndicatorType,
+    store: ColumnStore,
+    params: Record<string, number>,
+  ): Record<string, Float64Array> {
+    const len = store.length;
+    const close = store.close;
+    const high = store.high;
+    const low = store.low;
+    const volume = store.volume;
+
+    switch (type) {
+      case 'sma':
+        return { value: computeSMA(close, len, params.period) };
+      case 'ema':
+        return { value: computeEMA(close, len, params.period) };
+      case 'rsi':
+        return { value: computeRSI(close, len, params.period) };
+      case 'macd': {
+        const r = computeMACD(close, len, params.fastPeriod, params.slowPeriod, params.signalPeriod);
+        return { macd: r.macd, signal: r.signal, histogram: r.histogram };
+      }
+      case 'bollinger': {
+        const r = computeBollinger(close, len, params.period, params.stdDev);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'vwap':
+        return { value: computeVWAP(high, low, close, volume, len) };
+      case 'stochastic': {
+        const r = computeStochastic(high, low, close, len, params.kPeriod, params.dPeriod);
+        return { k: r.k, d: r.d };
+      }
+      case 'atr':
+        return { value: computeATR(high, low, close, len, params.period) };
+      case 'adx': {
+        const r = computeADX(high, low, close, len, params.period);
+        return { adx: r.adx, plusDI: r.plusDI, minusDI: r.minusDI };
+      }
+      case 'obv':
+        return { value: computeOBV(close, volume, len) };
+      case 'williams-r':
+        return { value: computeWilliamsR(high, low, close, len, params.period) };
+      case 'ichimoku': {
+        const r = computeIchimoku(high, low, close, len, params.tenkanPeriod, params.kijunPeriod, params.senkouPeriod);
+        return { tenkan: r.tenkan, kijun: r.kijun, senkouA: r.senkouA, senkouB: r.senkouB, chikou: r.chikou };
+      }
+      case 'parabolic-sar':
+        return { value: computeParabolicSAR(high, low, len, params.afStep, params.afMax) };
+      case 'keltner': {
+        const r = computeKeltner(close, high, low, len, params.emaPeriod, params.atrPeriod, params.multiplier);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'donchian': {
+        const r = computeDonchian(high, low, len, params.period);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'cci':
+        return { value: computeCCI(high, low, close, len, params.period) };
+      case 'pivot-points': {
+        const r = computePivotPoints(high, low, close, len);
+        return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 };
+      }
+      default:
+        throw new Error(`Unknown indicator type: ${type}`);
+    }
+  }
+
+  private _createIndicatorSeries(
+    indicator: IndicatorApi,
+    result: Record<string, Float64Array>,
+    store: ColumnStore,
+    paneId: string,
+    primaryColor: string,
+    lineWidth: number,
+  ): void {
+    const type = indicator.indicatorType();
+
+    // Color map for multi-output indicators
+    const colorMap = this._getIndicatorColorMap(type, primaryColor);
+
+    for (const key of Object.keys(result)) {
+      const values = result[key];
+      const color = colorMap[key] ?? primaryColor;
+
+      // Build Bar[] data from time + indicator values
+      const bars: Bar[] = [];
+      for (let i = 0; i < store.length; i++) {
+        const v = values[i];
+        if (isNaN(v)) continue;
+        bars.push({
+          time: store.time[i],
+          open: v,
+          high: v,
+          low: v,
+          close: v,
+          volume: 0,
+        });
+      }
+
+      let series: ISeriesApi<SeriesType>;
+      if (key === 'histogram') {
+        series = this._addSeries('histogram', {
+          paneId,
+          data: bars,
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+        }, true);
+      } else {
+        series = this._addSeries('line', {
+          paneId,
+          data: bars,
+          color,
+          lineWidth,
+        }, true);
+      }
+
+      indicator.internalSeries.push(series);
+    }
+  }
+
+  private _getIndicatorColorMap(
+    type: IndicatorType,
+    primaryColor: string,
+  ): Record<string, string> {
+    switch (type) {
+      case 'macd':
+        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#26a69a' };
+      case 'bollinger':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'stochastic':
+        return { k: primaryColor, d: '#ff6d00' };
+      case 'adx':
+        return { adx: primaryColor, plusDI: '#26a69a', minusDI: '#ef5350' };
+      case 'ichimoku':
+        return { tenkan: '#2962ff', kijun: '#ef5350', senkouA: '#26a69a', senkouB: '#ee6823', chikou: '#9c27b0' };
+      case 'keltner':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'donchian':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'pivot-points':
+        return { pp: primaryColor, r1: '#ef5350', r2: '#ef5350', r3: '#ef5350', s1: '#26a69a', s2: '#26a69a', s3: '#26a69a' };
+      default:
+        return { value: primaryColor };
+    }
+  }
+
+  // ── Feature 6: Comparison Mode ───────────────────────────────────────────
+
+  setComparisonMode(enabled: boolean): void {
+    this._comparisonMode = enabled;
+    this._basisPrices.clear();
+    for (const pane of this._paneMap.values()) {
+      pane.priceScale.setComparisonMode(enabled);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  isComparisonMode(): boolean {
+    return this._comparisonMode;
+  }
+
+  // ── Feature 8: Drawing Tools ──────────────────────────────────────────────
+
+  addDrawing(type: string, points: AnchorPoint[], options: DrawingOptions = {}): IDrawingApi {
+    const id = `drawing_${this._nextDrawingId++}`;
+    const drawing = createBuiltinDrawing(type, id, points, options);
+    if (!drawing) throw new Error(`Unknown drawing type: ${type}`);
+    if (drawing instanceof BaseDrawing) {
+      drawing.setContext(this._getDrawingContext());
+    }
+    this._drawings.push(drawing);
+    const api = new DrawingApiImpl(id, drawing, this);
+    this._drawingApis.set(id, api);
+    this.requestRepaint(InvalidationLevel.Full);
+    return api;
+  }
+
+  removeDrawing(drawingApi: IDrawingApi): void {
+    const idx = this._drawings.findIndex(d => {
+      if (d instanceof BaseDrawing) return d.id === drawingApi.id;
+      return false;
+    });
+    if (idx !== -1) {
+      this._drawings.splice(idx, 1);
+      this._drawingApis.delete(drawingApi.id);
+      this.requestRepaint(InvalidationLevel.Full);
+    }
+  }
+
+  getDrawings(): IDrawingApi[] {
+    return Array.from(this._drawingApis.values());
+  }
+
+  setActiveDrawingTool(type: string | null): void {
+    this._ensureDrawingHandler();
+    this._drawingHandler!.setActiveToolType(type);
+  }
+
+  registerDrawingType(
+    type: string,
+    factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive,
+  ): void {
+    DRAWING_REGISTRY.set(type, factory);
+  }
+
+  serializeDrawings(): SerializedDrawing[] {
+    return this._drawings.map(d => d.serialize());
+  }
+
+  deserializeDrawings(data: SerializedDrawing[]): void {
+    // Remove all existing
+    this._drawings.length = 0;
+    this._drawingApis.clear();
+    for (const entry of data) {
+      const drawing = createBuiltinDrawing(entry.type, entry.id, entry.points, entry.options);
+      if (!drawing) continue;
+      if (drawing instanceof BaseDrawing) {
+        drawing.setContext(this._getDrawingContext());
+      }
+      this._drawings.push(drawing);
+      const api = new DrawingApiImpl(entry.id, drawing, this);
+      this._drawingApis.set(entry.id, api);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  exportState(): ChartState {
+    // Collect series configs (no bar data)
+    const seriesEntries = this._series.map((entry, idx) => ({
+      id: `series-${idx}`,
+      type: entry.type,
+      options: entry.api.options() as unknown as Record<string, unknown>,
+    }));
+
+    // Collect indicator configs
+    const indicatorEntries = this._indicators.map((ind) => {
+      const opts = ind.options();
+      return {
+        type: ind.indicatorType(),
+        sourceSeriesId: 'series-0', // primary series
+        params: (opts.params ?? {}) as Record<string, number>,
+        color: opts.color,
+      };
+    });
+
+    // Collect pane heights
+    const paneEntries = this._paneOrder.map((paneId) => {
+      const pane = this._paneMap.get(paneId)!;
+      return { id: paneId, height: pane.height };
+    });
+
+    // Collect visible range (time values)
+    const visibleRange = this._timeScale.visibleRange();
+    let visibleRangeTs: { from: number; to: number } | undefined;
+    if (visibleRange) {
+      const store = this._series[0]?.api.getDataLayer().store;
+      if (store && store.length > 0) {
+        const fromIdx = Math.max(0, Math.min(Math.floor(visibleRange.fromIdx), store.length - 1));
+        const toIdx = Math.max(0, Math.min(Math.floor(visibleRange.toIdx), store.length - 1));
+        visibleRangeTs = { from: store.time[fromIdx], to: store.time[toIdx] };
+      }
+    }
+
+    return {
+      version: CHART_STATE_VERSION,
+      options: this._options as unknown as import('../core/types').DeepPartial<ChartOptions>,
+      comparisonMode: this._comparisonMode,
+      timeScale: {
+        barSpacing: this._timeScale.barSpacing,
+        rightOffset: this._timeScale.rightOffset,
+      },
+      series: seriesEntries,
+      indicators: indicatorEntries,
+      panes: paneEntries,
+      drawings: this.serializeDrawings(),
+      visibleRange: visibleRangeTs,
+    };
+  }
+
+  async importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void> {
+    if (!validateChartState(state)) {
+      throw new Error('Invalid chart state: failed validation');
+    }
+
+    // Apply options
+    this.applyOptions(state.options as DeepPartial<ChartOptions>);
+
+    // Apply comparison mode
+    if (state.comparisonMode !== undefined) {
+      this.setComparisonMode(state.comparisonMode);
+    }
+
+    // Apply time scale
+    this._timeScale.setOptions({
+      barSpacing: state.timeScale.barSpacing,
+    });
+    this._timeScale.setRightOffset(state.timeScale.rightOffset);
+
+    // Remove existing series
+    for (const entry of [...this._series]) {
+      this.removeSeries(entry.api);
+    }
+
+    // Remove existing indicators
+    for (const ind of [...this._indicators]) {
+      this.removeIndicator(ind);
+    }
+
+    // Re-create series (without data)
+    const createdSeries: Map<string, ISeriesApi<SeriesType>> = new Map();
+    for (const sEntry of state.series) {
+      const type = sEntry.type;
+      let api: ISeriesApi<SeriesType>;
+      const opts = sEntry.options as DeepPartial<SeriesOptionsMap[SeriesType]>;
+      switch (type) {
+        case 'candlestick': api = this.addCandlestickSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
+        case 'line': api = this.addLineSeries(opts as DeepPartial<LineSeriesOptions>); break;
+        case 'area': api = this.addAreaSeries(opts as DeepPartial<AreaSeriesOptions>); break;
+        case 'bar': api = this.addBarSeries(opts as DeepPartial<BarSeriesOptions>); break;
+        case 'baseline': api = this.addBaselineSeries(opts as DeepPartial<BaselineSeriesOptions>); break;
+        case 'hollow-candle': api = this.addHollowCandleSeries(opts as DeepPartial<HollowCandleSeriesOptions>); break;
+        case 'histogram': api = this.addHistogramSeries(opts as DeepPartial<HistogramSeriesOptions>); break;
+        case 'heikin-ashi': api = this.addHeikinAshiSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
+        default: continue;
+      }
+      createdSeries.set(sEntry.id, api);
+    }
+
+    // Load data in parallel
+    const loadPromises = state.series.map(async (sEntry) => {
+      const api = createdSeries.get(sEntry.id);
+      if (!api) return;
+      const bars = await dataLoader(sEntry.id);
+      api.setData(bars);
+    });
+    await Promise.all(loadPromises);
+
+    // Re-create indicators
+    for (const indEntry of state.indicators) {
+      const sourceSeries = createdSeries.get(indEntry.sourceSeriesId);
+      if (!sourceSeries) continue;
+      this.addIndicator(indEntry.type, {
+        source: sourceSeries,
+        params: indEntry.params,
+        color: indEntry.color,
+      });
+    }
+
+    // Restore drawings
+    if (state.drawings.length > 0) {
+      this.deserializeDrawings(state.drawings);
+    }
+
+    // Restore viewport
+    if (state.visibleRange) {
+      this.setVisibleRange(state.visibleRange.from, state.visibleRange.to);
+    }
+
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 11b: Periodicity ──────────────────────────────────────────────
+
+  setPeriodicity(periodicity: Periodicity): void {
+    this._periodicity = periodicity;
+    for (const cb of this._periodicityCallbacks) {
+      cb(periodicity);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getPeriodicity(): Periodicity {
+    return this._periodicity;
+  }
+
+  subscribePeriodicityChange(handler: (p: Periodicity) => void): void {
+    this._periodicityCallbacks.push(handler);
+  }
+
+  unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void {
+    const idx = this._periodicityCallbacks.indexOf(handler);
+    if (idx !== -1) this._periodicityCallbacks.splice(idx, 1);
+  }
+
+  // ── Feature 11c: Market Sessions ──────────────────────────────────────────
+
+  setMarketSessions(sessions: MarketSession[]): void {
+    this._marketSessions = sessions;
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getMarketSessions(): MarketSession[] {
+    return this._marketSessions;
+  }
+
+  setSessionFilter(filter: 'regular' | 'extended' | 'all'): void {
+    this._sessionFilter = filter;
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getSessionFilter(): string {
+    return this._sessionFilter;
+  }
+
+  /** @internal */
+  _getDrawingContext(): DrawingContext {
+    const mainPane = this._mainPane;
+    return {
+      timeScale: this._timeScale,
+      priceScale: mainPane.priceScale,
+      chartWidth: this._chartWidth,
+      chartHeight: mainPane.height,
+      requestUpdate: () => this.requestRepaint(InvalidationLevel.Full),
+    };
+  }
+
+  private _ensureDrawingHandler(): void {
+    if (this._drawingHandler) return;
+    const self = this;
+    this._drawingHandler = new DrawingHandler({
+      getDrawings: () => self._drawings,
+      getDrawingContext: () => self._getDrawingContext(),
+      onDrawingCreated(drawing) {
+        if (drawing instanceof BaseDrawing) {
+          drawing.setContext(self._getDrawingContext());
+        }
+        self._drawings.push(drawing);
+        const id = (drawing as BaseDrawing).id;
+        const api = new DrawingApiImpl(id, drawing, self);
+        self._drawingApis.set(id, api);
+        self.requestRepaint(InvalidationLevel.Full);
+      },
+      onDrawingUpdated() {
+        self.requestRepaint(InvalidationLevel.Full);
+      },
+      xToTime(x: number): number {
+        return self._timeScale.xToIndex(x);
+      },
+      yToPrice(y: number): number {
+        return self._mainPane.priceScale.yToPrice(y);
+      },
+    });
+    // Insert drawing handler BEFORE pan-zoom so it gets first crack at events
+    this._eventRouter.addHandler(this._drawingHandler);
+  }
+
+  /**
+   * Returns the basis price (first visible bar's close) for a given series entry,
+   * computing and caching it on first call for each series per paint cycle.
+   */
+  private _getBasisPrice(entry: SeriesEntry, range: VisibleRange): number {
+    if (this._basisPrices.has(entry.api)) {
+      return this._basisPrices.get(entry.api)!;
+    }
+    const store = entry.api.getDataLayer().store;
+    const fromIdx = Math.max(0, Math.min(range.fromIdx, store.length - 1));
+    const basis = store.close[fromIdx] ?? 0;
+    this._basisPrices.set(entry.api, basis);
+    return basis;
   }
 
   // ── Feature 3: Visible Range Change Subscription ──────────────────────
@@ -622,27 +1380,98 @@ class ChartApi implements IChartApi {
     }
   }
 
+  // ── Layout panes ─────────────────────────────────────────────────────
+
+  private _layoutPanes(): void {
+    const pixelRatio = window.devicePixelRatio || 1;
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleVisible = this._options.rightPriceScale.visible;
+    const leftScaleVisible = this._options.leftPriceScale.visible;
+    const chartW = this._chartWidth;
+
+    // Calculate total available height for panes
+    const totalDividerHeight = this._dividers.length * DIVIDER_HEIGHT;
+    const totalAvailable = this._height - TIME_AXIS_HEIGHT - totalDividerHeight;
+
+    // Sum of indicator pane heights (all except main)
+    let indicatorPanesHeight = 0;
+    for (const paneId of this._paneOrder) {
+      if (paneId === this._mainPaneId) continue;
+      indicatorPanesHeight += this._paneMap.get(paneId)!.height;
+    }
+
+    // Main pane gets the remainder
+    const mainPaneHeight = Math.max(50, totalAvailable - indicatorPanesHeight);
+    this._mainPane.height = mainPaneHeight;
+
+    // Layout each pane
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      pane.layout(chartW, leftScaleW, PRICE_AXIS_WIDTH, rightScaleVisible, leftScaleVisible, pixelRatio);
+    }
+
+    // Position time axis below all panes
+    const timeAxisTop = this._height - TIME_AXIS_HEIGHT;
+    this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
+    this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
+    this._timeAxisCanvas.style.width = `${chartW}px`;
+    this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
+    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
+    this._timeAxisCanvas.style.top = `${timeAxisTop}px`;
+  }
+
   // ── Paint ─────────────────────────────────────────────────────────────
 
   private _paint(): void {
     if (this._removed) return;
 
-    const level = this._mask.level(this._mainPaneId);
-    if (level >= InvalidationLevel.Light) {
-      this._paintMain();
-      this._paintPriceAxis();
-      this._paintLeftPriceAxis();
-      this._paintTimeAxis();
-    }
-    if (level >= InvalidationLevel.Cursor) {
-      this._paintOverlay();
-      // Redraw axes on cursor move too (for crosshair labels) — axes are tiny, very cheap
-      this._paintPriceAxis();
-      this._paintLeftPriceAxis();
-      this._paintTimeAxis();
+    // Clear cached basis prices so they are recomputed for the new visible range each paint
+    if (this._comparisonMode) {
+      this._basisPrices.clear();
     }
 
+    // Sync dataLength from primary series
+    if (this._series.length > 0) {
+      const primaryStore = this._series[0].api.getDataLayer().store;
+      this._timeScale.setDataLength(primaryStore.length);
+    }
+
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      const level = this._mask.level(paneId);
+      const seriesForPane = this._series.filter(s => s.paneId === paneId);
+
+      if (level >= InvalidationLevel.Light) {
+        this._paintPane(pane, seriesForPane);
+        this._paintPanePriceAxis(pane, seriesForPane);
+        this._paintPaneLeftPriceAxis(pane, seriesForPane);
+      }
+      if (level >= InvalidationLevel.Cursor) {
+        this._paintPaneOverlay(pane);
+        // Redraw axes on cursor move too (for crosshair labels) -- axes are tiny, very cheap
+        this._paintPanePriceAxis(pane, seriesForPane);
+        this._paintPaneLeftPriceAxis(pane, seriesForPane);
+      }
+    }
+
+    // Shared time axis
+    this._paintTimeAxis();
+
     // Emit crosshair callbacks
+    this._emitCrosshairCallbacks();
+
+    this._updateHud();
+    this._updateTooltip();
+
+    // Emit visible range change callbacks (Feature 3)
+    if (this._visibleRangeChangeCallbacks.length > 0) {
+      this._emitVisibleRangeChange();
+    }
+
+    this._mask.reset();
+  }
+
+  private _emitCrosshairCallbacks(): void {
     if (this._crosshair.visible) {
       const state: CrosshairState = {
         x: this._crosshair.x,
@@ -656,16 +1485,6 @@ class ChartApi implements IChartApi {
     } else {
       for (const cb of this._crosshairMoveCallbacks) cb(null);
     }
-
-    this._updateLegend();
-    this._updateTooltip();
-
-    // Emit visible range change callbacks (Feature 3)
-    if (this._visibleRangeChangeCallbacks.length > 0) {
-      this._emitVisibleRangeChange();
-    }
-
-    this._mask.reset();
   }
 
   private _emitVisibleRangeChange(): void {
@@ -700,34 +1519,44 @@ class ChartApi implements IChartApi {
     }
   }
 
-  private _paintMain(): void {
+  private _paintPane(pane: Pane, seriesForPane: SeriesEntry[]): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._chartCtx;
+    const ctx = pane.canvases.chartCtx;
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = pane.height;
+    const isMain = pane.id === this._mainPaneId;
 
     // Clear chart canvas
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
 
-    if (this._series.length === 0) return;
+    if (seriesForPane.length === 0 && !isMain) return;
 
-    // Find the primary series (first one) for data length & visible range
-    const primaryEntry = this._series[0];
-    const primaryStore = primaryEntry.api.getDataLayer().store;
+    // For the main pane (or any pane with series), find the primary series for data length & visible range
+    const primaryEntry = this._series.length > 0 ? this._series[0] : null;
+    const primaryStore = primaryEntry ? primaryEntry.api.getDataLayer().store : null;
 
-    this._timeScale.setDataLength(primaryStore.length);
+    if (primaryStore) {
+      this._timeScale.setDataLength(primaryStore.length);
+    }
+
     const range = this._timeScale.visibleRange();
 
-    if (range.fromIdx > range.toIdx || primaryStore.length === 0) return;
+    if (!primaryStore || range.fromIdx > range.toIdx || primaryStore.length === 0) {
+      if (seriesForPane.length === 0) return;
+    }
 
-    // Auto-scale price from visible data (scan all series)
-    this._updateDataRange(range);
+    // Auto-scale price from visible data (only series assigned to this pane)
+    this._updatePaneDataRange(pane, seriesForPane, range);
 
-    // Draw watermark BEFORE grid/series so it appears behind everything
-    this._drawWatermark(ctx, chartW, chartH, pixelRatio);
+    if (isMain) {
+      // Draw watermark BEFORE grid/series so it appears behind everything
+      this._drawWatermark(ctx, chartW, chartH, pixelRatio);
+    }
 
-    // Draw grid (within chart area only)
-    this._drawGrid(ctx, chartW, chartH, range, primaryStore, pixelRatio);
+    if (isMain && primaryStore) {
+      // Draw grid (within chart area only)
+      this._drawGrid(ctx, chartW, chartH, range, primaryStore, pane.priceScale, pixelRatio);
+    }
 
     // Clip series rendering to chart area
     ctx.save();
@@ -736,53 +1565,74 @@ class ChartApi implements IChartApi {
     ctx.clip();
 
     // Draw each series
-    const target = this._createRenderTarget(this._chartCanvas, ctx, pixelRatio);
+    const target = this._createRenderTarget(pane.canvases.chartCanvas, ctx, chartW, chartH, pixelRatio);
     const indexToX = (i: number) => this._timeScale.indexToX(i);
-    const priceToY = (p: number) => this._priceScale.priceToY(p);
 
-    for (const entry of this._series) {
+    // Primary priceToY for this pane (used for markers, price lines, last close line).
+    // In comparison mode it is keyed to the first visible series in this pane.
+    const primaryEntryForPane = seriesForPane.find(e => e.api.isVisible()) ?? null;
+    const primaryPriceToY: (p: number) => number = this._comparisonMode && primaryEntryForPane
+      ? (() => {
+          const basis = this._getBasisPrice(primaryEntryForPane, range);
+          return (price: number) => {
+            const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+            return pane.priceScale.priceToY(pct);
+          };
+        })()
+      : (p: number) => pane.priceScale.priceToY(p);
+
+    for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
       const store = entry.api.getDataLayer().store;
-      // Re-set data length for secondary series
-      if (entry !== primaryEntry) {
-        // For now use the same time scale range
+      let priceToY: (p: number) => number;
+      if (this._comparisonMode) {
+        const basis = this._getBasisPrice(entry, range);
+        priceToY = (price: number) => {
+          const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+          return pane.priceScale.priceToY(pct);
+        };
+      } else {
+        priceToY = (p: number) => pane.priceScale.priceToY(p);
       }
-
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
     }
 
-    // Draw volume overlay
-    if (this._options.volume.visible) {
+    // Volume overlay (main pane only)
+    if (isMain && this._options.volume.visible) {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
-    // Draw markers for each series
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      const markers = entry.api.getMarkers();
-      if (markers.length > 0) {
-        const dataLayer = entry.api.getDataLayer();
-        this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
+    // Markers (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        const markers = entry.api.getMarkers();
+        if (markers.length > 0) {
+          const dataLayer = entry.api.getDataLayer();
+          this._drawMarkers(ctx, markers, dataLayer, range, indexToX, primaryPriceToY, pixelRatio);
+        }
       }
     }
 
-    // Draw price lines for each series
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      const priceLines = entry.api.getPriceLines();
-      if (priceLines.length > 0) {
-        this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+    // Price lines (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        const priceLines = entry.api.getPriceLines();
+        if (priceLines.length > 0) {
+          this._drawPriceLines(ctx, priceLines, chartW, primaryPriceToY, pixelRatio);
+        }
       }
     }
 
-    // Draw last close price line
-    if (this._options.lastPriceLine.visible && primaryStore.length > 0) {
+    // Last close price line (main pane only)
+    if (isMain && this._options.lastPriceLine.visible && primaryStore && primaryStore.length > 0) {
       const lastClose = primaryStore.close[primaryStore.length - 1];
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
       const lineColor = isUp ? '#26a69a' : '#ef5350';
-      const lastY = Math.round(priceToY(lastClose) * pixelRatio);
+      const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
 
       ctx.save();
       ctx.strokeStyle = lineColor;
@@ -849,20 +1699,48 @@ class ChartApi implements IChartApi {
     }
   }
 
-  private _paintOverlay(): void {
+  private _paintPaneOverlay(pane: Pane): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._overlayCtx;
+    const ctx = pane.canvases.overlayCtx;
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = pane.height;
+    const isMain = pane.id === this._mainPaneId;
 
     // Overlay canvas is sized to chart area only
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+
+    // Render drawings on overlay canvas (main pane only for now)
+    if (isMain && this._drawings.length > 0) {
+      const target = {
+        canvas: pane.canvases.overlayCanvas,
+        context: ctx,
+        width: Math.round(chartW * pixelRatio),
+        height: Math.round(chartH * pixelRatio),
+        pixelRatio,
+      };
+      for (const drawing of this._drawings) {
+        const views = drawing.paneViews?.();
+        if (!views) continue;
+        for (const view of views) {
+          const renderer = view.renderer();
+          renderer?.drawBackground?.(target);
+        }
+      }
+      for (const drawing of this._drawings) {
+        const views = drawing.paneViews?.();
+        if (!views) continue;
+        for (const view of views) {
+          const renderer = view.renderer();
+          renderer?.draw(target);
+        }
+      }
+    }
 
     if (!this._crosshair.visible) return;
 
     const opts = this._options.crosshair;
 
-    // Vertical line (snapped to bar center) — clipped to chart area
+    // Vertical crosshair line draws on ALL panes (shared X)
     const vx = Math.round(this._crosshair.snappedX * pixelRatio);
     ctx.save();
     ctx.strokeStyle = opts.vertLineColor;
@@ -874,17 +1752,19 @@ class ChartApi implements IChartApi {
     ctx.stroke();
     ctx.restore();
 
-    // Horizontal line — clipped to chart area
-    const hy = Math.round(this._crosshair.y * pixelRatio);
-    ctx.save();
-    ctx.strokeStyle = opts.horzLineColor;
-    ctx.lineWidth = opts.horzLineWidth * pixelRatio;
-    ctx.setLineDash(opts.horzLineDash.map((d) => d * pixelRatio));
-    ctx.beginPath();
-    ctx.moveTo(0, hy);
-    ctx.lineTo(Math.round(chartW * pixelRatio), hy);
-    ctx.stroke();
-    ctx.restore();
+    // Horizontal crosshair line only on the main pane (where the mouse events are)
+    if (isMain) {
+      const hy = Math.round(this._crosshair.y * pixelRatio);
+      ctx.save();
+      ctx.strokeStyle = opts.horzLineColor;
+      ctx.lineWidth = opts.horzLineWidth * pixelRatio;
+      ctx.setLineDash(opts.horzLineDash.map((d) => d * pixelRatio));
+      ctx.beginPath();
+      ctx.moveTo(0, hy);
+      ctx.lineTo(Math.round(chartW * pixelRatio), hy);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // ── Grid ──────────────────────────────────────────────────────────────
@@ -895,6 +1775,7 @@ class ChartApi implements IChartApi {
     h: number,
     range: VisibleRange,
     store: ColumnStore,
+    priceScale: PriceScale,
     pixelRatio: number,
   ): void {
     const gridOpts = this._options.grid;
@@ -905,14 +1786,14 @@ class ChartApi implements IChartApi {
     // Horizontal price grid lines
     if (gridOpts.horzLinesVisible) {
       ctx.strokeStyle = gridOpts.horzLinesColor;
-      const priceRange = this._priceScale.priceRange;
+      const priceRange = priceScale.priceRange;
       const pRange = priceRange.max - priceRange.min;
       const targetHorzSteps = Math.max(2, Math.floor(h / 60));
       const step = niceStep(pRange, targetHorzSteps);
 
       const firstPrice = Math.ceil(priceRange.min / step) * step;
       for (let price = firstPrice; price <= priceRange.max; price += step) {
-        const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
+        const y = Math.round(priceScale.priceToY(price) * pixelRatio);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(Math.round(w * pixelRatio), y);
@@ -939,21 +1820,30 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
-  // ── Price axis (on its own canvas) ─────────────────────────────────────
+  // ── Price axis per-pane ───────────────────────────────────────────────
 
-  private _paintPriceAxis(): void {
+  private _paintPanePriceAxis(pane: Pane, seriesForPane: SeriesEntry[]): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._priceAxisCtx;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const ctx = pane.canvases.rightPriceAxisCtx;
+    const chartH = pane.height;
     const axisW = PRICE_AXIS_WIDTH;
+    const isMain = pane.id === this._mainPaneId;
 
     ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
 
     const layout = this._options.layout;
-    const priceRange = this._priceScale.priceRange;
+    const priceRange = pane.priceScale.priceRange;
     const pRange = priceRange.max - priceRange.min;
     const targetSteps = Math.max(2, Math.floor(chartH / 60));
     const step = niceStep(pRange, targetSteps);
+
+    // Label formatter — percentage format in comparison mode
+    const formatAxisLabel = this._comparisonMode
+      ? (value: number) => {
+          const sign = value > 0 ? '+' : '';
+          return `${sign}${value.toFixed(1)}%`;
+        }
+      : (value: number) => this._formatPrice(value);
 
     ctx.save();
     ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
@@ -966,10 +1856,10 @@ class ChartApi implements IChartApi {
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
     for (let price = firstPrice; price <= priceRange.max; price += step) {
-      const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
+      const y = Math.round(pane.priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
-      const text = this._formatPrice(price);
+      const text = formatAxisLabel(price);
 
       // Draw background rect
       ctx.fillStyle = this._options.layout.backgroundColor;
@@ -988,56 +1878,80 @@ class ChartApi implements IChartApi {
     ctx.lineTo(0, Math.round(chartH * pixelRatio));
     ctx.stroke();
 
-    // Current price label (last close)
-    if (this._options.lastPriceLine.visible && this._series.length > 0) {
-      const store = this._series[0].api.getDataLayer().store;
+    // Current price label (last close) — main pane only
+    if (isMain && this._options.lastPriceLine.visible && this._series.length > 0) {
+      const primaryEntry = this._series[0];
+      const store = primaryEntry.api.getDataLayer().store;
       if (store.length > 0) {
         const lastClose = store.close[store.length - 1];
         const lastOpen = store.open[store.length - 1];
         const isUp = lastClose >= lastOpen;
         const bgColor = isUp ? '#26a69a' : '#ef5350';
-        const y = Math.round(this._priceScale.priceToY(lastClose) * pixelRatio);
-        const priceText = this._formatPrice(lastClose);
+        // In comparison mode, map last close to percent space for Y position
+        let labelY: number;
+        let priceText: string;
+        if (this._comparisonMode) {
+          const range = this._timeScale.visibleRange();
+          const basis = this._getBasisPrice(primaryEntry, range);
+          const pct = basis === 0 ? 0 : ((lastClose - basis) / basis) * 100;
+          labelY = Math.round(pane.priceScale.priceToY(pct) * pixelRatio);
+          priceText = formatAxisLabel(pct);
+        } else {
+          labelY = Math.round(pane.priceScale.priceToY(lastClose) * pixelRatio);
+          priceText = this._formatPrice(lastClose);
+        }
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
         // Background
         ctx.fillStyle = bgColor;
-        ctx.fillRect(0, y - lh / 2, axisRight, lh);
+        ctx.fillRect(0, labelY - lh / 2, axisRight, lh);
 
         // Text
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(priceText, axisRight - padding, y);
+        ctx.fillText(priceText, axisRight - padding, labelY);
       }
     }
 
-    // Price line labels on axis
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      for (const pl of entry.api.getPriceLines()) {
-        if (!pl.options.axisLabelVisible) continue;
-        const plY = Math.round(this._priceScale.priceToY(pl.options.price) * pixelRatio);
-        if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
-        const plText = this._formatPrice(pl.options.price);
-        const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+    // Price line labels on axis (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        for (const pl of entry.api.getPriceLines()) {
+          if (!pl.options.axisLabelVisible) continue;
+          const plY = Math.round(pane.priceScale.priceToY(pl.options.price) * pixelRatio);
+          if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+          const plText = formatAxisLabel(pl.options.price);
+          const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
-        ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
-        ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
+          ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
+          ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
 
-        ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
-        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(plText, axisRight - padding, plY);
+          ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
+          ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(plText, axisRight - padding, plY);
+        }
       }
     }
 
-    // Crosshair price label
-    if (this._crosshair.visible) {
+    // Crosshair price label (main pane only for now)
+    if (isMain && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
-      const priceText = this._formatPrice(this._crosshair.price);
+      // In comparison mode, crosshair.price is still a raw price; convert to pct for display
+      let priceText: string;
+      if (this._comparisonMode && this._series.length > 0) {
+        const primaryEntry = this._series[0];
+        const range = this._timeScale.visibleRange();
+        const basis = this._getBasisPrice(primaryEntry, range);
+        const pct = basis === 0 ? 0 : ((this._crosshair.price - basis) / basis) * 100;
+        priceText = formatAxisLabel(pct);
+      } else {
+        priceText = this._formatPrice(this._crosshair.price);
+      }
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
       ctx.fillStyle = this._options.crosshair.horzLineColor;
@@ -1050,6 +1964,17 @@ class ChartApi implements IChartApi {
     }
 
     ctx.restore();
+  }
+
+  // ── Tick type helper ─────────────────────────────────────────────────
+
+  private _getTickType(store: ColumnStore): 'year' | 'month' | 'day' | 'time' {
+    if (store.length < 2) return 'day';
+    const interval = store.time[1] - store.time[0];
+    if (interval < 86400) return 'time';
+    if (interval < 86400 * 28) return 'day';
+    if (interval < 86400 * 365) return 'month';
+    return 'year';
   }
 
   // ── Time axis (on its own canvas) ─────────────────────────────────────
@@ -1095,7 +2020,11 @@ class ChartApi implements IChartApi {
       const date = new Date(timestamp * 1000);
 
       let label: string;
-      if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
+      const formatter = this._options.timeScale.tickMarkFormatter;
+      if (formatter) {
+        const tickType = this._getTickType(primaryStore);
+        label = formatter(timestamp, tickType);
+      } else if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
         const hh = date.getUTCHours().toString().padStart(2, '0');
         const mm = date.getUTCMinutes().toString().padStart(2, '0');
         label = `${hh}:${mm}`;
@@ -1123,7 +2052,11 @@ class ChartApi implements IChartApi {
         const date = new Date(timestamp * 1000);
 
         let timeLabel: string;
-        if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+        const crosshairFormatter = this._options.timeScale.tickMarkFormatter;
+        if (crosshairFormatter) {
+          const tickType = this._getTickType(store);
+          timeLabel = crosshairFormatter(timestamp, tickType);
+        } else if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
           const hh = date.getUTCHours().toString().padStart(2, '0');
           const mm = date.getUTCMinutes().toString().padStart(2, '0');
           timeLabel = `${hh}:${mm}`;
@@ -1147,39 +2080,55 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
-  // ── Auto-scale price range ────────────────────────────────────────────
+  // ── Auto-scale price range (per-pane) ─────────────────────────────────
 
-  private _updateDataRange(range: VisibleRange): void {
+  private _updatePaneDataRange(pane: Pane, seriesForPane: SeriesEntry[], range: VisibleRange): void {
     let rightMin = Infinity;
     let rightMax = -Infinity;
     let leftMin = Infinity;
     let leftMax = -Infinity;
 
-    for (const entry of this._series) {
+    for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
       const store = entry.api.getDataLayer().store;
       const to = Math.min(range.toIdx, store.length - 1);
 
       const isLeft = entry.api.options().priceScaleId === 'left';
 
-      for (let i = range.fromIdx; i <= to; i++) {
-        const lo = store.low[i];
-        const hi = store.high[i];
-        if (isLeft) {
-          if (lo < leftMin) leftMin = lo;
-          if (hi > leftMax) leftMax = hi;
-        } else {
-          if (lo < rightMin) rightMin = lo;
-          if (hi > rightMax) rightMax = hi;
+      if (this._comparisonMode) {
+        // In comparison mode auto-scale in percent space
+        const basis = this._getBasisPrice(entry, range);
+        for (let i = range.fromIdx; i <= to; i++) {
+          const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
+          const hiPct = basis === 0 ? 0 : ((store.high[i] - basis) / basis) * 100;
+          if (isLeft) {
+            if (loPct < leftMin) leftMin = loPct;
+            if (hiPct > leftMax) leftMax = hiPct;
+          } else {
+            if (loPct < rightMin) rightMin = loPct;
+            if (hiPct > rightMax) rightMax = hiPct;
+          }
+        }
+      } else {
+        for (let i = range.fromIdx; i <= to; i++) {
+          const lo = store.low[i];
+          const hi = store.high[i];
+          if (isLeft) {
+            if (lo < leftMin) leftMin = lo;
+            if (hi > leftMax) leftMax = hi;
+          } else {
+            if (lo < rightMin) rightMin = lo;
+            if (hi > rightMax) rightMax = hi;
+          }
         }
       }
     }
 
     if (rightMin < Infinity && rightMax > -Infinity) {
-      this._priceScale.autoScale(rightMin, rightMax);
+      pane.priceScale.autoScale(rightMin, rightMax);
     }
     if (leftMin < Infinity && leftMax > -Infinity) {
-      this._leftPriceScale.autoScale(leftMin, leftMax);
+      pane.leftPriceScale.autoScale(leftMin, leftMax);
     }
   }
 
@@ -1465,7 +2414,7 @@ class ChartApi implements IChartApi {
 
     // Position tooltip near cursor, ensuring it doesn't overflow
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = this._mainPane.height;
     const cursorX = this._crosshair.snappedX;
     const cursorY = this._crosshair.y;
     const tooltipW = this._tooltipWidth;
@@ -1485,148 +2434,227 @@ class ChartApi implements IChartApi {
     this._tooltipEl.style.display = 'block';
   }
 
-  // ── Legend ────────────────────────────────────────────────────────────
+  // ── HUD ───────────────────────────────────────────────────────────────
 
-  private _updateLegend(): void {
-    if (this._series.length === 0) {
-      this._legendEl.style.display = 'none';
-      this._lastLegendBarIdx = -1;
-      return;
-    }
+  private _createHudForPane(paneId: string, pane: Pane): void {
+    const hud = new HudManager(pane.row, {
+      bg: this._options.layout.backgroundColor,
+      text: this._options.layout.textColor,
+      border: this._options.grid.horzLinesColor,
+      fontFamily: this._options.layout.fontFamily,
+    });
+    this._huds.set(paneId, hud);
+  }
 
-    const primaryEntry = this._series[0];
-    const store = primaryEntry.api.getDataLayer().store;
+  private _getCrosshairBarIndex(): number {
+    if (this._series.length === 0) return -1;
+    const store = this._series[0].api.getDataLayer().store;
+    if (store.length === 0) return -1;
 
-    // Use crosshair bar if visible, otherwise last bar
-    let idx = store.length - 1;
     if (this._crosshair.visible && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
-      idx = this._crosshair.barIndex;
+      return this._crosshair.barIndex;
     }
-    if (idx < 0 || idx >= store.length) {
-      this._legendEl.style.display = 'none';
-      this._lastLegendBarIdx = -1;
-      return;
-    }
-
-    // Only rebuild content when barIndex changes
-    if (idx !== this._lastLegendBarIdx) {
-      this._lastLegendBarIdx = idx;
-
-      const o = store.open[idx];
-      const h = store.high[idx];
-      const l = store.low[idx];
-      const c = store.close[idx];
-      const v = store.volume ? store.volume[idx] : 0;
-      const isUp = c >= o;
-      const color = isUp ? '#26a69a' : '#ef5350';
-      const textColor = this._options.layout.textColor;
-
-      this._legendOLabelEl.textContent = 'O';
-      this._legendOLabelEl.style.color = textColor;
-      this._legendOValEl.textContent = this._formatPrice(o);
-      this._legendOValEl.style.color = color;
-
-      this._legendHLabelEl.textContent = 'H';
-      this._legendHLabelEl.style.color = textColor;
-      this._legendHValEl.textContent = this._formatPrice(h);
-      this._legendHValEl.style.color = color;
-
-      this._legendLLabelEl.textContent = 'L';
-      this._legendLLabelEl.style.color = textColor;
-      this._legendLValEl.textContent = this._formatPrice(l);
-      this._legendLValEl.style.color = color;
-
-      this._legendCLabelEl.textContent = 'C';
-      this._legendCLabelEl.style.color = textColor;
-      this._legendCValEl.textContent = this._formatPrice(c);
-      this._legendCValEl.style.color = color;
-
-      this._legendVLabelEl.textContent = 'V';
-      this._legendVLabelEl.style.color = textColor;
-      this._legendVValEl.textContent = this._volumeFormatter.format(v);
-      this._legendVValEl.style.color = textColor;
-    }
-
-    this._legendEl.style.display = 'flex';
+    return store.length - 1;
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────
-
-  private _createRenderTarget(
-    canvas: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D,
-    pixelRatio: number,
-  ): IRenderTarget {
-    return {
-      canvas,
-      context: ctx,
-      width: this._chartWidth,
-      height: this._height - TIME_AXIS_HEIGHT,
-      pixelRatio,
-    };
+  private _updateHud(): void {
+    const barIndex = this._getCrosshairBarIndex();
+    for (const hud of this._huds.values()) {
+      hud.updateValues(barIndex);
+    }
   }
 
-  private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
-    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    const chartW = width - leftScaleW - rightScaleW;
-    const chartH = height - TIME_AXIS_HEIGHT;
+  private _getSeriesColor(type: SeriesType, options: Record<string, unknown>): string {
+    switch (type) {
+      case 'candlestick':
+      case 'bar':
+      case 'hollow-candle':
+        return (options.upColor as string) ?? '#26a69a';
+      case 'line':
+        return (options.color as string) ?? '#2196F3';
+      case 'area':
+        return (options.lineColor as string) ?? '#2196F3';
+      case 'baseline':
+        return (options.topLineColor as string) ?? '#26a69a';
+      case 'histogram':
+        return (options.upColor as string) ?? '#26a69a';
+      default:
+        return '#2196F3';
+    }
+  }
 
-    // Chart + overlay canvases: chart area only
-    for (const canvas of [this._chartCanvas, this._overlayCanvas]) {
-      canvas.width = Math.round(chartW * pixelRatio);
-      canvas.height = Math.round(chartH * pixelRatio);
-      canvas.style.width = `${chartW}px`;
-      canvas.style.height = `${chartH}px`;
-      canvas.style.left = `${leftScaleW}px`;
+  private _getSeriesValues(api: SeriesApi<SeriesType>, barIndex: number): string {
+    const store = api.getDataLayer().store;
+    if (barIndex < 0 || barIndex >= store.length) return '';
+
+    const type = api.seriesType();
+    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle';
+
+    if (isOHLC) {
+      const o = store.open[barIndex];
+      const h = store.high[barIndex];
+      const l = store.low[barIndex];
+      const c = store.close[barIndex];
+      const v = store.volume ? store.volume[barIndex] : 0;
+      return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${this._volumeFormatter.format(v)}`;
     }
 
-    // Right price axis canvas — positioned top-right
-    this._priceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
-    this._priceAxisCanvas.height = Math.round(chartH * pixelRatio);
-    this._priceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
-    this._priceAxisCanvas.style.height = `${chartH}px`;
-    this._priceAxisCanvas.style.left = `${leftScaleW + chartW}px`;
-    this._priceAxisCanvas.style.display = this._options.rightPriceScale.visible ? '' : 'none';
-
-    // Left price axis canvas — positioned top-left
-    this._leftPriceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
-    this._leftPriceAxisCanvas.height = Math.round(chartH * pixelRatio);
-    this._leftPriceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
-    this._leftPriceAxisCanvas.style.height = `${chartH}px`;
-    this._leftPriceAxisCanvas.style.left = '0px';
-    this._leftPriceAxisCanvas.style.display = this._options.leftPriceScale.visible ? '' : 'none';
-
-    // Time axis canvas — positioned bottom-left (offset by left scale width)
-    this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
-    this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
-    this._timeAxisCanvas.style.width = `${chartW}px`;
-    this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
-    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
-    this._timeAxisCanvas.style.top = `${chartH}px`;
+    const c = store.close[barIndex];
+    return this._formatPrice(c);
   }
 
-  // ── Left Price axis (on its own canvas) ─────────────────────────────────
+  private _getIndicatorValues(indicator: IndicatorApi, barIndex: number): string {
+    const parts: string[] = [];
+    for (const s of indicator.internalSeries) {
+      const impl = s as SeriesApi<SeriesType>;
+      const store = impl.getDataLayer().store;
+      if (barIndex >= 0 && barIndex < store.length) {
+        const val = store.close[barIndex];
+        if (!isNaN(val)) {
+          parts.push(this._formatPrice(val));
+        }
+      }
+    }
+    return parts.join('  ');
+  }
 
-  private _paintLeftPriceAxis(): void {
+  private _getSeriesSettingsFields(type: SeriesType, options: Record<string, unknown>): SettingsField[] {
+    const fields: SettingsField[] = [];
+    switch (type) {
+      case 'candlestick':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'line':
+        fields.push({ key: 'color', label: 'Color', type: 'color', value: (options.color as string) ?? '#2196F3' });
+        fields.push({ key: 'lineWidth', label: 'Width', type: 'number', value: (options.lineWidth as number) ?? 2, min: 1, max: 5, step: 1 });
+        break;
+      case 'area':
+        fields.push({ key: 'lineColor', label: 'Line Color', type: 'color', value: (options.lineColor as string) ?? '#2196F3' });
+        fields.push({ key: 'topColor', label: 'Top Color', type: 'color', value: (options.topColor as string) ?? 'rgba(33,150,243,0.4)' });
+        fields.push({ key: 'bottomColor', label: 'Bottom Color', type: 'color', value: (options.bottomColor as string) ?? 'rgba(33,150,243,0)' });
+        break;
+      case 'bar':
+      case 'hollow-candle':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'histogram':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'baseline':
+        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#26a69a' });
+        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#ef5350' });
+        fields.push({ key: 'basePrice', label: 'Base Price', type: 'number', value: (options.basePrice as number) ?? 0, step: 0.01 });
+        break;
+    }
+    return fields;
+  }
+
+  private _getIndicatorSettingsFields(indicator: IndicatorApi): SettingsField[] {
+    const fields: SettingsField[] = [];
+    const opts = indicator.options();
+
+    // Color field
+    fields.push({ key: 'color', label: 'Color', type: 'color', value: opts.color ?? '#2962ff' });
+
+    // Params
+    const params = opts.params ?? {};
+    for (const [key, val] of Object.entries(params)) {
+      fields.push({ key, label: key, type: 'number', value: val as number, min: 1, step: 1 });
+    }
+
+    return fields;
+  }
+
+  private _registerSeriesHudRow(
+    api: SeriesApi<SeriesType>,
+    type: SeriesType,
+    resolvedOptions: Record<string, unknown>,
+    paneId: string,
+    seriesIndex: number,
+  ): void {
+    const hud = this._huds.get(paneId);
+    if (!hud) return;
+
+    const hudRowId = `series-${type}-${seriesIndex}`;
+    hud.addRow({
+      id: hudRowId,
+      label: (resolvedOptions.label as string) || type,
+      color: this._getSeriesColor(type, resolvedOptions),
+      getValues: (barIndex: number) => this._getSeriesValues(api, barIndex),
+      onToggleVisible: () => {
+        const newVis = !api.isVisible();
+        api.applyOptions({ visible: newVis } as never);
+        return newVis;
+      },
+      onRemove: () => { this.removeSeries(api); },
+      getSettingsFields: () => this._getSeriesSettingsFields(type, api.options() as unknown as Record<string, unknown>),
+      onSettingsApply: (values) => { api.applyOptions(values as never); },
+    });
+  }
+
+  private _registerIndicatorHudRow(indicator: IndicatorApi, options: IndicatorOptions): void {
+    const hud = this._huds.get(indicator.paneId());
+    if (!hud) return;
+
+    hud.addRow({
+      id: `indicator-${indicator.id}`,
+      label: indicator.label(),
+      color: options.color ?? '#2962ff',
+      getValues: (barIndex: number) => this._getIndicatorValues(indicator, barIndex),
+      onToggleVisible: () => {
+        const newVis = !indicator.isVisible();
+        indicator.applyOptions({ visible: newVis });
+        // Toggle visibility of all internal series
+        for (const s of indicator.internalSeries) {
+          s.applyOptions({ visible: newVis } as never);
+        }
+        return newVis;
+      },
+      onRemove: () => { this.removeIndicator(indicator); },
+      getSettingsFields: () => this._getIndicatorSettingsFields(indicator),
+      onSettingsApply: (values) => {
+        // Separate color from params
+        const { color, ...paramValues } = values;
+        if (color !== undefined) {
+          indicator.applyOptions({ color: color as string });
+        }
+        if (Object.keys(paramValues).length > 0) {
+          // Recompute with new params
+          const numParams: Record<string, number> = {};
+          for (const [k, v] of Object.entries(paramValues)) {
+            numParams[k] = v as number;
+          }
+          indicator.applyOptions({ params: numParams });
+        }
+      },
+    });
+  }
+
+  // ── Left Price axis per-pane ────────────────────────────────────────────
+
+  private _paintPaneLeftPriceAxis(pane: Pane, seriesForPane: SeriesEntry[]): void {
     if (!this._options.leftPriceScale.visible) return;
 
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._leftPriceAxisCtx;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const ctx = pane.canvases.leftPriceAxisCtx;
+    const chartH = pane.height;
     const axisW = PRICE_AXIS_WIDTH;
+    const isMain = pane.id === this._mainPaneId;
 
     ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
 
-    // Left scale auto-scales independently in _updateDataRange() based on series with priceScaleId: 'left'.
+    // Left scale auto-scales independently in _updatePaneDataRange() based on series with priceScaleId: 'left'.
     // Fall back to right scale range if no series are assigned to the left scale.
-    const leftRange = this._leftPriceScale.priceRange;
+    const leftRange = pane.leftPriceScale.priceRange;
     if (leftRange.min === leftRange.max) {
-      this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+      pane.leftPriceScale.autoScale(pane.priceScale.priceRange.min, pane.priceScale.priceRange.max);
     }
 
     const layout = this._options.layout;
-    const priceRange = this._leftPriceScale.priceRange;
+    const priceRange = pane.leftPriceScale.priceRange;
     const pRange = priceRange.max - priceRange.min;
     const targetSteps = Math.max(2, Math.floor(chartH / 60));
     const step = niceStep(pRange, targetSteps);
@@ -1641,7 +2669,7 @@ class ChartApi implements IChartApi {
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
     for (let price = firstPrice; price <= priceRange.max; price += step) {
-      const y = Math.round(this._leftPriceScale.priceToY(price) * pixelRatio);
+      const y = Math.round(pane.leftPriceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
       const text = this._formatPrice(price);
@@ -1661,8 +2689,8 @@ class ChartApi implements IChartApi {
     ctx.lineTo(Math.round(axisW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
     ctx.stroke();
 
-    // Crosshair price label on left axis
-    if (this._crosshair.visible) {
+    // Crosshair price label on left axis (main pane only for now)
+    if (isMain && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
@@ -1676,22 +2704,62 @@ class ChartApi implements IChartApi {
       ctx.fillText(priceText, padding, hy);
     }
 
+    // Suppress unused variable warning
+    void seriesForPane;
+
     ctx.restore();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+
+  private _createRenderTarget(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    pixelRatio: number,
+  ): IRenderTarget {
+    return {
+      canvas,
+      context: ctx,
+      width,
+      height,
+      pixelRatio,
+    };
   }
 
   private _addSeries<T extends SeriesType>(
     type: T,
     options: DeepPartial<SeriesOptionsMap[T]>,
+    _internal: boolean = false,
   ): ISeriesApi<T> {
     const dataLayer = new DataLayer();
     const resolvedOptions = (options ?? {}) as SeriesOptionsMap[T];
 
-    const renderer = this._createRenderer(type, resolvedOptions);
-    const api = new SeriesApi<T>(type, dataLayer, this._priceScale, resolvedOptions, () =>
+    // Determine which pane this series belongs to
+    const paneId = (resolvedOptions as { paneId?: string }).paneId ?? this._mainPaneId;
+    const pane = this._paneMap.get(paneId);
+    if (!pane) {
+      throw new Error(`Pane "${paneId}" not found. Create it first with addPane().`);
+    }
+
+    const renderer = this._createRenderer(type, resolvedOptions as unknown as Record<string, unknown>);
+    const api = new SeriesApi<T>(type, dataLayer, pane.priceScale, resolvedOptions, () =>
       this.requestRepaint(InvalidationLevel.Full),
     );
 
-    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type });
+    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId });
+
+    // Register HUD row for user-visible (non-internal) series
+    if (!_internal) {
+      this._registerSeriesHudRow(
+        api as SeriesApi<SeriesType>,
+        type,
+        resolvedOptions as unknown as Record<string, unknown>,
+        paneId,
+        this._series.length - 1,
+      );
+    }
 
     // Set up crosshair handler on first series added
     if (this._series.length === 1 && this._crosshairHandler === null) {
@@ -1699,7 +2767,7 @@ class ChartApi implements IChartApi {
         this._crosshair,
         dataLayer,
         this._timeScale,
-        this._priceScale,
+        this._mainPane.priceScale,
         () => this.requestRepaint(InvalidationLevel.Cursor),
       );
       this._eventRouter.addHandler(this._crosshairHandler);
@@ -1715,10 +2783,11 @@ class ChartApi implements IChartApi {
   ): SeriesEntry['renderer'] {
     // Extract renderer-relevant options (exclude BaseSeriesOptions fields)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: _d, priceScaleId: _p, visible: _v, ...rendererOpts } = options;
+    const { data: _d, priceScaleId: _p, visible: _v, paneId: _pi, label: _l, ...rendererOpts } = options;
 
     switch (type) {
-      case 'candlestick': {
+      case 'candlestick':
+      case 'heikin-ashi': {
         const r = new CandlestickRenderer();
         if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
         return r;
@@ -1760,10 +2829,10 @@ class ChartApi implements IChartApi {
 
   private _handleClick = (e: MouseEvent): void => {
     if (this._clickCallbacks.length === 0) return;
-    const rect = this._overlayCanvas.getBoundingClientRect();
+    const rect = this._mainPane.canvases.overlayCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const price = this._priceScale.yToPrice(y);
+    const price = this._mainPane.priceScale.yToPrice(y);
 
     // Get time from nearest bar
     let time = 0;
@@ -1779,6 +2848,41 @@ class ChartApi implements IChartApi {
       cb({ x, y, time, price });
     }
   };
+}
+
+// ─── DrawingApiImpl ─────────────────────────────────────────────────────────
+
+class DrawingApiImpl implements IDrawingApi {
+  readonly id: string;
+  private _drawing: ISeriesPrimitive & DrawingPrimitive;
+  private _chart: ChartApi;
+
+  constructor(id: string, drawing: ISeriesPrimitive & DrawingPrimitive, chart: ChartApi) {
+    this.id = id;
+    this._drawing = drawing;
+    this._chart = chart;
+  }
+
+  drawingType(): string {
+    return this._drawing.drawingType;
+  }
+
+  points(): AnchorPoint[] {
+    return this._drawing.points.map(p => ({ ...p }));
+  }
+
+  applyOptions(opts: Partial<DrawingOptions>): void {
+    Object.assign(this._drawing.options, opts);
+    this._chart.requestRepaint(InvalidationLevel.Full);
+  }
+
+  options(): DrawingOptions {
+    return { ...this._drawing.options };
+  }
+
+  remove(): void {
+    this._chart.removeDrawing(this);
+  }
 }
 
 // ─── Factory function ───────────────────────────────────────────────────────

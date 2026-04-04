@@ -1,6 +1,10 @@
-# fin-charter
+<p align="center">
+  <img src="public/logo.svg" alt="fin-charter" width="128" height="128" />
+</p>
 
-Ultra-fast, tree-shakeable financial charting library for the browser.
+<h1 align="center">fin-charter</h1>
+
+<p align="center">Ultra-fast, tree-shakeable financial charting library for the browser.</p>
 
 **[Live Storybook Documentation & Examples](https://itssumitrai.github.io/fin-charter/)**
 
@@ -9,10 +13,23 @@ Ultra-fast, tree-shakeable financial charting library for the browser.
 - **Ultra-fast canvas rendering** — direct 2D canvas drawing, no virtual DOM
 - **Tiny bundle** — core is under 15 KB gzipped; unused chart types tree-shake away
 - **Tree-shakeable** — `"sideEffects": false` ES module package
-- **6 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram
-- **6 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, Volume (separate import)
+- **8 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram, Heikin-Ashi
+- **18 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, VWAP, Stochastic, ATR, ADX, OBV, Williams %R, Volume, Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, Pivot Points
+- **Chart-managed indicators** — `chart.addIndicator('rsi', { source: series })` with auto-compute and auto-pane creation
+- **Multi-pane layout** — indicator panes with draggable dividers and independent price scales
+- **Interactive HUD** — series/indicator management with visibility toggle, settings editor, and remove
 - **TradingView-compatible plugin system** — `ISeriesPrimitive` / `IPanePrimitive` interfaces
 - **Real-time data** — `series.update(bar)` appends or overwrites the last bar in O(1)
+- **Drawing tools** — 6 built-in types (horizontal line, vertical line, trendline, fibonacci, rectangle, text); extensible via `registerDrawingType()`
+- **Comparison mode** — normalise multiple series to percentage change for side-by-side performance comparison
+- **Heikin-Ashi** — `chart.addHeikinAshiSeries()` with automatic OHLC-to-HA transform
+- **Market sessions** — define pre/post-market windows with background highlights; filter bars by session
+- **Chart state save/restore** — `exportState()` / `importState()` round-trips the full chart configuration
+- **Data pagination** — `series.prependData()` + `barsInLogicalRange()` + `subscribeVisibleRangeChange()` for infinite-history scrolling
+- **Event markers** — `series.setEvents()` places interactive earnings/dividend/news markers on bars
+- **Periodicity model** — `setPeriodicity()` / `subscribePeriodicityChange()` for interval switching with data-reload hooks
+- **OHLC aggregation** — `aggregateOHLC(store, intervalSec)` for client-side timeframe resampling
+- **Screenshot export** — `chart.takeScreenshot()` composites all panes to a canvas
 - **TypeScript-first** — full type definitions included
 
 ## Installation
@@ -51,6 +68,7 @@ series.setData([
 | Baseline | `addBaselineSeries()` | Two-color fill above/below a base price |
 | Hollow Candle | `addHollowCandleSeries()` | Up candles hollow (outline only), down candles filled |
 | Histogram | `addHistogramSeries()` | Vertical bars from the bottom; useful for volume |
+| Heikin-Ashi | `addHeikinAshiSeries()` | Smoothed OHLC candles with automatic HA transform |
 
 ## Bundle Size Targets
 
@@ -65,6 +83,8 @@ series.setData([
 - [Getting Started](docs/getting-started.md)
 - [API Reference](docs/api-reference.md)
 - [Indicators](docs/indicators.md)
+- [Drawing Tools](docs/drawings.md)
+- [Data Integration](docs/data-integration.md)
 - [Plugins](docs/plugins.md)
 - [Performance](docs/performance.md)
 

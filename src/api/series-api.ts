@@ -1,9 +1,11 @@
 import type { Bar, ColumnData, SeriesType, ISeriesPrimitive, AttachedParams } from '../core/types';
 import { DataLayer } from '../core/data-layer';
 import type { PriceScale } from '../core/price-scale';
-import type { SeriesMarker } from '../core/series-markers';
+import type { SeriesMarker, ChartEvent } from '../core/series-markers';
 import { PriceLine, type PriceLineOptions } from '../core/price-line';
 import type { SeriesOptionsMap } from './options';
+
+export type DataChangedCallback = () => void;
 
 // ─── ISeriesApi ─────────────────────────────────────────────────────────────
 
@@ -30,12 +32,32 @@ export interface ISeriesApi<T extends SeriesType> {
   setMarkers(markers: SeriesMarker[]): void;
   /** Get current markers. */
   getMarkers(): readonly SeriesMarker[];
+  /** Set chart events on this series. */
+  setEvents(events: ChartEvent[]): void;
+  /** Get current chart events. */
+  getEvents(): readonly ChartEvent[];
   /** Create a horizontal price line on this series. */
   createPriceLine(options: PriceLineOptions): PriceLine;
   /** Remove a price line. */
   removePriceLine(line: PriceLine): void;
   /** Get all price lines. */
   getPriceLines(): readonly PriceLine[];
+  /** Prepend historical bars to the beginning of the series (for pagination). */
+  prependData(data: Bar[] | ColumnData): void;
+  /**
+   * Return metadata about how many bars fall outside the given logical index range.
+   * Useful for deciding when to load more historical data.
+   */
+  barsInLogicalRange(range: { from: number; to: number }): {
+    barsBefore: number;
+    barsAfter: number;
+    from: number;
+    to: number;
+  };
+  /** Subscribe to data changes (setData / update). */
+  subscribeDataChanged(callback: DataChangedCallback): void;
+  /** Unsubscribe from data changes. */
+  unsubscribeDataChanged(callback: DataChangedCallback): void;
 }
 
 // ─── SeriesApi ──────────────────────────────────────────────────────────────
@@ -47,9 +69,11 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   private _options: SeriesOptionsMap[T];
   private _primitives: ISeriesPrimitive[] = [];
   private _markers: SeriesMarker[] = [];
+  private _events: ChartEvent[] = [];
   private _priceLines: PriceLine[] = [];
   private _requestRepaint: () => void;
   private _visible: boolean = true;
+  private _dataChangedCallbacks: Set<DataChangedCallback> = new Set();
 
   constructor(
     type: T,
@@ -75,12 +99,42 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     this._dataLayer.setData(data);
     this._notifyPrimitives('full');
     this._requestRepaint();
+    this._emitDataChanged();
   }
 
   update(bar: Bar): void {
     this._dataLayer.update(bar);
     this._notifyPrimitives('update');
     this._requestRepaint();
+    this._emitDataChanged();
+  }
+
+  prependData(data: Bar[] | ColumnData): void {
+    this._dataLayer.prepend(data);
+    this._notifyPrimitives('full');
+    this._requestRepaint();
+    this._emitDataChanged();
+  }
+
+  barsInLogicalRange(range: { from: number; to: number }): {
+    barsBefore: number;
+    barsAfter: number;
+    from: number;
+    to: number;
+  } {
+    const store = this._dataLayer.store;
+    const fromIdx = Math.max(0, Math.floor(range.from));
+    const toIdx = Math.min(store.length - 1, Math.ceil(range.to));
+    return {
+      barsBefore: fromIdx,
+      barsAfter: Math.max(0, store.length - 1 - toIdx),
+      from:
+        store.length > 0 && fromIdx < store.length ? store.time[fromIdx] : 0,
+      to:
+        store.length > 0 && toIdx >= 0 && toIdx < store.length
+          ? store.time[toIdx]
+          : 0,
+    };
   }
 
   attachPrimitive(primitive: ISeriesPrimitive): void {
@@ -135,6 +189,15 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     return [...this._markers];
   }
 
+  setEvents(events: ChartEvent[]): void {
+    this._events = [...events].sort((a, b) => a.time - b.time);
+    this._requestRepaint();
+  }
+
+  getEvents(): readonly ChartEvent[] {
+    return [...this._events];
+  }
+
   createPriceLine(options: PriceLineOptions): PriceLine {
     const line = new PriceLine(options, this._requestRepaint);
     this._priceLines.push(line);
@@ -152,6 +215,14 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
 
   getPriceLines(): readonly PriceLine[] {
     return [...this._priceLines];
+  }
+
+  subscribeDataChanged(callback: DataChangedCallback): void {
+    this._dataChangedCallbacks.add(callback);
+  }
+
+  unsubscribeDataChanged(callback: DataChangedCallback): void {
+    this._dataChangedCallbacks.delete(callback);
   }
 
   // ── Internal accessors ────────────────────────────────────────────────────
@@ -175,5 +246,9 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     for (const p of this._primitives) {
       p.updateAllViews?.();
     }
+  }
+
+  private _emitDataChanged(): void {
+    for (const cb of this._dataChangedCallbacks) cb();
   }
 }
