@@ -10,6 +10,7 @@ export class CrosshairHandler implements EventHandler {
   private _timeScale: TimeScale;
   private _priceScale: PriceScale;
   private _requestInvalidation: () => void;
+  private _sourcePaneId: string;
 
   constructor(
     crosshair: Crosshair,
@@ -17,12 +18,24 @@ export class CrosshairHandler implements EventHandler {
     timeScale: TimeScale,
     priceScale: PriceScale,
     requestInvalidation: () => void,
+    sourcePaneId: string = '',
   ) {
     this._crosshair = crosshair;
     this._dataLayer = dataLayer;
     this._timeScale = timeScale;
     this._priceScale = priceScale;
     this._requestInvalidation = requestInvalidation;
+    this._sourcePaneId = sourcePaneId;
+  }
+
+  /** Update the source pane ID (used when pointer moves between panes). */
+  setSourcePaneId(paneId: string): void {
+    this._sourcePaneId = paneId;
+  }
+
+  /** Update the price scale (used when crosshair moves to a different pane). */
+  setPriceScale(priceScale: PriceScale): void {
+    this._priceScale = priceScale;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -53,6 +66,7 @@ export class CrosshairHandler implements EventHandler {
       price,
       time,
       snappedX,
+      sourcePaneId: this._sourcePaneId,
     });
 
     this._requestInvalidation();
