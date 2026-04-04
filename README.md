@@ -1,6 +1,10 @@
-# fin-charter
+<p align="center">
+  <img src="public/logo.svg" alt="fin-charter" width="128" height="128" />
+</p>
 
-Ultra-fast, tree-shakeable financial charting library for the browser.
+<h1 align="center">fin-charter</h1>
+
+<p align="center">Ultra-fast, tree-shakeable financial charting library for the browser.</p>
 
 **[Live Storybook Documentation & Examples](https://itssumitrai.github.io/fin-charter/)**
 
@@ -9,10 +13,14 @@ Ultra-fast, tree-shakeable financial charting library for the browser.
 - **Ultra-fast canvas rendering** — direct 2D canvas drawing, no virtual DOM
 - **Tiny bundle** — core is under 15 KB gzipped; unused chart types tree-shake away
 - **Tree-shakeable** — `"sideEffects": false` ES module package
-- **6 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram
-- **6 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, Volume (separate import)
+- **7 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram
+- **12 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, VWAP, Stochastic, ATR, ADX, OBV, Williams %R, Volume
+- **Chart-managed indicators** — `chart.addIndicator('rsi', { source: series })` with auto-compute and auto-pane creation
+- **Multi-pane layout** — indicator panes with draggable dividers and independent price scales
+- **Interactive HUD** — series/indicator management with visibility toggle, settings editor, and remove
 - **TradingView-compatible plugin system** — `ISeriesPrimitive` / `IPanePrimitive` interfaces
 - **Real-time data** — `series.update(bar)` appends or overwrites the last bar in O(1)
+- **Screenshot export** — `chart.takeScreenshot()` composites all panes to a canvas
 - **TypeScript-first** — full type definitions included
 
 ## Installation
