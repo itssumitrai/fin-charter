@@ -6,6 +6,7 @@ import { withDocs } from '../doc-renderer';
 const meta: Meta = {
   title: 'Advanced Chart/Full Application',
   parameters: {
+    chromatic: { delay: 2000 },
     layout: 'fullscreen',
     docs: {
       description: {
