@@ -27,7 +27,7 @@ export const LiveStream: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(historicalBars);
 
 // Stream new bars in real time
@@ -41,7 +41,7 @@ setInterval(() => {
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
 
     const seedData = generateOHLCV(100);
     series.setData(seedData);
@@ -85,7 +85,7 @@ setInterval(() => {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(historicalBars);
 
 // Append a new bar every 500ms
@@ -106,7 +106,7 @@ export const CandleBuilding: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(historicalBars);
 
 // Simulate tick-by-tick candle building
@@ -124,7 +124,7 @@ setInterval(() => {
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
 
     const seedData = generateOHLCV(100);
     series.setData(seedData);
@@ -205,7 +205,7 @@ export const LiveLine: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+        code: `const series = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
 series.setData(historicalBars);
 
 setInterval(() => {
@@ -217,7 +217,7 @@ setInterval(() => {
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+    const series = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
 
     const seedData = generateOHLCV(100);
     series.setData(seedData);
@@ -249,7 +249,7 @@ setInterval(() => {
         'Real-time streaming works with <strong>any series type</strong>, not just candlesticks. ' +
         'Here a <code>LineSeries</code> is updated every 500ms. The line chart shows only the close price, making it ideal for ticker-style displays.',
       code: `
-const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+const series = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
 series.setData(historicalBars);
 
 // Stream new points every 500ms

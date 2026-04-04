@@ -11,7 +11,7 @@ const meta: Meta = {
       description: {
         component:
           'Heikin-Ashi candles are a smoothed version of standard candlesticks. ' +
-          'They reduce noise and make trends easier to spot. Use chart.addHeikinAshiSeries() ' +
+          "They reduce noise and make trends easier to spot. Use chart.addSeries({ type: 'heikin-ashi' }) " +
           'to display Heikin-Ashi computed from standard OHLCV data.',
       },
     },
@@ -29,7 +29,7 @@ export const HeikinAshiChart: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addHeikinAshiSeries({
+const series = chart.addSeries({ type: 'heikin-ashi',
   upColor: '#22AB94',
   downColor: '#F7525F',
 });
@@ -41,7 +41,7 @@ series.setData(data);`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addHeikinAshiSeries({
+    const series = chart.addSeries({ type: 'heikin-ashi',
       upColor: '#22AB94',
       downColor: '#F7525F',
       borderUpColor: '#22AB94',
@@ -55,13 +55,13 @@ series.setData(data);`,
     return withDocs(container, {
       description:
         '<strong>Heikin-Ashi</strong> candlesticks smooth price action by averaging open and close values, ' +
-        'making trends easier to identify. Use <code>chart.addHeikinAshiSeries()</code> to render ' +
+        "making trends easier to identify. Use <code>chart.addSeries({ type: 'heikin-ashi' })</code> to render " +
         'Heikin-Ashi candles computed from standard OHLCV data.',
       code: `
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addHeikinAshiSeries({
+const series = chart.addSeries({ type: 'heikin-ashi',
   upColor: '#22AB94',
   downColor: '#F7525F',
 });

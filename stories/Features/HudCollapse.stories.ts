@@ -51,7 +51,7 @@ chart.addIndicator('mfi', { source: series, params: { period: 14 }, color: '#E91
     container.style.height = '900px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries({ label: 'AAPL' });
+    const series = chart.addSeries({ type: 'candlestick', label: 'AAPL' });
     series.setData(generateOHLCV(200));
 
     // Overlay indicators shown in main HUD
@@ -109,7 +109,7 @@ chart.addIndicator('mfi', { source: series, params: { period: 14 }, color: '#E91
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Overlay indicators appear in the main HUD row

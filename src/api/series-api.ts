@@ -6,6 +6,7 @@ import { PriceLine, type PriceLineOptions } from '../core/price-line';
 import type { SeriesOptionsMap } from './options';
 
 export type DataChangedCallback = () => void;
+export type VisibilityChangeCallback = (visible: boolean) => void;
 
 // ─── ISeriesApi ─────────────────────────────────────────────────────────────
 
@@ -58,6 +59,10 @@ export interface ISeriesApi<T extends SeriesType> {
   subscribeDataChanged(callback: DataChangedCallback): void;
   /** Unsubscribe from data changes. */
   unsubscribeDataChanged(callback: DataChangedCallback): void;
+  /** Subscribe to visibility changes. */
+  subscribeVisibilityChange(callback: VisibilityChangeCallback): void;
+  /** Unsubscribe from visibility changes. */
+  unsubscribeVisibilityChange(callback: VisibilityChangeCallback): void;
 }
 
 // ─── SeriesApi ──────────────────────────────────────────────────────────────
@@ -74,6 +79,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   private _requestRepaint: () => void;
   private _visible: boolean = true;
   private _dataChangedCallbacks: Set<DataChangedCallback> = new Set();
+  private _visibilityChangeCallbacks: Set<VisibilityChangeCallback> = new Set();
 
   constructor(
     type: T,
@@ -154,6 +160,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   }
 
   applyOptions(options: Partial<SeriesOptionsMap[T]>): void {
+    const prevVisible = this._visible;
     this._options = { ...this._options, ...options };
     if (options.visible !== undefined) {
       this._visible = options.visible !== false;
@@ -162,6 +169,10 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
       this._dataLayer.setData(options.data);
     }
     this._requestRepaint();
+
+    if (options.visible !== undefined && this._visible !== prevVisible) {
+      for (const cb of this._visibilityChangeCallbacks) cb(this._visible);
+    }
   }
 
   options(): SeriesOptionsMap[T] {
@@ -223,6 +234,14 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
 
   unsubscribeDataChanged(callback: DataChangedCallback): void {
     this._dataChangedCallbacks.delete(callback);
+  }
+
+  subscribeVisibilityChange(callback: VisibilityChangeCallback): void {
+    this._visibilityChangeCallbacks.add(callback);
+  }
+
+  unsubscribeVisibilityChange(callback: VisibilityChangeCallback): void {
+    this._visibilityChangeCallbacks.delete(callback);
   }
 
   // ── Internal accessors ────────────────────────────────────────────────────

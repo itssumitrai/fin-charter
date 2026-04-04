@@ -15,7 +15,7 @@ const TOKEN_COLORS: Record<string, string> = {
   string: '#98c379',    // green  – '…', "…", `…`
   comment: '#5c6370',   // gray   – // … and /* … */
   number: '#d19a66',    // orange – 42, 3.14
-  method: '#61afef',    // blue   – .addCandlestickSeries
+  method: '#61afef',    // blue   – .addSeries
   property: '#e5c07b',  // yellow – object keys before ':'
   type: '#e06c75',      // red    – type names after ':'
   punctuation: '#abb2bf',

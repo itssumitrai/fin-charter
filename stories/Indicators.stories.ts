@@ -43,15 +43,15 @@ export const SMAandEMA: Story = {
 import { computeSMA, computeEMA } from 'fin-charter/indicators';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 const closes = new Float64Array(bars.map(b => b.close));
 const sma = computeSMA(closes, bars.length, 20);
 const ema = computeEMA(closes, bars.length, 20);
 
-chart.addLineSeries({ color: '#f4c430', lineWidth: 2 }).setData(smaLineBars);
-chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(emaLineBars);`,
+chart.addSeries({ type: 'line', color: '#f4c430', lineWidth: 2 }).setData(smaLineBars);
+chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(emaLineBars);`,
       },
     },
   },
@@ -63,17 +63,17 @@ chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(emaLineBars);`,
     const closes = new Float64Array(bars.map((b) => b.close));
 
     // Main candlestick chart
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(bars);
 
     // SMA 20 overlay
     const smaValues = computeSMA(closes, bars.length, 20);
-    const smaSeries = chart.addLineSeries({ color: '#f4c430', lineWidth: 2 });
+    const smaSeries = chart.addSeries({ type: 'line', color: '#f4c430', lineWidth: 2 });
     smaSeries.setData(indicatorToLineBars(bars, smaValues));
 
     // EMA 20 overlay
     const emaValues = computeEMA(closes, bars.length, 20);
-    const emaSeries = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+    const emaSeries = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
     emaSeries.setData(indicatorToLineBars(bars, emaValues));
 
     return withDocs(container, {
@@ -85,8 +85,8 @@ const closes = new Float64Array(bars.map(b => b.close));
 const sma = computeSMA(closes, bars.length, 20);
 const ema = computeEMA(closes, bars.length, 20);
 
-chart.addLineSeries({ color: '#f4c430', lineWidth: 2 }).setData(smaBars);
-chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(emaBars);`,
+chart.addSeries({ type: 'line', color: '#f4c430', lineWidth: 2 }).setData(smaBars);
+chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(emaBars);`,
     });
   },
 };
@@ -98,7 +98,7 @@ export const SMAOnly: Story = {
       source: {
         code: `const closes = new Float64Array(bars.map(b => b.close));
 const sma50 = computeSMA(closes, bars.length, 50);
-const smaSeries = chart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+const smaSeries = chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 });
 smaSeries.setData(smaLineBars);`,
       },
     },
@@ -110,11 +110,11 @@ smaSeries.setData(smaLineBars);`,
     const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(bars);
 
     const smaValues = computeSMA(closes, bars.length, 50);
-    const smaSeries = chart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+    const smaSeries = chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 });
     smaSeries.setData(indicatorToLineBars(bars, smaValues));
 
     return withDocs(container, {
@@ -124,7 +124,7 @@ smaSeries.setData(smaLineBars);`,
 
 const closes = new Float64Array(bars.map(b => b.close));
 const sma50 = computeSMA(closes, bars.length, 50);
-chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(smaBars);`,
+chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 }).setData(smaBars);`,
     });
   },
 };
@@ -138,8 +138,8 @@ export const EMAOnly: Story = {
 const ema12 = computeEMA(closes, bars.length, 12);
 const ema26 = computeEMA(closes, bars.length, 26);
 
-chart.addLineSeries({ color: '#ff6b6b', lineWidth: 2 }).setData(ema12Bars);
-chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
+chart.addSeries({ type: 'line', color: '#ff6b6b', lineWidth: 2 }).setData(ema12Bars);
+chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
       },
     },
   },
@@ -150,15 +150,15 @@ chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
     const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
 
-    const lineSeries = chart.addLineSeries({ color: '#aaaaaa', lineWidth: 1 });
+    const lineSeries = chart.addSeries({ type: 'line', color: '#aaaaaa', lineWidth: 1 });
     lineSeries.setData(bars);
 
     const ema12 = computeEMA(closes, bars.length, 12);
-    const ema12Series = chart.addLineSeries({ color: '#ff6b6b', lineWidth: 2 });
+    const ema12Series = chart.addSeries({ type: 'line', color: '#ff6b6b', lineWidth: 2 });
     ema12Series.setData(indicatorToLineBars(bars, ema12));
 
     const ema26 = computeEMA(closes, bars.length, 26);
-    const ema26Series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+    const ema26Series = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
     ema26Series.setData(indicatorToLineBars(bars, ema26));
 
     return withDocs(container, {
@@ -170,8 +170,8 @@ const closes = new Float64Array(bars.map(b => b.close));
 const ema12 = computeEMA(closes, bars.length, 12);
 const ema26 = computeEMA(closes, bars.length, 26);
 
-chart.addLineSeries({ color: '#ff6b6b', lineWidth: 2 }).setData(ema12Bars);
-chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
+chart.addSeries({ type: 'line', color: '#ff6b6b', lineWidth: 2 }).setData(ema12Bars);
+chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
     });
   },
 };

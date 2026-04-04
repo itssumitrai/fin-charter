@@ -37,7 +37,7 @@ chart.addDrawing('ray', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -79,7 +79,7 @@ chart.addDrawing('arrow', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -122,7 +122,7 @@ chart.addDrawing('channel', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -166,7 +166,7 @@ chart.addDrawing('ellipse', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -209,7 +209,7 @@ chart.addDrawing('pitchfork', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -254,7 +254,7 @@ chart.addDrawing('fib-projection', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -298,7 +298,7 @@ chart.addDrawing('fib-arc', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -340,7 +340,7 @@ chart.addDrawing('fib-fan', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -381,7 +381,7 @@ chart.addDrawing('crossline', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(
@@ -419,7 +419,7 @@ chart.addDrawing('measurement', [
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(100);
     series.setData(data);
     chart.addDrawing(

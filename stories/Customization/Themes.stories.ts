@@ -36,7 +36,7 @@ chart.applyOptions(DARK_THEME);`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'dark' });
     chart.applyOptions(DARK_THEME);
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -57,7 +57,7 @@ export const Light: Story = {
       source: {
         code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
 chart.applyOptions(LIGHT_THEME);
-chart.addCandlestickSeries({
+chart.addSeries({ type: 'candlestick',
   upColor: '#22AB94', downColor: '#F7525F',
   wickUpColor: '#22AB94', wickDownColor: '#F7525F',
 });`,
@@ -68,7 +68,7 @@ chart.addCandlestickSeries({
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
     chart.applyOptions(LIGHT_THEME);
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#22AB94',
       downColor: '#F7525F',
       wickUpColor: '#22AB94',
@@ -94,7 +94,7 @@ export const Colorful: Story = {
       source: {
         code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
 chart.applyOptions(COLORFUL_THEME);
-chart.addCandlestickSeries({
+chart.addSeries({ type: 'candlestick',
   upColor: '#00c176', downColor: '#ff4a68',
   wickUpColor: '#00c176', wickDownColor: '#ff4a68',
 });`,
@@ -105,7 +105,7 @@ chart.addCandlestickSeries({
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
     chart.applyOptions(COLORFUL_THEME);
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#00c176',
       downColor: '#ff4a68',
       wickUpColor: '#00c176',

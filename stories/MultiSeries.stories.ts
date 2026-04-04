@@ -28,10 +28,10 @@ import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 
-const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
+const series1 = chart.addSeries({ type: 'line', color: '#2962FF', lineWidth: 2 });
 series1.setData(stockA);
 
-const series2 = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+const series2 = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
 series2.setData(stockB);
 `.trim(),
       },
@@ -41,7 +41,7 @@ series2.setData(stockB);
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
+    const series1 = chart.addSeries({ type: 'line', color: '#2962FF', lineWidth: 2 });
     series1.setData(AAPL_DAILY);
 
     const shifted = AAPL_DAILY.map((b) => ({
@@ -51,12 +51,12 @@ series2.setData(stockB);
       low: b.low - 10,
       close: b.close - 10,
     }));
-    const series2 = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+    const series2 = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
     series2.setData(shifted);
 
     return withDocs(container, {
       description:
-        'Multiple series can be overlaid on the same chart by calling <code>addLineSeries()</code> (or any series type) multiple times. ' +
+        'Multiple series can be overlaid on the same chart by calling <code>addSeries()</code> multiple times with the desired type. ' +
         'Each series gets its own data and style but shares the time axis and price scale.',
       code: `
 import { createChart } from 'fin-charter';
@@ -64,11 +64,11 @@ import { createChart } from 'fin-charter';
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
 // First series
-const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
+const series1 = chart.addSeries({ type: 'line', color: '#2962FF', lineWidth: 2 });
 series1.setData(stockA);
 
 // Second series overlaid on the same chart
-const series2 = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+const series2 = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
 series2.setData(stockB);
       `,
     });
@@ -81,10 +81,10 @@ export const CandlestickWithLine: Story = {
     docs: {
       source: {
         code: `
-const candles = chart.addCandlestickSeries();
+const candles = chart.addSeries({ type: 'candlestick' });
 candles.setData(ohlcData);
 
-const sma = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+const sma = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
 sma.setData(smaData);
 `.trim(),
       },
@@ -94,7 +94,7 @@ sma.setData(smaData);
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     const smaData = AAPL_DAILY.map((bar, i) => {
@@ -103,7 +103,7 @@ sma.setData(smaData);
       return { ...bar, open: avg, high: avg, low: avg, close: avg };
     });
 
-    const lineSeries = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+    const lineSeries = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
     lineSeries.setData(smaData);
 
     return withDocs(container, {
@@ -111,11 +111,11 @@ sma.setData(smaData);
         'Combine different series types on the same chart. Here a <strong>candlestick series</strong> shows OHLC data while a <strong>line series</strong> ' +
         'overlays a simple moving average (SMA). This is a common pattern for adding indicator overlays manually.',
       code: `
-const candles = chart.addCandlestickSeries();
+const candles = chart.addSeries({ type: 'candlestick' });
 candles.setData(ohlcData);
 
 // Overlay a moving average as a line series
-const sma = chart.addLineSeries({ color: '#FF6D00', lineWidth: 2 });
+const sma = chart.addSeries({ type: 'line', color: '#FF6D00', lineWidth: 2 });
 sma.setData(smaData);
       `,
     });
@@ -133,7 +133,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   volume: { visible: true },
 });
-chart.addCandlestickSeries().setData(data);
+chart.addSeries({ type: 'candlestick' }).setData(data);
 `.trim(),
       },
     },
@@ -146,7 +146,7 @@ chart.addCandlestickSeries().setData(data);
       volume: { visible: true },
     });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     return withDocs(container, {
@@ -159,7 +159,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   volume: { visible: true },  // Enable volume overlay
 });
-chart.addCandlestickSeries().setData(data);
+chart.addSeries({ type: 'candlestick' }).setData(data);
       `,
     });
   },
@@ -171,7 +171,7 @@ export const WithMarkersAndPriceLines: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.setMarkers([
@@ -190,7 +190,7 @@ series.createPriceLine({
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     series.setMarkers([
@@ -252,7 +252,7 @@ const chart = createChart(container, {
     fontSize: 64,
   },
 });
-chart.addCandlestickSeries().setData(data);
+chart.addSeries({ type: 'candlestick' }).setData(data);
 `.trim(),
       },
     },
@@ -272,7 +272,7 @@ chart.addCandlestickSeries().setData(data);
       },
     });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     return withDocs(container, {
@@ -293,7 +293,7 @@ const chart = createChart(container, {
     vertAlign: 'center',
   },
 });
-chart.addCandlestickSeries().setData(data);
+chart.addSeries({ type: 'candlestick' }).setData(data);
       `,
     });
   },

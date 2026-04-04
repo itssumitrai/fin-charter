@@ -28,7 +28,7 @@ export const TakeScreenshot: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 const canvas = chart.takeScreenshot();
@@ -50,7 +50,7 @@ const dataUrl = canvas.toDataURL('image/png');`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const img = document.createElement('img');
@@ -75,7 +75,7 @@ const dataUrl = canvas.toDataURL('image/png');`,
 
     const description = 'Export the chart as an image with <code>chart.takeScreenshot()</code>. This returns an HTML <code>&lt;canvas&gt;</code> element that you can convert to a data URL via <code>canvas.toDataURL(\'image/png\')</code> for download or display. Click the button above to try it.';
     const code = `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Capture the chart as a canvas

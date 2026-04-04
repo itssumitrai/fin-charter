@@ -26,7 +26,7 @@ export const Default: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data); // Array of { time, open, high, low, close, volume }`,
       },
     },
@@ -34,7 +34,7 @@ series.setData(data); // Array of { time, open, high, low, close, volume }`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -48,7 +48,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data); // Array of { time, open, high, low, close, volume }
       `,
     });
@@ -60,7 +60,8 @@ export const CustomColors: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const series = chart.addCandlestickSeries({
+        code: `const series = chart.addSeries({
+  type: 'candlestick',
   upColor: '#00e5ff',
   downColor: '#ff4081',
   wickUpColor: '#00e5ff',
@@ -73,7 +74,7 @@ series.setData(data);`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#00e5ff',
       downColor: '#ff4081',
       wickUpColor: '#00e5ff',
@@ -82,10 +83,11 @@ series.setData(data);`,
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
-        'Customize candle colors by passing <code>upColor</code>, <code>downColor</code>, <code>wickUpColor</code>, and <code>wickDownColor</code> to <code>addCandlestickSeries()</code>. ' +
+        'Customize candle colors by passing <code>upColor</code>, <code>downColor</code>, <code>wickUpColor</code>, and <code>wickDownColor</code> to <code>addSeries({ type: \'candlestick\', ... })</code>. ' +
         'You can also set <code>borderUpColor</code> and <code>borderDownColor</code> for the candle body border.',
       code: `
-const series = chart.addCandlestickSeries({
+const series = chart.addSeries({
+  type: 'candlestick',
   upColor: '#00e5ff',       // Bullish candle body
   downColor: '#ff4081',     // Bearish candle body
   wickUpColor: '#00e5ff',   // Bullish wick color
@@ -102,7 +104,7 @@ export const FewBars: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const series = chart.addCandlestickSeries();
+        code: `const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data.slice(0, 20)); // Only 20 bars`,
       },
     },
@@ -110,13 +112,13 @@ series.setData(data.slice(0, 20)); // Only 20 bars`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(20));
     return withDocs(container, {
       description:
         'The chart automatically adjusts its scale to fit any number of bars. Here only 20 bars are rendered, demonstrating that the chart handles small datasets gracefully.',
       code: `
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data.slice(0, 20)); // Only 20 bars
       `,
     });
@@ -133,7 +135,7 @@ export const WithoutLastPriceLine: Story = {
   symbol: 'AAPL',
   lastPriceLine: { visible: false },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`,
       },
     },
@@ -141,7 +143,7 @@ series.setData(data);`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', lastPriceLine: { visible: false } });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -153,7 +155,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   lastPriceLine: { visible: false },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
       `,
     });

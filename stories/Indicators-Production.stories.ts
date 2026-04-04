@@ -30,7 +30,7 @@ export const IchimokuCloud: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 chart.addIndicator('ichimoku', {
@@ -46,7 +46,7 @@ chart.addIndicator('ichimoku', {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('ichimoku', {
@@ -88,7 +88,7 @@ export const ParabolicSAR: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('parabolic-sar', {
@@ -132,7 +132,7 @@ export const KeltnerChannel: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('keltner', {
@@ -176,7 +176,7 @@ export const DonchianChannel: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('donchian', {
@@ -220,7 +220,7 @@ export const CCIIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('cci', {
@@ -263,7 +263,7 @@ export const PivotPoints: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     chart.addIndicator('pivot-points', {

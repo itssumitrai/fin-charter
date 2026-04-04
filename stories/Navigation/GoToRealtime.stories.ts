@@ -28,7 +28,7 @@ export const Default: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 // Snap the viewport to the most recent bar
@@ -47,7 +47,7 @@ chart.scrollToRealTime();`,
 
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
 
     const seedData = generateOHLCV(100);
     series.setData(seedData);
@@ -96,7 +96,7 @@ chart.scrollToRealTime();`,
         'Call <code>chart.scrollToRealTime()</code> to instantly scroll to the latest data point. ' +
         'This story also streams new bars every second to demonstrate real-time updates.',
       code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 // Snap the viewport to the most recent bar
