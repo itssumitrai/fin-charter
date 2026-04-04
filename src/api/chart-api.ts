@@ -75,6 +75,14 @@ import { computeATR } from '../indicators/atr';
 import { computeADX } from '../indicators/adx';
 import { computeOBV } from '../indicators/obv';
 import { computeWilliamsR } from '../indicators/williams-r';
+import { computeIchimoku } from '../indicators/ichimoku';
+import { computeParabolicSAR } from '../indicators/parabolic-sar';
+import { computeKeltner } from '../indicators/keltner';
+import { computeDonchian } from '../indicators/donchian';
+import { computeCCI } from '../indicators/cci';
+import { computePivotPoints } from '../indicators/pivot-points';
+import type { Periodicity } from '../core/periodicity';
+import type { MarketSession } from '../core/market-session';
 
 // ─── Axis constants ────────────────────────────────────────────────────────
 
@@ -156,6 +164,18 @@ export interface IChartApi {
   exportState(): ChartState;
   /** Restore a previously exported chart state, loading bar data via the provided loader. */
   importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
+  // ── Feature 11a: Heikin-Ashi ──────────────────────────────────────────────
+  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>;
+  // ── Feature 11b: Periodicity ──────────────────────────────────────────────
+  setPeriodicity(periodicity: Periodicity): void;
+  getPeriodicity(): Periodicity;
+  subscribePeriodicityChange(handler: (p: Periodicity) => void): void;
+  unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void;
+  // ── Feature 11c: Market Sessions ──────────────────────────────────────────
+  setMarketSessions(sessions: MarketSession[]): void;
+  getMarketSessions(): MarketSession[];
+  setSessionFilter(filter: 'regular' | 'extended' | 'all'): void;
+  getSessionFilter(): string;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -263,6 +283,14 @@ class ChartApi implements IChartApi {
   private _drawingApis: Map<string, DrawingApiImpl> = new Map();
   private _drawingHandler: DrawingHandler | null = null;
   private _nextDrawingId = 0;
+
+  // Periodicity
+  private _periodicity: Periodicity = { interval: 1, unit: 'day' };
+  private _periodicityCallbacks: ((p: Periodicity) => void)[] = [];
+
+  // Market sessions
+  private _marketSessions: MarketSession[] = [];
+  private _sessionFilter: string = 'all';
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -416,6 +444,10 @@ class ChartApi implements IChartApi {
 
   addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'> {
     return this._addSeries('histogram', options ?? {});
+  }
+
+  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'> {
+    return this._addSeries('heikin-ashi', options ?? {});
   }
 
   removeSeries(series: ISeriesApi<SeriesType>): void {
@@ -906,6 +938,26 @@ class ChartApi implements IChartApi {
         return { value: computeOBV(close, volume, len) };
       case 'williams-r':
         return { value: computeWilliamsR(high, low, close, len, params.period) };
+      case 'ichimoku': {
+        const r = computeIchimoku(high, low, close, len, params.tenkanPeriod, params.kijunPeriod, params.senkouPeriod);
+        return { tenkan: r.tenkan, kijun: r.kijun, senkouA: r.senkouA, senkouB: r.senkouB, chikou: r.chikou };
+      }
+      case 'parabolic-sar':
+        return { value: computeParabolicSAR(high, low, len, params.afStep, params.afMax) };
+      case 'keltner': {
+        const r = computeKeltner(close, high, low, len, params.emaPeriod, params.atrPeriod, params.multiplier);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'donchian': {
+        const r = computeDonchian(high, low, len, params.period);
+        return { upper: r.upper, middle: r.middle, lower: r.lower };
+      }
+      case 'cci':
+        return { value: computeCCI(high, low, close, len, params.period) };
+      case 'pivot-points': {
+        const r = computePivotPoints(high, low, close, len);
+        return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 };
+      }
       default:
         throw new Error(`Unknown indicator type: ${type}`);
     }
@@ -977,6 +1029,14 @@ class ChartApi implements IChartApi {
         return { k: primaryColor, d: '#ff6d00' };
       case 'adx':
         return { adx: primaryColor, plusDI: '#26a69a', minusDI: '#ef5350' };
+      case 'ichimoku':
+        return { tenkan: '#2962ff', kijun: '#ef5350', senkouA: '#26a69a', senkouB: '#ee6823', chikou: '#9c27b0' };
+      case 'keltner':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'donchian':
+        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
+      case 'pivot-points':
+        return { pp: primaryColor, r1: '#ef5350', r2: '#ef5350', r3: '#ef5350', s1: '#26a69a', s2: '#26a69a', s3: '#26a69a' };
       default:
         return { value: primaryColor };
     }
@@ -1158,6 +1218,7 @@ class ChartApi implements IChartApi {
         case 'baseline': api = this.addBaselineSeries(opts as DeepPartial<BaselineSeriesOptions>); break;
         case 'hollow-candle': api = this.addHollowCandleSeries(opts as DeepPartial<HollowCandleSeriesOptions>); break;
         case 'histogram': api = this.addHistogramSeries(opts as DeepPartial<HistogramSeriesOptions>); break;
+        case 'heikin-ashi': api = this.addHeikinAshiSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
         default: continue;
       }
       createdSeries.set(sEntry.id, api);
@@ -1194,6 +1255,49 @@ class ChartApi implements IChartApi {
     }
 
     this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  // ── Feature 11b: Periodicity ──────────────────────────────────────────────
+
+  setPeriodicity(periodicity: Periodicity): void {
+    this._periodicity = periodicity;
+    for (const cb of this._periodicityCallbacks) {
+      cb(periodicity);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getPeriodicity(): Periodicity {
+    return this._periodicity;
+  }
+
+  subscribePeriodicityChange(handler: (p: Periodicity) => void): void {
+    this._periodicityCallbacks.push(handler);
+  }
+
+  unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void {
+    const idx = this._periodicityCallbacks.indexOf(handler);
+    if (idx !== -1) this._periodicityCallbacks.splice(idx, 1);
+  }
+
+  // ── Feature 11c: Market Sessions ──────────────────────────────────────────
+
+  setMarketSessions(sessions: MarketSession[]): void {
+    this._marketSessions = sessions;
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getMarketSessions(): MarketSession[] {
+    return this._marketSessions;
+  }
+
+  setSessionFilter(filter: 'regular' | 'extended' | 'all'): void {
+    this._sessionFilter = filter;
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getSessionFilter(): string {
+    return this._sessionFilter;
   }
 
   /** @internal */
@@ -2682,7 +2786,8 @@ class ChartApi implements IChartApi {
     const { data: _d, priceScaleId: _p, visible: _v, paneId: _pi, label: _l, ...rendererOpts } = options;
 
     switch (type) {
-      case 'candlestick': {
+      case 'candlestick':
+      case 'heikin-ashi': {
         const r = new CandlestickRenderer();
         if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
         return r;
