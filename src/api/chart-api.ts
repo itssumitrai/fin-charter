@@ -19,6 +19,11 @@ import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
 
+import { DrawingHandler } from '../interactions/drawing-handler';
+import type { AnchorPoint, DrawingOptions, SerializedDrawing, DrawingPrimitive, DrawingContext } from '../drawings/index';
+import { DRAWING_REGISTRY, createBuiltinDrawing, BaseDrawing } from '../drawings/index';
+import type { ISeriesPrimitive } from '../core/types';
+
 import { HudManager } from '../ui/hud';
 import type { SettingsField } from '../ui/settings-popup';
 
@@ -84,6 +89,17 @@ export type ClickCallback = (state: { x: number; y: number; time: number; price:
 
 export type VisibleRangeChangeCallback = (range: { from: number; to: number } | null) => void;
 
+// ─── IDrawingApi ──────────────────────────────────────────────────────────────
+
+export interface IDrawingApi {
+  readonly id: string;
+  drawingType(): string;
+  points(): AnchorPoint[];
+  applyOptions(options: Partial<DrawingOptions>): void;
+  options(): DrawingOptions;
+  remove(): void;
+}
+
 export interface IChartApi {
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
   addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>;
@@ -126,6 +142,14 @@ export interface IChartApi {
   /** Enable/disable comparison mode. When on, the Y-axis shows percentage change from the first visible bar. */
   setComparisonMode(enabled: boolean): void;
   isComparisonMode(): boolean;
+  // ── Feature 8: Drawing Tools ──────────────────────────────────────────
+  addDrawing(type: string, points: AnchorPoint[], options?: DrawingOptions): IDrawingApi;
+  removeDrawing(drawing: IDrawingApi): void;
+  getDrawings(): IDrawingApi[];
+  setActiveDrawingTool(type: string | null): void;
+  registerDrawingType(type: string, factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive): void;
+  serializeDrawings(): SerializedDrawing[];
+  deserializeDrawings(data: SerializedDrawing[]): void;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -227,6 +251,12 @@ class ChartApi implements IChartApi {
   // Comparison mode
   private _comparisonMode: boolean = false;
   private _basisPrices: Map<SeriesApi<SeriesType>, number> = new Map(); // series -> basis price (first visible bar's close)
+
+  // Drawing tools
+  private _drawings: (ISeriesPrimitive & DrawingPrimitive)[] = [];
+  private _drawingApis: Map<string, DrawingApiImpl> = new Map();
+  private _drawingHandler: DrawingHandler | null = null;
+  private _nextDrawingId = 0;
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -961,6 +991,113 @@ class ChartApi implements IChartApi {
     return this._comparisonMode;
   }
 
+  // ── Feature 8: Drawing Tools ──────────────────────────────────────────────
+
+  addDrawing(type: string, points: AnchorPoint[], options: DrawingOptions = {}): IDrawingApi {
+    const id = `drawing_${this._nextDrawingId++}`;
+    const drawing = createBuiltinDrawing(type, id, points, options);
+    if (!drawing) throw new Error(`Unknown drawing type: ${type}`);
+    if (drawing instanceof BaseDrawing) {
+      drawing.setContext(this._getDrawingContext());
+    }
+    this._drawings.push(drawing);
+    const api = new DrawingApiImpl(id, drawing, this);
+    this._drawingApis.set(id, api);
+    this.requestRepaint(InvalidationLevel.Full);
+    return api;
+  }
+
+  removeDrawing(drawingApi: IDrawingApi): void {
+    const idx = this._drawings.findIndex(d => {
+      if (d instanceof BaseDrawing) return d.id === drawingApi.id;
+      return false;
+    });
+    if (idx !== -1) {
+      this._drawings.splice(idx, 1);
+      this._drawingApis.delete(drawingApi.id);
+      this.requestRepaint(InvalidationLevel.Full);
+    }
+  }
+
+  getDrawings(): IDrawingApi[] {
+    return Array.from(this._drawingApis.values());
+  }
+
+  setActiveDrawingTool(type: string | null): void {
+    this._ensureDrawingHandler();
+    this._drawingHandler!.setActiveToolType(type);
+  }
+
+  registerDrawingType(
+    type: string,
+    factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive,
+  ): void {
+    DRAWING_REGISTRY.set(type, factory);
+  }
+
+  serializeDrawings(): SerializedDrawing[] {
+    return this._drawings.map(d => d.serialize());
+  }
+
+  deserializeDrawings(data: SerializedDrawing[]): void {
+    // Remove all existing
+    this._drawings.length = 0;
+    this._drawingApis.clear();
+    for (const entry of data) {
+      const drawing = createBuiltinDrawing(entry.type, entry.id, entry.points, entry.options);
+      if (!drawing) continue;
+      if (drawing instanceof BaseDrawing) {
+        drawing.setContext(this._getDrawingContext());
+      }
+      this._drawings.push(drawing);
+      const api = new DrawingApiImpl(entry.id, drawing, this);
+      this._drawingApis.set(entry.id, api);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  /** @internal */
+  _getDrawingContext(): DrawingContext {
+    const mainPane = this._mainPane;
+    return {
+      timeScale: this._timeScale,
+      priceScale: mainPane.priceScale,
+      chartWidth: this._chartWidth,
+      chartHeight: mainPane.height,
+      requestUpdate: () => this.requestRepaint(InvalidationLevel.Full),
+    };
+  }
+
+  private _ensureDrawingHandler(): void {
+    if (this._drawingHandler) return;
+    const self = this;
+    this._drawingHandler = new DrawingHandler({
+      getDrawings: () => self._drawings,
+      getDrawingContext: () => self._getDrawingContext(),
+      onDrawingCreated(drawing) {
+        if (drawing instanceof BaseDrawing) {
+          drawing.setContext(self._getDrawingContext());
+        }
+        self._drawings.push(drawing);
+        const id = (drawing as BaseDrawing).id;
+        const api = new DrawingApiImpl(id, drawing, self);
+        self._drawingApis.set(id, api);
+        self.requestRepaint(InvalidationLevel.Full);
+      },
+      onDrawingUpdated() {
+        self.requestRepaint(InvalidationLevel.Full);
+      },
+      xToTime(x: number): number {
+        return self._timeScale.xToIndex(x);
+      },
+      yToPrice(y: number): number {
+        return self._mainPane.priceScale.yToPrice(y);
+      },
+    });
+    // Insert drawing handler BEFORE pan-zoom so it gets first crack at events
+    this._eventRouter.addHandler(this._drawingHandler);
+  }
+
   /**
    * Returns the basis price (first visible bar's close) for a given series entry,
    * computing and caching it on first call for each series per paint cycle.
@@ -1327,6 +1464,33 @@ class ChartApi implements IChartApi {
 
     // Overlay canvas is sized to chart area only
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
+
+    // Render drawings on overlay canvas (main pane only for now)
+    if (isMain && this._drawings.length > 0) {
+      const target = {
+        canvas: pane.canvases.overlayCanvas,
+        context: ctx,
+        width: Math.round(chartW * pixelRatio),
+        height: Math.round(chartH * pixelRatio),
+        pixelRatio,
+      };
+      for (const drawing of this._drawings) {
+        const views = drawing.paneViews?.();
+        if (!views) continue;
+        for (const view of views) {
+          const renderer = view.renderer();
+          renderer?.drawBackground?.(target);
+        }
+      }
+      for (const drawing of this._drawings) {
+        const views = drawing.paneViews?.();
+        if (!views) continue;
+        for (const view of views) {
+          const renderer = view.renderer();
+          renderer?.draw(target);
+        }
+      }
+    }
 
     if (!this._crosshair.visible) return;
 
@@ -2439,6 +2603,41 @@ class ChartApi implements IChartApi {
       cb({ x, y, time, price });
     }
   };
+}
+
+// ─── DrawingApiImpl ─────────────────────────────────────────────────────────
+
+class DrawingApiImpl implements IDrawingApi {
+  readonly id: string;
+  private _drawing: ISeriesPrimitive & DrawingPrimitive;
+  private _chart: ChartApi;
+
+  constructor(id: string, drawing: ISeriesPrimitive & DrawingPrimitive, chart: ChartApi) {
+    this.id = id;
+    this._drawing = drawing;
+    this._chart = chart;
+  }
+
+  drawingType(): string {
+    return this._drawing.drawingType;
+  }
+
+  points(): AnchorPoint[] {
+    return this._drawing.points.map(p => ({ ...p }));
+  }
+
+  applyOptions(opts: Partial<DrawingOptions>): void {
+    Object.assign(this._drawing.options, opts);
+    this._chart.requestRepaint(InvalidationLevel.Full);
+  }
+
+  options(): DrawingOptions {
+    return { ...this._drawing.options };
+  }
+
+  remove(): void {
+    this._chart.removeDrawing(this);
+  }
 }
 
 // ─── Factory function ───────────────────────────────────────────────────────
