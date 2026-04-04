@@ -8,6 +8,7 @@ import { withDocs } from '../doc-renderer';
 const meta: Meta = {
   title: 'Features/Data Changed',
   parameters: {
+    chromatic: { disableSnapshot: true },
     docs: {
       description: {
         component:

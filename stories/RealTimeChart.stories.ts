@@ -7,6 +7,7 @@ import { withDocs } from './doc-renderer';
 const meta: Meta = {
   title: 'Real-Time/Streaming',
   parameters: {
+    chromatic: { disableSnapshot: true },
     docs: {
       description: {
         component:

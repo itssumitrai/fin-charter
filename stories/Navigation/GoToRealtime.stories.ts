@@ -7,6 +7,7 @@ import { withDocs } from '../doc-renderer';
 const meta: Meta = {
   title: 'Navigation/Go to Realtime',
   parameters: {
+    chromatic: { disableSnapshot: true },
     docs: {
       description: {
         component:

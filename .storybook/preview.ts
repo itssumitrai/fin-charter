@@ -1,5 +1,10 @@
 import type { Preview } from '@storybook/html';
 import { create } from 'storybook/theming/create';
+import { initialize, mswLoader } from 'msw-storybook-addon';
+import { handlers } from '../stories/mocks/handlers';
+
+// Initialize MSW with the Yahoo Finance mock handlers
+initialize();
 
 const darkTheme = create({
   base: 'dark',
@@ -26,6 +31,10 @@ const preview: Preview = {
     docs: {
       theme: darkTheme,
     },
+    msw: {
+      handlers,
+    },
   },
+  loaders: [mswLoader],
 };
 export default preview;
