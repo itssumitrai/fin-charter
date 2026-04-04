@@ -51,7 +51,7 @@ const chart = createChart(container, { autoSize: true });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
-chart.subscribeVisibleRangeChange((range) => {
+chart.subscribeVisibleRangeChange(async (range) => {
   if (range.from <= firstBarTime) {
     const olderBars = await fetchHistory();
     series.setData([...olderBars, ...bars]);

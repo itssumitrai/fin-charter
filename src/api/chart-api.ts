@@ -2377,7 +2377,9 @@ class ChartApi implements IChartApi {
       return;
     }
 
-    const store = this._series[0].api.getDataLayer().store;
+    const primaryEntry = this._series[0];
+    const rawStore = primaryEntry.api.getDataLayer().store;
+    const store = this._getEffectiveStore(primaryEntry, rawStore);
     const idx = this._crosshair.barIndex;
     if (idx < 0 || idx >= store.length) {
       this._tooltipEl.style.display = 'none';
@@ -2392,7 +2394,7 @@ class ChartApi implements IChartApi {
       const h = store.high[idx];
       const l = store.low[idx];
       const c = store.close[idx];
-      const v = store.volume ? store.volume[idx] : 0;
+      const v = rawStore.volume ? rawStore.volume[idx] : 0;
       const timestamp = store.time[idx];
       const date = new Date(timestamp * 1000);
 
@@ -2494,22 +2496,25 @@ class ChartApi implements IChartApi {
   }
 
   private _getSeriesValues(api: SeriesApi<SeriesType>, barIndex: number): string {
-    const store = api.getDataLayer().store;
-    if (barIndex < 0 || barIndex >= store.length) return '';
+    const rawStore = api.getDataLayer().store;
+    if (barIndex < 0 || barIndex >= rawStore.length) return '';
 
     const type = api.seriesType();
-    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle';
+    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle' || type === 'heikin-ashi';
 
     if (isOHLC) {
+      // For heikin-ashi, use the transformed store via the series entry cache
+      const entry = this._series.find(e => e.api === (api as SeriesApi<SeriesType>));
+      const store = entry ? this._getEffectiveStore(entry, rawStore) : rawStore;
       const o = store.open[barIndex];
       const h = store.high[barIndex];
       const l = store.low[barIndex];
       const c = store.close[barIndex];
-      const v = store.volume ? store.volume[barIndex] : 0;
+      const v = rawStore.volume ? rawStore.volume[barIndex] : 0;
       return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${this._volumeFormatter.format(v)}`;
     }
 
-    const c = store.close[barIndex];
+    const c = rawStore.close[barIndex];
     return this._formatPrice(c);
   }
 
