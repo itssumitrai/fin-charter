@@ -1272,7 +1272,28 @@ class ChartApi implements IChartApi {
 
   addDrawing(type: string, points: AnchorPoint[], options: DrawingOptions = {}): IDrawingApi {
     const id = `drawing_${this._nextDrawingId++}`;
-    const drawing = createBuiltinDrawing(type, id, points, options);
+
+    // Convert timestamps to bar indices if needed.
+    // Internally, drawings use bar indices for the time coordinate, but the
+    // public API accepts Unix-timestamp-based AnchorPoints (same format as bar data).
+    // Heuristic: if any time value >= the first bar's timestamp, they are timestamps
+    // that need conversion. Small values (< first timestamp) are already bar indices.
+    let resolvedPoints = points;
+    if (this._series.length > 0) {
+      const dl = this._series[0].api.getDataLayer();
+      if (dl.store.length > 0) {
+        const firstTimestamp = dl.store.time[0];
+        const looksLikeTimestamps = points.some(p => p.time >= firstTimestamp);
+        if (looksLikeTimestamps) {
+          resolvedPoints = points.map(p => ({
+            ...p,
+            time: dl.findIndex(p.time),
+          }));
+        }
+      }
+    }
+
+    const drawing = createBuiltinDrawing(type, id, resolvedPoints, options);
     if (!drawing) throw new Error(`Unknown drawing type: ${type}`);
     if (drawing instanceof BaseDrawing) {
       drawing.setContext(this._getDrawingContext());
