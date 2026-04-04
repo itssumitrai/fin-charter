@@ -1,7 +1,7 @@
 import type { Bar, ColumnData, SeriesType, ISeriesPrimitive, AttachedParams } from '../core/types';
 import { DataLayer } from '../core/data-layer';
 import type { PriceScale } from '../core/price-scale';
-import type { SeriesMarker } from '../core/series-markers';
+import type { SeriesMarker, ChartEvent } from '../core/series-markers';
 import { PriceLine, type PriceLineOptions } from '../core/price-line';
 import type { SeriesOptionsMap } from './options';
 
@@ -32,6 +32,10 @@ export interface ISeriesApi<T extends SeriesType> {
   setMarkers(markers: SeriesMarker[]): void;
   /** Get current markers. */
   getMarkers(): readonly SeriesMarker[];
+  /** Set chart events on this series. */
+  setEvents(events: ChartEvent[]): void;
+  /** Get current chart events. */
+  getEvents(): readonly ChartEvent[];
   /** Create a horizontal price line on this series. */
   createPriceLine(options: PriceLineOptions): PriceLine;
   /** Remove a price line. */
@@ -65,6 +69,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   private _options: SeriesOptionsMap[T];
   private _primitives: ISeriesPrimitive[] = [];
   private _markers: SeriesMarker[] = [];
+  private _events: ChartEvent[] = [];
   private _priceLines: PriceLine[] = [];
   private _requestRepaint: () => void;
   private _visible: boolean = true;
@@ -182,6 +187,15 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
 
   getMarkers(): readonly SeriesMarker[] {
     return [...this._markers];
+  }
+
+  setEvents(events: ChartEvent[]): void {
+    this._events = [...events].sort((a, b) => a.time - b.time);
+    this._requestRepaint();
+  }
+
+  getEvents(): readonly ChartEvent[] {
+    return [...this._events];
   }
 
   createPriceLine(options: PriceLineOptions): PriceLine {

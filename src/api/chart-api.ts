@@ -13,6 +13,7 @@ import { Crosshair, type CrosshairState } from '../core/crosshair';
 import { InvalidateMask } from '../core/invalidation';
 import { DataLayer } from '../core/data-layer';
 import type { SeriesMarker } from '../core/series-markers';
+import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../core/chart-state';
 import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { EventRouter } from '../interactions/event-router';
@@ -150,6 +151,11 @@ export interface IChartApi {
   registerDrawingType(type: string, factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive): void;
   serializeDrawings(): SerializedDrawing[];
   deserializeDrawings(data: SerializedDrawing[]): void;
+  // ── Feature 9/10: Chart State Save/Restore ────────────────────────────────
+  /** Export the current chart configuration (no bar data) as a serializable state object. */
+  exportState(): ChartState;
+  /** Restore a previously exported chart state, loading bar data via the provided loader. */
+  importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -1053,6 +1059,140 @@ class ChartApi implements IChartApi {
       const api = new DrawingApiImpl(entry.id, drawing, this);
       this._drawingApis.set(entry.id, api);
     }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  exportState(): ChartState {
+    // Collect series configs (no bar data)
+    const seriesEntries = this._series.map((entry, idx) => ({
+      id: `series-${idx}`,
+      type: entry.type,
+      options: entry.api.options() as unknown as Record<string, unknown>,
+    }));
+
+    // Collect indicator configs
+    const indicatorEntries = this._indicators.map((ind) => {
+      const opts = ind.options();
+      return {
+        type: ind.indicatorType(),
+        sourceSeriesId: 'series-0', // primary series
+        params: (opts.params ?? {}) as Record<string, number>,
+        color: opts.color,
+      };
+    });
+
+    // Collect pane heights
+    const paneEntries = this._paneOrder.map((paneId) => {
+      const pane = this._paneMap.get(paneId)!;
+      return { id: paneId, height: pane.height };
+    });
+
+    // Collect visible range (time values)
+    const visibleRange = this._timeScale.visibleRange();
+    let visibleRangeTs: { from: number; to: number } | undefined;
+    if (visibleRange) {
+      const store = this._series[0]?.api.getDataLayer().store;
+      if (store && store.length > 0) {
+        const fromIdx = Math.max(0, Math.min(Math.floor(visibleRange.fromIdx), store.length - 1));
+        const toIdx = Math.max(0, Math.min(Math.floor(visibleRange.toIdx), store.length - 1));
+        visibleRangeTs = { from: store.time[fromIdx], to: store.time[toIdx] };
+      }
+    }
+
+    return {
+      version: CHART_STATE_VERSION,
+      options: this._options as unknown as import('../core/types').DeepPartial<ChartOptions>,
+      comparisonMode: this._comparisonMode,
+      timeScale: {
+        barSpacing: this._timeScale.barSpacing,
+        rightOffset: this._timeScale.rightOffset,
+      },
+      series: seriesEntries,
+      indicators: indicatorEntries,
+      panes: paneEntries,
+      drawings: this.serializeDrawings(),
+      visibleRange: visibleRangeTs,
+    };
+  }
+
+  async importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void> {
+    if (!validateChartState(state)) {
+      throw new Error('Invalid chart state: failed validation');
+    }
+
+    // Apply options
+    this.applyOptions(state.options as DeepPartial<ChartOptions>);
+
+    // Apply comparison mode
+    if (state.comparisonMode !== undefined) {
+      this.setComparisonMode(state.comparisonMode);
+    }
+
+    // Apply time scale
+    this._timeScale.applyOptions({
+      barSpacing: state.timeScale.barSpacing,
+      rightOffset: state.timeScale.rightOffset,
+    });
+
+    // Remove existing series
+    for (const entry of [...this._series]) {
+      this.removeSeries(entry.api);
+    }
+
+    // Remove existing indicators
+    for (const ind of [...this._indicators]) {
+      this.removeIndicator(ind);
+    }
+
+    // Re-create series (without data)
+    const createdSeries: Map<string, ISeriesApi<SeriesType>> = new Map();
+    for (const sEntry of state.series) {
+      const type = sEntry.type;
+      let api: ISeriesApi<SeriesType>;
+      const opts = sEntry.options as DeepPartial<SeriesOptionsMap[SeriesType]>;
+      switch (type) {
+        case 'candlestick': api = this.addCandlestickSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
+        case 'line': api = this.addLineSeries(opts as DeepPartial<LineSeriesOptions>); break;
+        case 'area': api = this.addAreaSeries(opts as DeepPartial<AreaSeriesOptions>); break;
+        case 'bar': api = this.addBarSeries(opts as DeepPartial<BarSeriesOptions>); break;
+        case 'baseline': api = this.addBaselineSeries(opts as DeepPartial<BaselineSeriesOptions>); break;
+        case 'hollow-candle': api = this.addHollowCandleSeries(opts as DeepPartial<HollowCandleSeriesOptions>); break;
+        case 'histogram': api = this.addHistogramSeries(opts as DeepPartial<HistogramSeriesOptions>); break;
+        default: continue;
+      }
+      createdSeries.set(sEntry.id, api);
+    }
+
+    // Load data in parallel
+    const loadPromises = state.series.map(async (sEntry) => {
+      const api = createdSeries.get(sEntry.id);
+      if (!api) return;
+      const bars = await dataLoader(sEntry.id);
+      api.setData(bars);
+    });
+    await Promise.all(loadPromises);
+
+    // Re-create indicators
+    for (const indEntry of state.indicators) {
+      const sourceSeries = createdSeries.get(indEntry.sourceSeriesId);
+      if (!sourceSeries) continue;
+      this.addIndicator(indEntry.type, {
+        source: sourceSeries,
+        params: indEntry.params,
+        color: indEntry.color,
+      });
+    }
+
+    // Restore drawings
+    if (state.drawings.length > 0) {
+      this.deserializeDrawings(state.drawings);
+    }
+
+    // Restore viewport
+    if (state.visibleRange) {
+      this.setVisibleRange(state.visibleRange.from, state.visibleRange.to);
+    }
+
     this.requestRepaint(InvalidationLevel.Full);
   }
 
