@@ -19,6 +19,7 @@ export class PriceScale {
   private _max: number = 1;
   /** When true, setRange() was called manually and autoScale() will not override it. */
   private _manualRange: boolean = false;
+  private _comparisonMode: boolean = false;
 
   constructor(position: 'left' | 'right') {
     this.position = position;
@@ -59,6 +60,22 @@ export class PriceScale {
   /** Re-enable auto-scaling (next autoScale() call will take effect). */
   resetAutoScale(): void {
     this._manualRange = false;
+  }
+
+  /**
+   * Enable or disable comparison mode.
+   * In comparison mode the scale operates in "percent space" — callers pass
+   * percentage-change values (e.g. +12.5 for +12.5%) instead of raw prices.
+   * priceToY / yToPrice work identically; the caller is responsible for the
+   * raw-price → percentage conversion before calling priceToY.
+   */
+  setComparisonMode(enabled: boolean): void {
+    this._comparisonMode = enabled;
+  }
+
+  /** Returns true when comparison mode is active. */
+  isComparisonMode(): boolean {
+    return this._comparisonMode;
   }
 
   /**

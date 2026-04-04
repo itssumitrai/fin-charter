@@ -122,6 +122,10 @@ export interface IChartApi {
   // ── Feature 5: Indicator API ────────────────────────────────────────────
   addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi;
   removeIndicator(indicator: IIndicatorApi): void;
+  // ── Feature 6: Comparison Mode ───────────────────────────────────────────
+  /** Enable/disable comparison mode. When on, the Y-axis shows percentage change from the first visible bar. */
+  setComparisonMode(enabled: boolean): void;
+  isComparisonMode(): boolean;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -219,6 +223,10 @@ class ChartApi implements IChartApi {
   // Indicator management
   private _indicators: IndicatorApi[] = [];
   private _nextIndicatorId = 0;
+
+  // Comparison mode
+  private _comparisonMode: boolean = false;
+  private _basisPrices: Map<SeriesApi<SeriesType>, number> = new Map(); // series -> basis price (first visible bar's close)
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -938,6 +946,36 @@ class ChartApi implements IChartApi {
     }
   }
 
+  // ── Feature 6: Comparison Mode ───────────────────────────────────────────
+
+  setComparisonMode(enabled: boolean): void {
+    this._comparisonMode = enabled;
+    this._basisPrices.clear();
+    for (const pane of this._paneMap.values()) {
+      pane.priceScale.setComparisonMode(enabled);
+    }
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  isComparisonMode(): boolean {
+    return this._comparisonMode;
+  }
+
+  /**
+   * Returns the basis price (first visible bar's close) for a given series entry,
+   * computing and caching it on first call for each series per paint cycle.
+   */
+  private _getBasisPrice(entry: SeriesEntry, range: VisibleRange): number {
+    if (this._basisPrices.has(entry.api)) {
+      return this._basisPrices.get(entry.api)!;
+    }
+    const store = entry.api.getDataLayer().store;
+    const fromIdx = Math.max(0, Math.min(range.fromIdx, store.length - 1));
+    const basis = store.close[fromIdx] ?? 0;
+    this._basisPrices.set(entry.api, basis);
+    return basis;
+  }
+
   // ── Feature 3: Visible Range Change Subscription ──────────────────────
 
   subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
@@ -1005,6 +1043,11 @@ class ChartApi implements IChartApi {
 
   private _paint(): void {
     if (this._removed) return;
+
+    // Clear cached basis prices so they are recomputed for the new visible range each paint
+    if (this._comparisonMode) {
+      this._basisPrices.clear();
+    }
 
     // Sync dataLength from primary series
     if (this._series.length > 0) {
@@ -1143,12 +1186,34 @@ class ChartApi implements IChartApi {
     // Draw each series
     const target = this._createRenderTarget(pane.canvases.chartCanvas, ctx, chartW, chartH, pixelRatio);
     const indexToX = (i: number) => this._timeScale.indexToX(i);
-    const priceToY = (p: number) => pane.priceScale.priceToY(p);
+
+    // Primary priceToY for this pane (used for markers, price lines, last close line).
+    // In comparison mode it is keyed to the first visible series in this pane.
+    const primaryEntryForPane = seriesForPane.find(e => e.api.isVisible()) ?? null;
+    const primaryPriceToY: (p: number) => number = this._comparisonMode && primaryEntryForPane
+      ? (() => {
+          const basis = this._getBasisPrice(primaryEntryForPane, range);
+          return (price: number) => {
+            const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+            return pane.priceScale.priceToY(pct);
+          };
+        })()
+      : (p: number) => pane.priceScale.priceToY(p);
 
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
       const store = entry.api.getDataLayer().store;
+      let priceToY: (p: number) => number;
+      if (this._comparisonMode) {
+        const basis = this._getBasisPrice(entry, range);
+        priceToY = (price: number) => {
+          const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+          return pane.priceScale.priceToY(pct);
+        };
+      } else {
+        priceToY = (p: number) => pane.priceScale.priceToY(p);
+      }
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
     }
 
@@ -1164,7 +1229,7 @@ class ChartApi implements IChartApi {
         const markers = entry.api.getMarkers();
         if (markers.length > 0) {
           const dataLayer = entry.api.getDataLayer();
-          this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
+          this._drawMarkers(ctx, markers, dataLayer, range, indexToX, primaryPriceToY, pixelRatio);
         }
       }
     }
@@ -1175,7 +1240,7 @@ class ChartApi implements IChartApi {
         if (!entry.api.isVisible()) continue;
         const priceLines = entry.api.getPriceLines();
         if (priceLines.length > 0) {
-          this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+          this._drawPriceLines(ctx, priceLines, chartW, primaryPriceToY, pixelRatio);
         }
       }
     }
@@ -1186,7 +1251,7 @@ class ChartApi implements IChartApi {
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
       const lineColor = isUp ? '#26a69a' : '#ef5350';
-      const lastY = Math.round(priceToY(lastClose) * pixelRatio);
+      const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
 
       ctx.save();
       ctx.strokeStyle = lineColor;
@@ -1364,6 +1429,14 @@ class ChartApi implements IChartApi {
     const targetSteps = Math.max(2, Math.floor(chartH / 60));
     const step = niceStep(pRange, targetSteps);
 
+    // Label formatter — percentage format in comparison mode
+    const formatAxisLabel = this._comparisonMode
+      ? (value: number) => {
+          const sign = value > 0 ? '+' : '';
+          return `${sign}${value.toFixed(1)}%`;
+        }
+      : (value: number) => this._formatPrice(value);
+
     ctx.save();
     ctx.font = `${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
     ctx.textAlign = 'right';
@@ -1378,7 +1451,7 @@ class ChartApi implements IChartApi {
       const y = Math.round(pane.priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
-      const text = this._formatPrice(price);
+      const text = formatAxisLabel(price);
 
       // Draw background rect
       ctx.fillStyle = this._options.layout.backgroundColor;
@@ -1399,26 +1472,38 @@ class ChartApi implements IChartApi {
 
     // Current price label (last close) — main pane only
     if (isMain && this._options.lastPriceLine.visible && this._series.length > 0) {
-      const store = this._series[0].api.getDataLayer().store;
+      const primaryEntry = this._series[0];
+      const store = primaryEntry.api.getDataLayer().store;
       if (store.length > 0) {
         const lastClose = store.close[store.length - 1];
         const lastOpen = store.open[store.length - 1];
         const isUp = lastClose >= lastOpen;
         const bgColor = isUp ? '#26a69a' : '#ef5350';
-        const y = Math.round(pane.priceScale.priceToY(lastClose) * pixelRatio);
-        const priceText = this._formatPrice(lastClose);
+        // In comparison mode, map last close to percent space for Y position
+        let labelY: number;
+        let priceText: string;
+        if (this._comparisonMode) {
+          const range = this._timeScale.visibleRange();
+          const basis = this._getBasisPrice(primaryEntry, range);
+          const pct = basis === 0 ? 0 : ((lastClose - basis) / basis) * 100;
+          labelY = Math.round(pane.priceScale.priceToY(pct) * pixelRatio);
+          priceText = formatAxisLabel(pct);
+        } else {
+          labelY = Math.round(pane.priceScale.priceToY(lastClose) * pixelRatio);
+          priceText = this._formatPrice(lastClose);
+        }
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
         // Background
         ctx.fillStyle = bgColor;
-        ctx.fillRect(0, y - lh / 2, axisRight, lh);
+        ctx.fillRect(0, labelY - lh / 2, axisRight, lh);
 
         // Text
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(priceText, axisRight - padding, y);
+        ctx.fillText(priceText, axisRight - padding, labelY);
       }
     }
 
@@ -1430,7 +1515,7 @@ class ChartApi implements IChartApi {
           if (!pl.options.axisLabelVisible) continue;
           const plY = Math.round(pane.priceScale.priceToY(pl.options.price) * pixelRatio);
           if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
-          const plText = this._formatPrice(pl.options.price);
+          const plText = formatAxisLabel(pl.options.price);
           const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
           ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
@@ -1448,7 +1533,17 @@ class ChartApi implements IChartApi {
     // Crosshair price label (main pane only for now)
     if (isMain && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
-      const priceText = this._formatPrice(this._crosshair.price);
+      // In comparison mode, crosshair.price is still a raw price; convert to pct for display
+      let priceText: string;
+      if (this._comparisonMode && this._series.length > 0) {
+        const primaryEntry = this._series[0];
+        const range = this._timeScale.visibleRange();
+        const basis = this._getBasisPrice(primaryEntry, range);
+        const pct = basis === 0 ? 0 : ((this._crosshair.price - basis) / basis) * 100;
+        priceText = formatAxisLabel(pct);
+      } else {
+        priceText = this._formatPrice(this._crosshair.price);
+      }
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
       ctx.fillStyle = this._options.crosshair.horzLineColor;
@@ -1592,15 +1687,31 @@ class ChartApi implements IChartApi {
 
       const isLeft = entry.api.options().priceScaleId === 'left';
 
-      for (let i = range.fromIdx; i <= to; i++) {
-        const lo = store.low[i];
-        const hi = store.high[i];
-        if (isLeft) {
-          if (lo < leftMin) leftMin = lo;
-          if (hi > leftMax) leftMax = hi;
-        } else {
-          if (lo < rightMin) rightMin = lo;
-          if (hi > rightMax) rightMax = hi;
+      if (this._comparisonMode) {
+        // In comparison mode auto-scale in percent space
+        const basis = this._getBasisPrice(entry, range);
+        for (let i = range.fromIdx; i <= to; i++) {
+          const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
+          const hiPct = basis === 0 ? 0 : ((store.high[i] - basis) / basis) * 100;
+          if (isLeft) {
+            if (loPct < leftMin) leftMin = loPct;
+            if (hiPct > leftMax) leftMax = hiPct;
+          } else {
+            if (loPct < rightMin) rightMin = loPct;
+            if (hiPct > rightMax) rightMax = hiPct;
+          }
+        }
+      } else {
+        for (let i = range.fromIdx; i <= to; i++) {
+          const lo = store.low[i];
+          const hi = store.high[i];
+          if (isLeft) {
+            if (lo < leftMin) leftMin = lo;
+            if (hi > leftMax) leftMax = hi;
+          } else {
+            if (lo < rightMin) rightMin = lo;
+            if (hi > rightMax) rightMax = hi;
+          }
         }
       }
     }
