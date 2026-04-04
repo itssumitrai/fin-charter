@@ -1,0 +1,913 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/API Reference" />
+
+# API Reference
+
+## `createChart(container, options?)`
+
+```ts
+function createChart(
+  container: HTMLElement,
+  options?: DeepPartial<ChartOptions>,
+): IChartApi
+```
+
+Creates a new chart instance and mounts it inside `container`. Two `<canvas>` elements are appended to a `<div>` wrapper that fills the container.
+
+**Parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `container` | `HTMLElement` | The DOM element to mount the chart in |
+| `options` | `DeepPartial<ChartOptions>` | Optional chart options (deep-merged with defaults) |
+
+**Returns** `IChartApi`
+
+---
+
+## `IChartApi`
+
+### Series management
+
+#### `addSeries(options)`
+
+```ts
+addSeries<T extends SeriesType>(options: { type: T } & DeepPartial<SeriesOptionsMap[T]>): ISeriesApi<T>
+```
+
+Unified series factory. Pass `type` alongside any series-specific options. This is the preferred API.
+
+```ts
+const candles = chart.addSeries({ type: 'candlestick' });
+const line    = chart.addSeries({ type: 'line', color: '#2196F3' });
+const area    = chart.addSeries({ type: 'area' });
+const ha      = chart.addSeries({ type: 'heikin-ashi' });
+```
+
+#### `addCandlestickSeries(options?)` _(deprecated)_
+
+```ts
+addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>
+```
+
+#### `addLineSeries(options?)` _(deprecated)_
+
+```ts
+addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>
+```
+
+#### `addAreaSeries(options?)` _(deprecated)_
+
+```ts
+addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'>
+```
+
+#### `addBarSeries(options?)` _(deprecated)_
+
+```ts
+addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'>
+```
+
+#### `addBaselineSeries(options?)` _(deprecated)_
+
+```ts
+addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'>
+```
+
+#### `addHollowCandleSeries(options?)` _(deprecated)_
+
+```ts
+addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'>
+```
+
+#### `addHistogramSeries(options?)` _(deprecated)_
+
+```ts
+addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'>
+```
+
+#### `addHeikinAshiSeries(options?)` _(deprecated)_
+
+```ts
+addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>
+```
+
+#### `removeSeries(series)`
+
+```ts
+removeSeries(series: ISeriesApi<SeriesType>): void
+```
+
+Removes a series and schedules a repaint.
+
+### Pane management
+
+#### `addPane(options?)`
+
+```ts
+addPane(options?: PaneOptions): IPaneApi
+```
+
+Creates an additional pane (for a secondary indicator).
+
+#### `removePane(pane)`
+
+```ts
+removePane(pane: IPaneApi): void
+```
+
+### Scale access
+
+#### `timeScale()`
+
+```ts
+timeScale(): TimeScale
+```
+
+Returns the `TimeScale` instance. Useful for `fitContent()`, `scrollToEnd()`, `scrollToPosition()`, or `zoomAt()`.
+
+#### `priceScale(id?)`
+
+```ts
+priceScale(id?: string): PriceScale
+```
+
+### Options
+
+#### `applyOptions(options)`
+
+```ts
+applyOptions(options: DeepPartial<ChartOptions>): void
+```
+
+Deep-merges the given options into current options and schedules a repaint.
+
+#### `options()`
+
+```ts
+options(): ChartOptions
+```
+
+Returns a shallow copy of the current chart options.
+
+### Lifecycle
+
+#### `resize(width, height)`
+
+```ts
+resize(width: number, height: number): void
+```
+
+Resizes both canvases, updates internal state, and schedules a full repaint.
+
+#### `remove()`
+
+```ts
+remove(): void
+```
+
+Cancels any pending animation frame, disconnects the `ResizeObserver`, detaches interaction handlers, and removes the wrapper `<div>` from the DOM. Safe to call multiple times.
+
+### Events
+
+#### `subscribeCrosshairMove(callback)`
+
+```ts
+subscribeCrosshairMove(callback: CrosshairMoveCallback): void
+```
+
+Registers a callback that fires on every repaint frame when the crosshair is visible.
+
+```ts
+interface CrosshairState {
+  x: number;        // canvas x in CSS pixels
+  y: number;        // canvas y in CSS pixels
+  barIndex: number; // snapped bar index
+  price: number;    // price at y
+  time: number;     // Unix timestamp of the snapped bar
+  snappedX: number; // x snapped to bar center
+}
+```
+
+#### `unsubscribeCrosshairMove(callback)`
+
+```ts
+unsubscribeCrosshairMove(callback: CrosshairMoveCallback): void
+```
+
+#### `subscribeClick(callback)` / `unsubscribeClick(callback)`
+
+```ts
+subscribeClick(callback: ClickCallback): void
+unsubscribeClick(callback: ClickCallback): void
+```
+
+#### `subscribeVisibleRangeChange(callback)` / `unsubscribeVisibleRangeChange(callback)`
+
+```ts
+subscribeVisibleRangeChange(callback: (range: { from: number; to: number } | null) => void): void
+unsubscribeVisibleRangeChange(callback: (range: { from: number; to: number } | null) => void): void
+```
+
+Fires whenever the visible bar-index range changes. Used for infinite-history pagination.
+
+### Navigation
+
+#### `fitContent()`
+
+```ts
+fitContent(): void
+```
+
+Adjusts bar spacing so all loaded bars fit within the chart width.
+
+#### `scrollToRealTime()`
+
+```ts
+scrollToRealTime(): void
+```
+
+Snaps the view so the latest bar is at the right edge.
+
+#### `setVisibleRange(from, to)`
+
+```ts
+setVisibleRange(from: number, to: number): void
+```
+
+Sets the visible time range by Unix timestamps (seconds).
+
+#### `setVisibleLogicalRange(from, to)`
+
+```ts
+setVisibleLogicalRange(from: number, to: number): void
+```
+
+Sets the visible range by bar indices.
+
+#### `takeScreenshot()`
+
+```ts
+takeScreenshot(): HTMLCanvasElement
+```
+
+Composites all panes into a single canvas and returns it.
+
+```ts
+const canvas = chart.takeScreenshot();
+const link = document.createElement('a');
+link.href = canvas.toDataURL('image/png');
+link.download = 'chart.png';
+link.click();
+```
+
+### Drawing Tools
+
+#### `addDrawing(type, points, options?)`
+
+```ts
+addDrawing(
+  type:    string,
+  points:  AnchorPoint[],
+  options?: DrawingOptions,
+): IDrawingApi
+```
+
+#### `removeDrawing(drawing)`
+
+```ts
+removeDrawing(drawing: IDrawingApi): void
+```
+
+#### `getDrawings()`
+
+```ts
+getDrawings(): IDrawingApi[]
+```
+
+#### `setActiveDrawingTool(type)`
+
+```ts
+setActiveDrawingTool(type: string | null): void
+```
+
+Activates an interactive drawing tool. Pass `null` to return to pan/zoom mode.
+
+#### `registerDrawingType(type, factory)`
+
+```ts
+registerDrawingType(
+  type:    string,
+  factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive,
+): void
+```
+
+#### `serializeDrawings()` / `deserializeDrawings(data)`
+
+```ts
+serializeDrawings(): SerializedDrawing[]
+deserializeDrawings(data: SerializedDrawing[]): void
+```
+
+### Comparison Mode
+
+#### `setComparisonMode(enabled)` / `isComparisonMode()`
+
+```ts
+setComparisonMode(enabled: boolean): void
+isComparisonMode(): boolean
+```
+
+When enabled, the Y-axis shows percentage change from each series' first visible bar's close.
+
+### Periodicity
+
+#### `setPeriodicity(periodicity)` / `getPeriodicity()`
+
+```ts
+setPeriodicity(periodicity: Periodicity): void
+getPeriodicity(): Periodicity
+```
+
+#### `subscribePeriodicityChange(handler)` / `unsubscribePeriodicityChange(handler)`
+
+```ts
+subscribePeriodicityChange(handler: (p: Periodicity) => void): void
+unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void
+```
+
+### Market Sessions
+
+#### `setMarketSessions(sessions)`
+
+```ts
+setMarketSessions(sessions: MarketSession[]): void
+```
+
+```ts
+import { US_EQUITY_SESSIONS } from 'fin-charter';
+chart.setMarketSessions(US_EQUITY_SESSIONS);
+```
+
+#### `setSessionFilter(filter)`
+
+```ts
+setSessionFilter(filter: 'regular' | 'extended' | 'all'): void
+```
+
+| Value | Effect |
+|---|---|
+| `'all'` | All bars visible (default) |
+| `'regular'` | Only bars within regular-session hours |
+| `'extended'` | Regular + pre/post-market bars |
+
+### Chart State Save/Restore
+
+#### `exportState()`
+
+```ts
+exportState(): ChartState
+```
+
+Exports the current chart configuration as a plain serializable object. Bar data is **not** included.
+
+#### `importState(state, dataLoader)`
+
+```ts
+importState(
+  state:      ChartState,
+  dataLoader: (seriesId: string) => Promise<Bar[]>,
+): Promise<void>
+```
+
+Restores a previously exported state. The `dataLoader` callback is called for each series.
+
+### `ChartState` Type
+
+```ts
+interface ChartState {
+  version:        number;
+  options:        DeepPartial<ChartOptions>;
+  periodicity?:   Periodicity;
+  comparisonMode?: boolean;
+  timeScale:      { barSpacing: number; rightOffset: number };
+  series:         Array<{ id: string; type: SeriesType; options: Record<string, unknown> }>;
+  indicators:     Array<{ type: IndicatorType; sourceSeriesId: string; params: Record<string, number>; color?: string }>;
+  panes:          Array<{ id: string; height: number }>;
+  drawings:       SerializedDrawing[];
+  marketSessions?: MarketSession[];
+  sessionFilter?:  string;
+  visibleRange?:  { from: number; to: number };
+}
+```
+
+---
+
+## `IDrawingApi`
+
+```ts
+interface IDrawingApi {
+  readonly id:  string;
+  drawingType(): string;
+  points():     AnchorPoint[];
+  applyOptions(options: Partial<DrawingOptions>): void;
+  options():    DrawingOptions;
+  remove():     void;
+}
+```
+
+---
+
+## `ISeriesApi<T>`
+
+### `setData(data)`
+
+```ts
+setData(data: Bar[] | ColumnData): void
+```
+
+Replaces all data on the series. Accepts either `Bar[]` or `ColumnData` (zero-copy fast path).
+
+### `update(bar)`
+
+```ts
+update(bar: Bar): void
+```
+
+Appends or updates a single bar in real time. O(1) for both cases.
+
+### `attachPrimitive(primitive)` / `detachPrimitive(primitive)`
+
+```ts
+attachPrimitive(primitive: ISeriesPrimitive): void
+detachPrimitive(primitive: ISeriesPrimitive): void
+```
+
+### `applyOptions(options)` / `options()`
+
+```ts
+applyOptions(options: Partial<SeriesOptionsMap[T]>): void
+options(): SeriesOptionsMap[T]
+```
+
+### `priceScale()`
+
+```ts
+priceScale(): PriceScale
+```
+
+### `dataByIndex(index)`
+
+```ts
+dataByIndex(index: number): Bar | null
+```
+
+### `seriesType()`
+
+```ts
+seriesType(): T
+```
+
+### `prependData(data)`
+
+```ts
+prependData(data: Bar[] | ColumnData): void
+```
+
+Inserts bars at the beginning for infinite-history pagination.
+
+### `barsInLogicalRange(range)`
+
+```ts
+barsInLogicalRange(range: { from: number; to: number }): {
+  barsBefore: number;
+  barsAfter:  number;
+  from:       number;
+  to:         number;
+}
+```
+
+### `setEvents(events)` / `getEvents()`
+
+```ts
+setEvents(events: ChartEvent[]): void
+getEvents(): readonly ChartEvent[]
+```
+
+```ts
+interface ChartEvent {
+  time:        number;
+  eventType:   EventType;   // 'earnings' | 'dividend' | 'split' | 'ipo' | 'other'
+  title:       string;
+  description?: string;
+  value?:      string;
+  color?:      string;
+}
+```
+
+### `subscribeDataChanged(callback)` / `unsubscribeDataChanged(callback)`
+
+```ts
+subscribeDataChanged(callback: () => void): void
+unsubscribeDataChanged(callback: () => void): void
+```
+
+---
+
+## `IPaneApi`
+
+```ts
+interface IPaneApi {
+  readonly id: string;
+  setHeight(height: number): void;
+  attachPrimitive(primitive: IPanePrimitive): void;
+  detachPrimitive(primitive: IPanePrimitive): void;
+}
+```
+
+---
+
+## Option Types
+
+### `ChartOptions`
+
+```ts
+interface ChartOptions {
+  width:     number;   // default: 800
+  height:    number;   // default: 400
+  autoSize:  boolean;  // default: false
+  layout:    LayoutOptions;
+  timeScale: TimeScaleApiOptions;
+  crosshair: CrosshairOptions;
+  grid:      GridOptions;
+}
+```
+
+### `LayoutOptions`
+
+```ts
+interface LayoutOptions {
+  backgroundColor: string;  // default: '#ffffff'
+  textColor:       string;  // default: '#333333'
+  fontSize:        number;  // default: 11
+  fontFamily:      string;  // default: system font stack
+}
+```
+
+### `TimeScaleApiOptions`
+
+```ts
+interface TimeScaleApiOptions {
+  barSpacing:    number;  // default: 6
+  rightOffset:   number;  // default: 0
+  minBarSpacing: number;  // default: 1
+  maxBarSpacing: number;  // default: 50
+}
+```
+
+### `CrosshairOptions`
+
+```ts
+interface CrosshairOptions {
+  vertLineColor: string;
+  vertLineWidth: number;
+  vertLineDash:  number[];
+  horzLineColor: string;
+  horzLineWidth: number;
+  horzLineDash:  number[];
+}
+```
+
+### `GridOptions`
+
+```ts
+interface GridOptions {
+  vertLinesVisible: boolean;
+  vertLinesColor:   string;
+  horzLinesVisible: boolean;
+  horzLinesColor:   string;
+}
+```
+
+### `PaneOptions`
+
+```ts
+interface PaneOptions {
+  height?: number;  // default: 100 (CSS pixels)
+}
+```
+
+---
+
+## Data Types
+
+### `Bar`
+
+```ts
+interface Bar {
+  time:    number;   // Unix timestamp (seconds)
+  open:    number;
+  high:    number;
+  low:     number;
+  close:   number;
+  volume?: number;
+}
+```
+
+### `ColumnData`
+
+```ts
+interface ColumnData {
+  time:   Float64Array;
+  open:   Float64Array;
+  high:   Float64Array;
+  low:    Float64Array;
+  close:  Float64Array;
+  volume: Float64Array;
+}
+```
+
+`ColumnData` is the zero-copy fast path for `setData`. All arrays must have the same length.
+
+---
+
+## `TimeScale` Methods
+
+| Method | Description |
+|---|---|
+| `setOptions(opts)` | Update time-scale options |
+| `visibleRange()` | Returns `{ fromIdx, toIdx }` of visible bar indices |
+| `indexToX(i)` | Converts a bar index to a canvas x-pixel |
+| `xToIndex(x)` | Converts a canvas x-pixel to the nearest bar index |
+| `scrollByPixels(delta)` | Scroll by a pixel delta |
+| `scrollToEnd()` | Snap the last bar to the right edge |
+| `zoomAt(x, factor)` | Zoom bar spacing around an x-pixel anchor |
+| `fitContent()` | Fit all bars in the current width |
+| `barSpacing` | Current pixels-per-bar (read-only getter) |
+
+---
+
+## `PriceScale` Methods
+
+| Method | Description |
+|---|---|
+| `setHeight(h)` | Update the canvas height |
+| `autoScale(min, max)` | Auto-scale to price range with 5% margin |
+| `setRange(min, max)` | Manually fix price range; disables auto-scaling |
+| `resetAutoScale()` | Re-enable auto-scaling |
+| `priceToY(price)` | Converts a price to a canvas y-pixel |
+| `yToPrice(y)` | Inverse of `priceToY` |
+| `priceRange` | Current `{ min, max }` (read-only getter) |
+
+---
+
+## `InvalidationLevel`
+
+```ts
+const InvalidationLevel = {
+  None:   0,
+  Cursor: 1,
+  Light:  2,
+  Full:   3,
+} as const;
+```
+
+---
+
+## `SeriesType`
+
+```ts
+type SeriesType =
+  | 'candlestick'
+  | 'bar'
+  | 'line'
+  | 'area'
+  | 'histogram'
+  | 'baseline'
+  | 'hollow-candle'
+  | 'heikin-ashi';
+```
+
+---
+
+## Drawing Types
+
+### `AnchorPoint`
+
+```ts
+interface AnchorPoint {
+  time:  number;
+  price: number;
+}
+```
+
+### `DrawingOptions`
+
+```ts
+interface DrawingOptions {
+  color?:     string;
+  lineWidth?: number;
+  lineStyle?: 'solid' | 'dashed' | 'dotted';
+  fillColor?: string;
+  text?:      string;
+  fontSize?:  number;
+}
+```
+
+### `SerializedDrawing`
+
+```ts
+interface SerializedDrawing {
+  type:    string;
+  id:      string;
+  points:  AnchorPoint[];
+  options: DrawingOptions;
+}
+```
+
+---
+
+## `Periodicity`
+
+```ts
+interface Periodicity {
+  interval: number;
+  unit: 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month';
+}
+```
+
+Helper functions:
+
+```ts
+periodicityToSeconds(p: Periodicity): number
+periodicityToLabel(p: Periodicity): string  // e.g. '5m', '1D', '4h'
+```
+
+---
+
+## `MarketSession`
+
+```ts
+interface MarketSession {
+  id:          string;
+  label:       string;
+  startMinute: number;
+  endMinute:   number;
+  bgColor:     string;
+}
+```
+
+```ts
+import { US_EQUITY_SESSIONS } from 'fin-charter';
+// [{ id: 'premarket', ... }, { id: 'regular', ... }, { id: 'postmarket', ... }]
+```
+
+---
+
+## Locale & Timezone Options
+
+### `ChartOptions.locale`
+
+BCP 47 locale tag (e.g. `'en-US'`, `'de-DE'`, `'ja-JP'`). Controls number formatting (decimal/thousands separators) and date formatting. Default: `'en-US'`.
+
+### `ChartOptions.timezone`
+
+IANA timezone string (e.g. `'America/New_York'`, `'Asia/Tokyo'`, `'UTC'`). Controls how timestamps are displayed on the time axis. Default: `'UTC'`.
+
+### `ChartOptions.currency`
+
+ISO 4217 currency code (e.g. `'USD'`, `'EUR'`, `'JPY'`). When set, price labels include the currency symbol. Default: none.
+
+---
+
+## Market Definitions
+
+### `MarketDefinition`
+
+```ts
+interface MarketDefinition {
+  id: string;
+  name: string;
+  timezone: string;
+  currency: string;
+  sessions: MarketSession[];
+  holidays: MarketHoliday[];
+}
+```
+
+### `MarketHoliday`
+
+```ts
+interface MarketHoliday {
+  date: string;         // 'YYYY-MM-DD'
+  name?: string;
+  earlyClose?: number;  // minute of day, omit for full day off
+}
+```
+
+### Built-in Markets
+
+| ID | Name | Timezone | Currency |
+|---|---|---|---|
+| `us` | US Equities | America/New_York | USD |
+| `uk` | London Stock Exchange | Europe/London | GBP |
+| `jp` | Japan Exchange | Asia/Tokyo | JPY |
+| `de` | Deutsche Boerse | Europe/Berlin | EUR |
+| `au` | Australian Securities Exchange | Australia/Sydney | AUD |
+| `crypto` | Cryptocurrency | UTC | USD |
+
+### Market Functions
+
+```ts
+getMarket(id: string): MarketDefinition | undefined
+registerMarket(market: MarketDefinition): void
+getMarketForExchange(code: string): MarketDefinition | undefined
+registerExchange(code: string, marketId: string): void
+isMarketDate(dateStr: string, market: MarketDefinition): boolean
+getNextOpen(timestampSec: number, market: MarketDefinition): number
+isEarlyClose(dateStr: string, market: MarketDefinition): number | null
+```
+
+---
+
+## Currency
+
+### `CurrencyInfo`
+
+```ts
+interface CurrencyInfo {
+  code: string;
+  symbol: string;
+  decimals: number;
+}
+```
+
+```ts
+getCurrencyInfo(code: string): CurrencyInfo
+formatCurrency(value: number, currencyCode: string, locale?: string): string
+```
+
+---
+
+## Formatting
+
+### `createPriceFormatter(options?)`
+
+```ts
+createPriceFormatter(options?: {
+  locale?: string;
+  decimals?: number | 'auto';
+  currency?: string;
+}): (price: number) => string
+```
+
+### `createTimeFormatter(options?)`
+
+```ts
+createTimeFormatter(options?: {
+  timezone?: string;
+  locale?: string;
+}): (timestampSec: number, tickType: TickType, crosshair?: boolean) => string
+```
+
+### `formatVolume(value, locale?)`
+
+```ts
+formatVolume(value: number, locale?: string): string
+// 1234567 → "1.23M", 1234 → "1.23K"
+```
+
+---
+
+## Timezone
+
+### `timestampToDateParts(timestampSec, timezone)`
+
+```ts
+timestampToDateParts(timestampSec: number, timezone: string): DateParts
+
+interface DateParts {
+  year: number; month: number; day: number;
+  hour: number; minute: number; second: number;
+  weekday: number;
+}
+```
+
+### `formatInTimezone(timestampSec, timezone, options, locale?)`
+
+```ts
+formatInTimezone(
+  timestampSec: number,
+  timezone: string,
+  options: Intl.DateTimeFormatOptions,
+  locale?: string,
+): string
+```
+
+### `getTimezoneOffsetMinutes(timestampSec, timezone)`
+
+```ts
+getTimezoneOffsetMinutes(timestampSec: number, timezone: string): number
+// Returns offset in minutes (e.g. -300 for EST, 540 for JST)
+```
