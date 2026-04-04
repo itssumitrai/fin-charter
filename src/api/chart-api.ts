@@ -1189,10 +1189,10 @@ class ChartApi implements IChartApi {
     }
 
     // Apply time scale
-    this._timeScale.applyOptions({
+    this._timeScale.setOptions({
       barSpacing: state.timeScale.barSpacing,
-      rightOffset: state.timeScale.rightOffset,
     });
+    this._timeScale.setRightOffset(state.timeScale.rightOffset);
 
     // Remove existing series
     for (const entry of [...this._series]) {
