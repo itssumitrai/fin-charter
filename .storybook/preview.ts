@@ -1,10 +1,21 @@
 import type { Preview } from '@storybook/html';
 import { create } from 'storybook/theming/create';
-import { initialize, mswLoader } from 'msw-storybook-addon';
-import { handlers } from '../stories/mocks/handlers';
+import isChromatic from 'chromatic/isChromatic';
 
-// Initialize MSW with the Yahoo Finance mock handlers
-initialize();
+// Only initialize MSW during Chromatic visual testing — on GitHub Pages
+// the service worker script doesn't exist and blocks all stories from rendering
+let mswLoader: NonNullable<Preview['loaders']>[number] | undefined;
+let mswHandlers: unknown[] | undefined;
+
+if (isChromatic()) {
+  const [mswAddon, mocks] = await Promise.all([
+    import('msw-storybook-addon'),
+    import('../stories/mocks/handlers'),
+  ]);
+  mswAddon.initialize();
+  mswLoader = mswAddon.mswLoader;
+  mswHandlers = mocks.handlers;
+}
 
 const darkTheme = create({
   base: 'dark',
@@ -31,10 +42,8 @@ const preview: Preview = {
     docs: {
       theme: darkTheme,
     },
-    msw: {
-      handlers,
-    },
+    ...(mswHandlers && { msw: { handlers: mswHandlers } }),
   },
-  loaders: [mswLoader],
+  loaders: mswLoader ? [mswLoader] : [],
 };
 export default preview;
