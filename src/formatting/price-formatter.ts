@@ -6,9 +6,7 @@ export interface PriceFormatterOptions {
 
 function autoDecimals(price: number): number {
   const abs = Math.abs(price);
-  if (abs === 0) return 2;
-  if (abs >= 1000) return 2;
-  if (abs >= 1) return 2;
+  if (abs >= 1 || abs === 0) return 2;
   if (abs >= 0.01) return 4;
   return 6;
 }

@@ -61,6 +61,17 @@ describe('formatCurrency', () => {
   it('handles NaN', () => {
     expect(formatCurrency(NaN, 'USD')).toBe('-');
   });
+
+  it('formats BTC correctly on repeated calls (cache consistency)', () => {
+    const first = formatCurrency(0.5, 'BTC');
+    const second = formatCurrency(1.25, 'BTC');
+    // Both calls must include "BTC" (symbol or code) — verifies cache doesn't lose the symbol
+    expect(first).toContain('BTC');
+    expect(second).toContain('BTC');
+    // Values must be present
+    expect(first).toMatch(/0\.50000000/);
+    expect(second).toMatch(/1\.25000000/);
+  });
 });
 
 describe('CURRENCIES', () => {

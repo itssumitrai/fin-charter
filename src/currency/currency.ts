@@ -26,7 +26,7 @@ export function getCurrencyInfo(code: string): CurrencyInfo {
   return CURRENCIES[code] ?? { code, symbol: code, decimals: 2 };
 }
 
-const _fmtCache = new Map<string, Intl.NumberFormat>();
+const _fmtCache = new Map<string, (v: number) => string>();
 
 export function formatCurrency(
   value: number,
@@ -36,25 +36,25 @@ export function formatCurrency(
   if (!isFinite(value)) return '-';
   const info = getCurrencyInfo(currencyCode);
   const key = `${locale}|${currencyCode}`;
-  let fmt = _fmtCache.get(key);
-  if (!fmt) {
+  let formatter = _fmtCache.get(key);
+  if (!formatter) {
     try {
-      fmt = new Intl.NumberFormat(locale, {
+      const fmt = new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: currencyCode,
         minimumFractionDigits: info.decimals,
         maximumFractionDigits: info.decimals,
       });
+      formatter = (v: number) => fmt.format(v);
     } catch {
       // Fallback for non-ISO currencies like BTC
-      fmt = new Intl.NumberFormat(locale, {
+      const fmt = new Intl.NumberFormat(locale, {
         minimumFractionDigits: info.decimals,
         maximumFractionDigits: info.decimals,
       });
-      _fmtCache.set(key, fmt);
-      return `${info.symbol}${fmt.format(value)}`;
+      formatter = (v: number) => `${info.symbol}${fmt.format(v)}`;
     }
-    _fmtCache.set(key, fmt);
+    _fmtCache.set(key, formatter);
   }
-  return fmt.format(value);
+  return formatter(value);
 }

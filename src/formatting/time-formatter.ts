@@ -1,3 +1,5 @@
+import { timestampToDateParts } from '../timezone/timezone';
+
 export interface TimeFormatterOptions {
   timezone?: string;
   locale?: string;
@@ -15,34 +17,7 @@ export function createTimeFormatter(options?: TimeFormatterOptions): (
   const tz = options?.timezone ?? 'UTC';
 
   return (timestampSec: number, tickType: TickType, crosshair: boolean = false): string => {
-    // Use basic UTC date parts for now - will be wired to timezone module later
-    const date = new Date(timestampSec * 1000);
-    const p = {
-      year: date.getUTCFullYear(),
-      month: date.getUTCMonth() + 1,
-      day: date.getUTCDate(),
-      hour: date.getUTCHours(),
-      minute: date.getUTCMinutes(),
-    };
-
-    // If timezone is not UTC, use Intl to get correct parts
-    if (tz !== 'UTC') {
-      const fmt = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric',
-        hour: 'numeric', minute: 'numeric', hour12: false,
-      });
-      const parts = fmt.formatToParts(new Date(timestampSec * 1000));
-      for (const part of parts) {
-        switch (part.type) {
-          case 'year': p.year = +part.value; break;
-          case 'month': p.month = +part.value; break;
-          case 'day': p.day = +part.value; break;
-          case 'hour': p.hour = +part.value === 24 ? 0 : +part.value; break;
-          case 'minute': p.minute = +part.value; break;
-        }
-      }
-    }
-
+    const p = timestampToDateParts(timestampSec, tz);
     const mon = MONTHS_SHORT[p.month - 1];
     const hh = p.hour.toString().padStart(2, '0');
     const mm = p.minute.toString().padStart(2, '0');
