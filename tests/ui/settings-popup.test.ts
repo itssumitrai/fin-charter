@@ -84,8 +84,7 @@ describe('createSettingsPopup', () => {
     const fields = makeFields();
     const popup = createSettingsPopup(fields, onApply, vi.fn(), defaultTheme);
 
-    const buttons = popup.querySelectorAll('button');
-    const applyBtn = buttons[1]; // Apply is second
+    const applyBtn = Array.from(popup.querySelectorAll('button')).find(b => b.textContent === 'Apply')!;
     applyBtn.click();
 
     expect(onApply).toHaveBeenCalledOnce();
@@ -105,7 +104,7 @@ describe('createSettingsPopup', () => {
     const input = popup.querySelector('input') as HTMLInputElement;
     input.value = '50';
 
-    const applyBtn = popup.querySelectorAll('button')[1];
+    const applyBtn = Array.from(popup.querySelectorAll('button')).find(b => b.textContent === 'Apply')!;
     applyBtn.click();
 
     expect(onApply.mock.calls[0][0].period).toBe(50);
@@ -117,7 +116,7 @@ describe('createSettingsPopup', () => {
     const onCancel = vi.fn();
     const popup = createSettingsPopup(makeFields(), vi.fn(), onCancel, defaultTheme);
 
-    const cancelBtn = popup.querySelectorAll('button')[0];
+    const cancelBtn = Array.from(popup.querySelectorAll('button')).find(b => b.textContent === 'Cancel')!;
     cancelBtn.click();
 
     expect(onCancel).toHaveBeenCalledOnce();

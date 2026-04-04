@@ -43,7 +43,7 @@ describe('DrawingHandler', () => {
   beforeEach(() => {
     cb = makeMockCallbacks();
     handler = new DrawingHandler(cb);
-    vi.mocked(DRAWING_REGISTRY).clear();
+    DRAWING_REGISTRY.clear();
   });
 
   describe('initial state', () => {

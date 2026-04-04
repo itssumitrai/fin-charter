@@ -98,8 +98,12 @@ describe('createContextMenu', () => {
     const items: ContextMenuItem[] = [{ label: 'Do It', action }];
     const menu = createContextMenu(items, { x: 0, y: 0 }, defaultTheme);
 
-    // Click the row (first child div with the span)
-    const row = menu.querySelector('div[style]') as HTMLDivElement;
+    // Click the row for the item with the matching label
+    const labelSpan = Array.from(menu.querySelectorAll('span')).find(
+      (span) => span.textContent === 'Do It',
+    );
+    expect(labelSpan).toBeDefined();
+    const row = labelSpan!.parentElement as HTMLDivElement;
     row.click();
 
     expect(action).toHaveBeenCalledOnce();
