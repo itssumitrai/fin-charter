@@ -181,7 +181,11 @@ export interface IPanePrimitive {
 
 // ─── Series ──────────────────────────────────────────────────────────────────
 
-export type SeriesType = 'candlestick' | 'bar' | 'line' | 'area' | 'histogram' | 'baseline' | 'hollow-candle' | 'heikin-ashi';
+export type SeriesType =
+  | 'candlestick' | 'bar' | 'line' | 'area' | 'histogram' | 'baseline' | 'hollow-candle' | 'heikin-ashi'
+  | 'step-line' | 'colored-line' | 'colored-mountain' | 'hlc-area' | 'high-low' | 'column'
+  | 'volume-candle' | 'baseline-delta-mountain'
+  | 'renko' | 'kagi' | 'line-break' | 'point-figure';
 
 // ─── Utility types ───────────────────────────────────────────────────────────
 
