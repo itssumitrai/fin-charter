@@ -37,6 +37,18 @@ import { BarOHLCRenderer } from '../renderers/bar-ohlc';
 import { BaselineRenderer } from '../renderers/baseline';
 import { HollowCandleRenderer } from '../renderers/hollow-candle';
 import { HistogramRenderer } from '../renderers/histogram';
+import { StepLineRenderer } from '../renderers/step-line';
+import { ColoredLineRenderer } from '../renderers/colored-line';
+import { ColoredMountainRenderer } from '../renderers/colored-mountain';
+import { HLCAreaRenderer } from '../renderers/hlc-area';
+import { HighLowRenderer } from '../renderers/high-low';
+import { ColumnRenderer } from '../renderers/column';
+import { VolumeCandleRenderer } from '../renderers/volume-candle';
+import { BaselineDeltaMountainRenderer } from '../renderers/baseline-delta-mountain';
+import { RenkoRenderer } from '../renderers/renko';
+import { KagiRenderer } from '../renderers/kagi';
+import { LineBreakRenderer } from '../renderers/line-break';
+import { PointFigureRenderer } from '../renderers/point-figure';
 
 import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
@@ -260,7 +272,19 @@ interface SeriesEntry {
     | BarOHLCRenderer
     | BaselineRenderer
     | HollowCandleRenderer
-    | HistogramRenderer;
+    | HistogramRenderer
+    | StepLineRenderer
+    | ColoredLineRenderer
+    | ColoredMountainRenderer
+    | HLCAreaRenderer
+    | HighLowRenderer
+    | ColumnRenderer
+    | VolumeCandleRenderer
+    | BaselineDeltaMountainRenderer
+    | RenkoRenderer
+    | KagiRenderer
+    | LineBreakRenderer
+    | PointFigureRenderer;
   type: SeriesType;
   paneId: string;
   /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
@@ -3342,6 +3366,66 @@ class ChartApi implements IChartApi {
       }
       case 'histogram': {
         const r = new HistogramRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'step-line': {
+        const r = new StepLineRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'colored-line': {
+        const r = new ColoredLineRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'colored-mountain': {
+        const r = new ColoredMountainRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'hlc-area': {
+        const r = new HLCAreaRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'high-low': {
+        const r = new HighLowRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'column': {
+        const r = new ColumnRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'volume-candle': {
+        const r = new VolumeCandleRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'baseline-delta-mountain': {
+        const r = new BaselineDeltaMountainRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'renko': {
+        const r = new RenkoRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'kagi': {
+        const r = new KagiRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'line-break': {
+        const r = new LineBreakRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'point-figure': {
+        const r = new PointFigureRenderer();
         if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
         return r;
       }

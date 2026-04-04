@@ -3,7 +3,10 @@ import type { QuoteMeta } from './yahoo-finance';
 
 export type ChartTypeLabel =
   | 'Candlestick' | 'Line' | 'Area' | 'Bar'
-  | 'Baseline' | 'HollowCandle' | 'HeikinAshi';
+  | 'Baseline' | 'HollowCandle' | 'HeikinAshi'
+  | 'StepLine' | 'ColoredLine' | 'ColoredMountain' | 'HLCArea' | 'HighLow' | 'Column'
+  | 'VolumeCandle' | 'BaselineDeltaMountain'
+  | 'Renko' | 'Kagi' | 'LineBreak' | 'PointFigure';
 
 export const CHART_TYPE_TO_SERIES: Record<ChartTypeLabel, SeriesType> = {
   Candlestick: 'candlestick',
@@ -13,6 +16,18 @@ export const CHART_TYPE_TO_SERIES: Record<ChartTypeLabel, SeriesType> = {
   Baseline: 'baseline',
   HollowCandle: 'hollow-candle',
   HeikinAshi: 'heikin-ashi',
+  StepLine: 'step-line',
+  ColoredLine: 'colored-line',
+  ColoredMountain: 'colored-mountain',
+  HLCArea: 'hlc-area',
+  HighLow: 'high-low',
+  Column: 'column',
+  VolumeCandle: 'volume-candle',
+  BaselineDeltaMountain: 'baseline-delta-mountain',
+  Renko: 'renko',
+  Kagi: 'kagi',
+  LineBreak: 'line-break',
+  PointFigure: 'point-figure',
 };
 
 export const PERIODICITIES: { label: string; value: Periodicity }[] = [

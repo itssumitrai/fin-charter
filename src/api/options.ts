@@ -6,6 +6,18 @@ import type { BarOHLCRendererOptions } from '../renderers/bar-ohlc';
 import type { BaselineRendererOptions } from '../renderers/baseline';
 import type { HollowCandleRendererOptions } from '../renderers/hollow-candle';
 import type { HistogramRendererOptions } from '../renderers/histogram';
+import type { StepLineRendererOptions } from '../renderers/step-line';
+import type { ColoredLineRendererOptions } from '../renderers/colored-line';
+import type { ColoredMountainRendererOptions } from '../renderers/colored-mountain';
+import type { HLCAreaRendererOptions } from '../renderers/hlc-area';
+import type { HighLowRendererOptions } from '../renderers/high-low';
+import type { ColumnRendererOptions } from '../renderers/column';
+import type { VolumeCandleRendererOptions } from '../renderers/volume-candle';
+import type { BaselineDeltaMountainRendererOptions } from '../renderers/baseline-delta-mountain';
+import type { RenkoRendererOptions } from '../renderers/renko';
+import type { KagiRendererOptions } from '../renderers/kagi';
+import type { LineBreakRendererOptions } from '../renderers/line-break';
+import type { PointFigureRendererOptions } from '../renderers/point-figure';
 
 // ─── Layout ─────────────────────────────────────────────────────────────────
 
@@ -226,6 +238,18 @@ export type BarSeriesOptions = BaseSeriesOptions & Partial<BarOHLCRendererOption
 export type BaselineSeriesOptions = BaseSeriesOptions & Partial<BaselineRendererOptions>;
 export type HollowCandleSeriesOptions = BaseSeriesOptions & Partial<HollowCandleRendererOptions>;
 export type HistogramSeriesOptions = BaseSeriesOptions & Partial<HistogramRendererOptions>;
+export type StepLineSeriesOptions = BaseSeriesOptions & Partial<StepLineRendererOptions>;
+export type ColoredLineSeriesOptions = BaseSeriesOptions & Partial<ColoredLineRendererOptions>;
+export type ColoredMountainSeriesOptions = BaseSeriesOptions & Partial<ColoredMountainRendererOptions>;
+export type HLCAreaSeriesOptions = BaseSeriesOptions & Partial<HLCAreaRendererOptions>;
+export type HighLowSeriesOptions = BaseSeriesOptions & Partial<HighLowRendererOptions>;
+export type ColumnSeriesOptions = BaseSeriesOptions & Partial<ColumnRendererOptions>;
+export type VolumeCandleSeriesOptions = BaseSeriesOptions & Partial<VolumeCandleRendererOptions>;
+export type BaselineDeltaMountainSeriesOptions = BaseSeriesOptions & Partial<BaselineDeltaMountainRendererOptions>;
+export type RenkoSeriesOptions = BaseSeriesOptions & Partial<RenkoRendererOptions>;
+export type KagiSeriesOptions = BaseSeriesOptions & Partial<KagiRendererOptions>;
+export type LineBreakSeriesOptions = BaseSeriesOptions & Partial<LineBreakRendererOptions>;
+export type PointFigureSeriesOptions = BaseSeriesOptions & Partial<PointFigureRendererOptions>;
 
 export interface PaneOptions {
   height?: number;
@@ -240,6 +264,18 @@ export interface SeriesOptionsMap {
   baseline: BaselineSeriesOptions;
   'hollow-candle': HollowCandleSeriesOptions;
   'heikin-ashi': CandlestickSeriesOptions;
+  'step-line': StepLineSeriesOptions;
+  'colored-line': ColoredLineSeriesOptions;
+  'colored-mountain': ColoredMountainSeriesOptions;
+  'hlc-area': HLCAreaSeriesOptions;
+  'high-low': HighLowSeriesOptions;
+  column: ColumnSeriesOptions;
+  'volume-candle': VolumeCandleSeriesOptions;
+  'baseline-delta-mountain': BaselineDeltaMountainSeriesOptions;
+  renko: RenkoSeriesOptions;
+  kagi: KagiSeriesOptions;
+  'line-break': LineBreakSeriesOptions;
+  'point-figure': PointFigureSeriesOptions;
 }
 
 /** Discriminated union for the unified addSeries() API. */
@@ -251,7 +287,19 @@ export type SeriesOptions =
   | ({ type: 'baseline' } & Partial<BaselineSeriesOptions>)
   | ({ type: 'hollow-candle' } & Partial<HollowCandleSeriesOptions>)
   | ({ type: 'histogram' } & Partial<HistogramSeriesOptions>)
-  | ({ type: 'heikin-ashi' } & Partial<CandlestickSeriesOptions>);
+  | ({ type: 'heikin-ashi' } & Partial<CandlestickSeriesOptions>)
+  | ({ type: 'step-line' } & Partial<StepLineSeriesOptions>)
+  | ({ type: 'colored-line' } & Partial<ColoredLineSeriesOptions>)
+  | ({ type: 'colored-mountain' } & Partial<ColoredMountainSeriesOptions>)
+  | ({ type: 'hlc-area' } & Partial<HLCAreaSeriesOptions>)
+  | ({ type: 'high-low' } & Partial<HighLowSeriesOptions>)
+  | ({ type: 'column' } & Partial<ColumnSeriesOptions>)
+  | ({ type: 'volume-candle' } & Partial<VolumeCandleSeriesOptions>)
+  | ({ type: 'baseline-delta-mountain' } & Partial<BaselineDeltaMountainSeriesOptions>)
+  | ({ type: 'renko' } & Partial<RenkoSeriesOptions>)
+  | ({ type: 'kagi' } & Partial<KagiSeriesOptions>)
+  | ({ type: 'line-break' } & Partial<LineBreakSeriesOptions>)
+  | ({ type: 'point-figure' } & Partial<PointFigureSeriesOptions>);
 
 // ─── Indicators ────────────────────────────────────────────────────────────
 
