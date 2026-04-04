@@ -6,14 +6,24 @@ import {
 import type { AnchorPoint, DrawingOptions, SerializedDrawing } from '@/drawings/base';
 
 describe('DRAWING_REGISTRY', () => {
-  it('has all 6 built-in drawing types', () => {
-    expect(DRAWING_REGISTRY.size).toBe(6);
+  it('has all 16 built-in drawing types', () => {
+    expect(DRAWING_REGISTRY.size).toBe(16);
     expect(DRAWING_REGISTRY.has('horizontal-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('vertical-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('trendline')).toBe(true);
     expect(DRAWING_REGISTRY.has('fibonacci')).toBe(true);
     expect(DRAWING_REGISTRY.has('rectangle')).toBe(true);
     expect(DRAWING_REGISTRY.has('text-annotation')).toBe(true);
+    expect(DRAWING_REGISTRY.has('ray')).toBe(true);
+    expect(DRAWING_REGISTRY.has('arrow')).toBe(true);
+    expect(DRAWING_REGISTRY.has('channel')).toBe(true);
+    expect(DRAWING_REGISTRY.has('ellipse')).toBe(true);
+    expect(DRAWING_REGISTRY.has('pitchfork')).toBe(true);
+    expect(DRAWING_REGISTRY.has('fib-projection')).toBe(true);
+    expect(DRAWING_REGISTRY.has('fib-arc')).toBe(true);
+    expect(DRAWING_REGISTRY.has('fib-fan')).toBe(true);
+    expect(DRAWING_REGISTRY.has('crossline')).toBe(true);
+    expect(DRAWING_REGISTRY.has('measurement')).toBe(true);
   });
 });
 
@@ -58,6 +68,82 @@ describe('createBuiltinDrawing', () => {
     expect(d).not.toBeNull();
     expect(d!.drawingType).toBe('text-annotation');
     expect(d!.requiredPoints).toBe(1);
+  });
+
+  it('creates a ray drawing', () => {
+    const d = createBuiltinDrawing('ray', 'ray1', [{ time: 1, price: 10 }, { time: 5, price: 20 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('ray');
+    expect(d!.requiredPoints).toBe(2);
+  });
+
+  it('creates an arrow drawing', () => {
+    const d = createBuiltinDrawing('arrow', 'arr1', [{ time: 1, price: 10 }, { time: 5, price: 20 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('arrow');
+    expect(d!.requiredPoints).toBe(2);
+  });
+
+  it('creates a channel drawing', () => {
+    const d = createBuiltinDrawing('channel', 'ch1', [
+      { time: 0, price: 100 }, { time: 10, price: 120 }, { time: 0, price: 90 },
+    ], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('channel');
+    expect(d!.requiredPoints).toBe(3);
+  });
+
+  it('creates an ellipse drawing', () => {
+    const d = createBuiltinDrawing('ellipse', 'el1', [{ time: 1, price: 50 }, { time: 5, price: 100 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('ellipse');
+    expect(d!.requiredPoints).toBe(2);
+  });
+
+  it('creates a pitchfork drawing', () => {
+    const d = createBuiltinDrawing('pitchfork', 'pf1', [
+      { time: 0, price: 100 }, { time: 5, price: 130 }, { time: 5, price: 70 },
+    ], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('pitchfork');
+    expect(d!.requiredPoints).toBe(3);
+  });
+
+  it('creates a fib-projection drawing', () => {
+    const d = createBuiltinDrawing('fib-projection', 'fp1', [
+      { time: 0, price: 100 }, { time: 5, price: 150 }, { time: 8, price: 120 },
+    ], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('fib-projection');
+    expect(d!.requiredPoints).toBe(3);
+  });
+
+  it('creates a fib-arc drawing', () => {
+    const d = createBuiltinDrawing('fib-arc', 'fa1', [{ time: 1, price: 100 }, { time: 10, price: 200 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('fib-arc');
+    expect(d!.requiredPoints).toBe(2);
+  });
+
+  it('creates a fib-fan drawing', () => {
+    const d = createBuiltinDrawing('fib-fan', 'ff1', [{ time: 1, price: 100 }, { time: 10, price: 200 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('fib-fan');
+    expect(d!.requiredPoints).toBe(2);
+  });
+
+  it('creates a crossline drawing', () => {
+    const d = createBuiltinDrawing('crossline', 'cl1', [{ time: 5, price: 75 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('crossline');
+    expect(d!.requiredPoints).toBe(1);
+  });
+
+  it('creates a measurement drawing', () => {
+    const d = createBuiltinDrawing('measurement', 'm1', [{ time: 1, price: 100 }, { time: 10, price: 120 }], {});
+    expect(d).not.toBeNull();
+    expect(d!.drawingType).toBe('measurement');
+    expect(d!.requiredPoints).toBe(2);
   });
 
   it('returns null for unknown types', () => {
@@ -124,6 +210,16 @@ describe('requiredPoints', () => {
     'fibonacci': 2,
     'rectangle': 2,
     'text-annotation': 1,
+    'ray': 2,
+    'arrow': 2,
+    'channel': 3,
+    'ellipse': 2,
+    'pitchfork': 3,
+    'fib-projection': 3,
+    'fib-arc': 2,
+    'fib-fan': 2,
+    'crossline': 1,
+    'measurement': 2,
   };
 
   for (const [type, expected] of Object.entries(expectedPoints)) {
