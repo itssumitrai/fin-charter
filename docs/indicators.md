@@ -12,13 +12,31 @@ import {
   computeRSI,
   computeMACD,
   computeVolume,
-  // New in this release
+  computeVWAP,
+  computeStochastic,
+  computeATR,
+  computeADX,
+  computeOBV,
+  computeWilliamsR,
   computeIchimoku,
   computeParabolicSAR,
   computeKeltner,
   computeDonchian,
   computeCCI,
   computePivotPoints,
+  // New indicators
+  computeAroon,
+  computeAwesomeOscillator,
+  computeChaikinMF,
+  computeCoppock,
+  computeElderForce,
+  computeTRIX,
+  computeSupertrend,
+  computeVWMA,
+  computeChoppiness,
+  computeMFI,
+  computeROC,
+  computeLinearRegression,
   slidingMax,
   slidingMin,
 } from 'fin-charter/indicators';
@@ -576,6 +594,472 @@ import { slidingMax, slidingMin } from 'fin-charter/indicators';
 const hhv = slidingMax(store.high, store.length, 20);
 // 20-period lowest-low channel
 const llv = slidingMin(store.low, store.length, 20);
+```
+
+---
+
+---
+
+## Aroon
+
+**Separate-pane oscillator. Two lines: Aroon Up and Aroon Down, each oscillating 0–100.**
+
+```ts
+function computeAroon(
+  high:    Float64Array,
+  low:     Float64Array,
+  length:  number,
+  period?: number,  // default: 25
+): AroonResult
+
+interface AroonResult {
+  up:   Float64Array;  // % bars since highest high within period
+  down: Float64Array;  // % bars since lowest low within period
+}
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `length` | — | Number of bars |
+| `period` | 25 | Look-back window in bars |
+
+Values before index `period` are `NaN`. `up` and `down` cross over 50 to signal trend changes.
+
+**Usage**
+
+```ts
+import { computeAroon } from 'fin-charter/indicators';
+
+const aroon = computeAroon(store.high, store.low, store.length, 25);
+// aroon.up, aroon.down — render as two line series in a separate pane
+
+// Or use addIndicator:
+chart.addIndicator('aroon', { source: series, params: { period: 25 }, label: 'Aroon(25)' });
+```
+
+---
+
+## Awesome Oscillator
+
+**Separate-pane histogram oscillator. Difference between a 5-period and 34-period SMA of the median price.**
+
+```ts
+function computeAwesomeOscillator(
+  high:        Float64Array,
+  low:         Float64Array,
+  length:      number,
+  fastPeriod?: number,  // default: 5
+  slowPeriod?: number,  // default: 34
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `length` | — | Number of bars |
+| `fastPeriod` | 5 | Fast SMA period |
+| `slowPeriod` | 34 | Slow SMA period |
+
+**Usage**
+
+```ts
+import { computeAwesomeOscillator } from 'fin-charter/indicators';
+
+const ao = computeAwesomeOscillator(store.high, store.low, store.length);
+
+// Or use addIndicator:
+chart.addIndicator('awesome-oscillator', { source: series, params: { fastPeriod: 5, slowPeriod: 34 }, label: 'AO' });
+```
+
+---
+
+## Chaikin Money Flow
+
+**Separate-pane oscillator measuring buying/selling pressure from price position within the bar's range, weighted by volume.**
+
+```ts
+function computeChaikinMF(
+  high:    Float64Array,
+  low:     Float64Array,
+  close:   Float64Array,
+  volume:  Float64Array,
+  length:  number,
+  period?: number,  // default: 20
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `close` | — | Close-price column |
+| `volume` | — | Volume column |
+| `length` | — | Number of bars |
+| `period` | 20 | Look-back window in bars |
+
+Returns values in the range approximately −1 to +1. Positive values suggest accumulation; negative suggest distribution.
+
+**Usage**
+
+```ts
+import { computeChaikinMF } from 'fin-charter/indicators';
+
+const cmf = computeChaikinMF(store.high, store.low, store.close, store.volume, store.length, 20);
+
+// Or use addIndicator:
+chart.addIndicator('chaikin-mf', { source: series, params: { period: 20 }, label: 'CMF(20)' });
+```
+
+---
+
+## Coppock Curve
+
+**Separate-pane momentum indicator designed for identifying long-term buying opportunities. Uses a weighted moving average of a sum of two rate-of-change values.**
+
+```ts
+function computeCoppock(
+  close:       Float64Array,
+  length:      number,
+  wmaPeriod?:  number,  // default: 10
+  longROC?:    number,  // default: 14
+  shortROC?:   number,  // default: 11
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `wmaPeriod` | 10 | WMA period applied to the summed ROC |
+| `longROC` | 14 | Long rate-of-change look-back |
+| `shortROC` | 11 | Short rate-of-change look-back |
+
+**Usage**
+
+```ts
+import { computeCoppock } from 'fin-charter/indicators';
+
+const coppock = computeCoppock(store.close, store.length);
+
+// Or use addIndicator:
+chart.addIndicator('coppock', { source: series, params: { wmaPeriod: 10, longROC: 14, shortROC: 11 }, label: 'Coppock' });
+```
+
+---
+
+## Elder Force Index
+
+**Separate-pane indicator combining price change direction with volume into a smoothed oscillator.**
+
+```ts
+function computeElderForce(
+  close:   Float64Array,
+  volume:  Float64Array,
+  length:  number,
+  period?: number,  // default: 13
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `volume` | — | Volume column |
+| `length` | — | Number of bars |
+| `period` | 13 | EMA smoothing period applied to raw force values |
+
+Raw force is `(close[i] − close[i−1]) × volume[i]`. The result is then smoothed with an EMA.
+
+**Usage**
+
+```ts
+import { computeElderForce } from 'fin-charter/indicators';
+
+const efi = computeElderForce(store.close, store.volume, store.length, 13);
+
+// Or use addIndicator:
+chart.addIndicator('elder-force', { source: series, params: { period: 13 }, label: 'EFI(13)' });
+```
+
+---
+
+## TRIX
+
+**Separate-pane momentum oscillator. Percentage rate-of-change of a triple-smoothed EMA, with an optional signal line.**
+
+```ts
+function computeTRIX(
+  close:         Float64Array,
+  length:        number,
+  period?:       number,  // default: 15
+  signalPeriod?: number,  // default: 9
+): TRIXResult
+
+interface TRIXResult {
+  trix:   Float64Array;  // % ROC of triple EMA
+  signal: Float64Array;  // EMA of trix (signal line)
+}
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `period` | 15 | EMA period applied three times |
+| `signalPeriod` | 9 | EMA period for the signal line |
+
+**Usage**
+
+```ts
+import { computeTRIX } from 'fin-charter/indicators';
+
+const trix = computeTRIX(store.close, store.length, 15, 9);
+// trix.trix — main line; trix.signal — signal line
+
+// Or use addIndicator:
+chart.addIndicator('trix', { source: series, params: { period: 15, signalPeriod: 9 }, label: 'TRIX(15,9)' });
+```
+
+---
+
+## Supertrend
+
+**Overlay indicator that follows the trend direction using ATR-based bands. Renders as a single line above or below price.**
+
+```ts
+function computeSupertrend(
+  high:        Float64Array,
+  low:         Float64Array,
+  close:       Float64Array,
+  length:      number,
+  period?:     number,  // default: 10
+  multiplier?: number,  // default: 3.0
+): SupertrendResult
+
+interface SupertrendResult {
+  value:     Float64Array;  // price level of the band (support or resistance)
+  direction: Float64Array;  // 1 = uptrend (band below price), −1 = downtrend (band above price)
+}
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `period` | 10 | ATR look-back period |
+| `multiplier` | 3.0 | ATR multiplier for band width |
+
+**Usage**
+
+```ts
+import { computeSupertrend } from 'fin-charter/indicators';
+
+const st = computeSupertrend(store.high, store.low, store.close, store.length);
+// st.value — the trailing stop level; st.direction — 1 or −1
+
+// Or use addIndicator:
+chart.addIndicator('supertrend', { source: series, params: { period: 10, multiplier: 3 }, color: '#4CAF50', label: 'ST(10,3)' });
+```
+
+---
+
+## VWMA — Volume-Weighted Moving Average
+
+**Overlay indicator. Like SMA but each bar is weighted by its volume, making high-volume bars more influential.**
+
+```ts
+function computeVWMA(
+  close:   Float64Array,
+  volume:  Float64Array,
+  length:  number,
+  period?: number,  // default: 20
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `volume` | — | Volume column |
+| `length` | — | Number of bars |
+| `period` | 20 | Look-back window in bars |
+
+**Usage**
+
+```ts
+import { computeVWMA } from 'fin-charter/indicators';
+
+const vwma = computeVWMA(store.close, store.volume, store.length, 20);
+
+// Or use addIndicator:
+chart.addIndicator('vwma', { source: series, params: { period: 20 }, color: '#FF5722', label: 'VWMA(20)' });
+```
+
+---
+
+## Choppiness Index
+
+**Separate-pane indicator measuring market choppiness (ranging vs trending). Values near 100 indicate choppy/sideways markets; values near 0 indicate strong trending markets.**
+
+```ts
+function computeChoppiness(
+  high:    Float64Array,
+  low:     Float64Array,
+  close:   Float64Array,
+  length:  number,
+  period?: number,  // default: 14
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `period` | 14 | Look-back window in bars |
+
+Returns values typically in the range 38.2–61.8. The formula is `100 × log10(sum(ATR1) / (HH − LL)) / log10(period)`.
+
+**Usage**
+
+```ts
+import { computeChoppiness } from 'fin-charter/indicators';
+
+const chop = computeChoppiness(store.high, store.low, store.close, store.length, 14);
+
+// Or use addIndicator:
+chart.addIndicator('choppiness', { source: series, params: { period: 14 }, label: 'CHOP(14)' });
+```
+
+---
+
+## MFI — Money Flow Index
+
+**Separate-pane oscillator (0–100) similar to RSI but incorporating volume. Readings above 80 suggest overbought; below 20 suggest oversold.**
+
+```ts
+function computeMFI(
+  high:    Float64Array,
+  low:     Float64Array,
+  close:   Float64Array,
+  volume:  Float64Array,
+  length:  number,
+  period?: number,  // default: 14
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `high` | — | High-price column |
+| `low` | — | Low-price column |
+| `close` | — | Close-price column |
+| `volume` | — | Volume column |
+| `length` | — | Number of bars |
+| `period` | 14 | Look-back window in bars |
+
+**Usage**
+
+```ts
+import { computeMFI } from 'fin-charter/indicators';
+
+const mfi = computeMFI(store.high, store.low, store.close, store.volume, store.length, 14);
+
+// Or use addIndicator:
+chart.addIndicator('mfi', { source: series, params: { period: 14 }, label: 'MFI(14)' });
+```
+
+---
+
+## ROC — Rate of Change
+
+**Separate-pane momentum oscillator. Percentage change in close price over a given look-back period.**
+
+```ts
+function computeROC(
+  close:   Float64Array,
+  length:  number,
+  period?: number,  // default: 12
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `period` | 12 | Look-back window in bars |
+
+Returns `(close[i] − close[i − period]) / close[i − period] × 100`. Values before index `period` are `NaN`.
+
+**Usage**
+
+```ts
+import { computeROC } from 'fin-charter/indicators';
+
+const roc = computeROC(store.close, store.length, 12);
+
+// Or use addIndicator:
+chart.addIndicator('roc', { source: series, params: { period: 12 }, label: 'ROC(12)' });
+```
+
+---
+
+## Linear Regression
+
+**Overlay indicator. Ordinary least-squares linear regression value at each bar over a rolling window.**
+
+```ts
+function computeLinearRegression(
+  close:   Float64Array,
+  length:  number,
+  period?: number,  // default: 25
+): Float64Array
+```
+
+**Parameters**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `close` | — | Close-price column |
+| `length` | — | Number of bars |
+| `period` | 25 | Regression window in bars |
+
+Returns the fitted value at the last bar of each window (i.e., the end-point of the regression line). Values before index `period − 1` are `NaN`.
+
+**Usage**
+
+```ts
+import { computeLinearRegression } from 'fin-charter/indicators';
+
+const lr = computeLinearRegression(store.close, store.length, 25);
+
+// Or use addIndicator:
+chart.addIndicator('linear-regression', { source: series, params: { period: 25 }, color: '#3F51B5', label: 'LinReg(25)' });
 ```
 
 ---

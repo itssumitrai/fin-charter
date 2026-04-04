@@ -7,6 +7,16 @@ import { createTrendline } from './trendline';
 import { createFibonacci } from './fibonacci';
 import { createRectangle } from './rectangle';
 import { createTextAnnotation } from './text-annotation';
+import { createRay } from './ray';
+import { createArrow } from './arrow';
+import { createChannel } from './channel';
+import { createEllipse } from './ellipse';
+import { createPitchfork } from './pitchfork';
+import { createFibProjection } from './fib-projection';
+import { createFibArc } from './fib-arc';
+import { createFibFan } from './fib-fan';
+import { createCrossline } from './crossline';
+import { createMeasurement } from './measurement';
 
 // Re-export public types
 export type { AnchorPoint, DrawingOptions, DrawingHitTestResult, SerializedDrawing, DrawingPrimitive, DrawingContext, DrawingFactory } from './base';
@@ -23,6 +33,16 @@ export function registerBuiltinDrawings(): void {
   DRAWING_REGISTRY.set('fibonacci', createFibonacci as DrawingFactory);
   DRAWING_REGISTRY.set('rectangle', createRectangle as DrawingFactory);
   DRAWING_REGISTRY.set('text-annotation', createTextAnnotation as DrawingFactory);
+  DRAWING_REGISTRY.set('ray', createRay as DrawingFactory);
+  DRAWING_REGISTRY.set('arrow', createArrow as DrawingFactory);
+  DRAWING_REGISTRY.set('channel', createChannel as DrawingFactory);
+  DRAWING_REGISTRY.set('ellipse', createEllipse as DrawingFactory);
+  DRAWING_REGISTRY.set('pitchfork', createPitchfork as DrawingFactory);
+  DRAWING_REGISTRY.set('fib-projection', createFibProjection as DrawingFactory);
+  DRAWING_REGISTRY.set('fib-arc', createFibArc as DrawingFactory);
+  DRAWING_REGISTRY.set('fib-fan', createFibFan as DrawingFactory);
+  DRAWING_REGISTRY.set('crossline', createCrossline as DrawingFactory);
+  DRAWING_REGISTRY.set('measurement', createMeasurement as DrawingFactory);
 }
 
 // Register built-ins immediately on import

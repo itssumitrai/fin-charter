@@ -14,13 +14,15 @@
 - **Tiny bundle** — core is under 15 KB gzipped; unused chart types tree-shake away
 - **Tree-shakeable** — `"sideEffects": false` ES module package
 - **8 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram, Heikin-Ashi
-- **18 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, VWAP, Stochastic, ATR, ADX, OBV, Williams %R, Volume, Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, Pivot Points
+- **30 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, VWAP, Stochastic, ATR, ADX, OBV, Williams %R, Volume, Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, Pivot Points, Aroon, Awesome Oscillator, Chaikin MF, Coppock, Elder Force, TRIX, Supertrend, VWMA, Choppiness, MFI, ROC, Linear Regression
 - **Chart-managed indicators** — `chart.addIndicator('rsi', { source: series })` with auto-compute and auto-pane creation
 - **Multi-pane layout** — indicator panes with draggable dividers and independent price scales
 - **Interactive HUD** — series/indicator management with visibility toggle, settings editor, and remove
+- **TV-style global HUD collapse** — chevron button collapses all indicator rows at once
+- **Context menu** — right-click drawings for Edit/Duplicate/Remove/Z-order; right-click chart for Reset Zoom/Scroll to Latest; right-click indicator pane for Settings/Hide/Remove
 - **TradingView-compatible plugin system** — `ISeriesPrimitive` / `IPanePrimitive` interfaces
 - **Real-time data** — `series.update(bar)` appends or overwrites the last bar in O(1)
-- **Drawing tools** — 6 built-in types (horizontal line, vertical line, trendline, fibonacci, rectangle, text); extensible via `registerDrawingType()`
+- **Drawing tools** — 16 built-in types (horizontal line, vertical line, trendline, fibonacci, rectangle, text, ray, arrow, channel, ellipse, pitchfork, fib projection, fib arc, fib fan, crossline, measurement); extensible via `registerDrawingType()`
 - **Comparison mode** — normalise multiple series to percentage change for side-by-side performance comparison
 - **Heikin-Ashi** — `chart.addHeikinAshiSeries()` with automatic OHLC-to-HA transform
 - **Market sessions** — define pre/post-market windows with background highlights; filter bars by session
@@ -48,7 +50,7 @@ const chart = createChart(document.getElementById('chart')!, {
   height: 400,
 });
 
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 
 series.setData([
   { time: 1700000000, open: 100, high: 110, low: 95,  close: 107 },
@@ -61,22 +63,23 @@ series.setData([
 
 | Type | Method | Description |
 |---|---|---|
-| Candlestick | `addCandlestickSeries()` | OHLC candles with filled body and wick |
-| Line | `addLineSeries()` | Close-price polyline |
-| Area | `addAreaSeries()` | Close-price line with gradient fill below |
-| Bar (OHLC) | `addBarSeries()` | Traditional OHLC tick bars |
-| Baseline | `addBaselineSeries()` | Two-color fill above/below a base price |
-| Hollow Candle | `addHollowCandleSeries()` | Up candles hollow (outline only), down candles filled |
-| Histogram | `addHistogramSeries()` | Vertical bars from the bottom; useful for volume |
-| Heikin-Ashi | `addHeikinAshiSeries()` | Smoothed OHLC candles with automatic HA transform |
+| Candlestick | `addSeries({ type: 'candlestick' })` | OHLC candles with filled body and wick |
+| Line | `addSeries({ type: 'line' })` | Close-price polyline |
+| Area | `addSeries({ type: 'area' })` | Close-price line with gradient fill below |
+| Bar (OHLC) | `addSeries({ type: 'bar' })` | Traditional OHLC tick bars |
+| Baseline | `addSeries({ type: 'baseline' })` | Two-color fill above/below a base price |
+| Hollow Candle | `addSeries({ type: 'hollow-candle' })` | Up candles hollow (outline only), down candles filled |
+| Histogram | `addSeries({ type: 'histogram' })` | Vertical bars from the bottom; useful for volume |
+| Heikin-Ashi | `addSeries({ type: 'heikin-ashi' })` | Smoothed OHLC candles with automatic HA transform |
 
-## Bundle Size Targets
+> **Note:** The individual `addCandlestickSeries()`, `addLineSeries()`, etc. methods still work but are deprecated. Prefer the unified `addSeries({ type })` API.
 
-| Entry point | Target (gzip) |
+## Bundle Size (measured)
+
+| Entry point | Size (gzip) |
 |---|---|
-| `fin-charter` (core) | < 15 KB |
-| `fin-charter/indicators` | < 4 KB |
-| Full bundle (all chart types + indicators) | < 20 KB |
+| `fin-charter` (core, main chunk) | ~13.8 KB |
+| Full bundle (all chart types + indicators) | ~35.9 KB |
 
 ## Documentation
 

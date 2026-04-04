@@ -19,6 +19,8 @@ import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
+import { ContextMenuHandler } from '../interactions/context-menu-handler';
+import type { ContextMenuCallbacks } from '../interactions/context-menu-handler';
 
 import { DrawingHandler } from '../interactions/drawing-handler';
 import type { AnchorPoint, DrawingOptions, SerializedDrawing, DrawingPrimitive, DrawingContext } from '../drawings/index';
@@ -53,6 +55,7 @@ import {
   type HistogramSeriesOptions,
   type PaneOptions,
   type SeriesOptionsMap,
+  type SeriesOptions,
   type IndicatorType,
   type IndicatorOptions,
   DEFAULT_CHART_OPTIONS,
@@ -82,6 +85,18 @@ import { computeKeltner } from '../indicators/keltner';
 import { computeDonchian } from '../indicators/donchian';
 import { computeCCI } from '../indicators/cci';
 import { computePivotPoints } from '../indicators/pivot-points';
+import { computeAroon } from '../indicators/aroon';
+import { computeAwesomeOscillator } from '../indicators/awesome-oscillator';
+import { computeChaikinMF } from '../indicators/chaikin-mf';
+import { computeCoppock } from '../indicators/coppock';
+import { computeElderForce } from '../indicators/elder-force';
+import { computeTRIX } from '../indicators/trix';
+import { computeSupertrend } from '../indicators/supertrend';
+import { computeVWMA } from '../indicators/vwma';
+import { computeChoppiness } from '../indicators/choppiness';
+import { computeMFI } from '../indicators/mfi';
+import { computeROC } from '../indicators/roc';
+import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
 import type { MarketSession } from '../core/market-session';
 
@@ -111,12 +126,21 @@ export interface IDrawingApi {
 }
 
 export interface IChartApi {
+  /** Add a series using a unified options object with a `type` discriminator. */
+  addSeries(options: SeriesOptions): ISeriesApi<SeriesType>;
+  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
+  /** @deprecated Use addSeries({ type: 'line' }) instead. */
   addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>;
+  /** @deprecated Use addSeries({ type: 'area' }) instead. */
   addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'>;
+  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
   addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'>;
+  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
   addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'>;
+  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
   addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'>;
+  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
   addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'>;
   removeSeries(series: ISeriesApi<SeriesType>): void;
   addPane(options?: PaneOptions): IPaneApi;
@@ -166,6 +190,7 @@ export interface IChartApi {
   /** Restore a previously exported chart state, loading bar data via the provided loader. */
   importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
   // ── Feature 11a: Heikin-Ashi ──────────────────────────────────────────────
+  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
   addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>;
   // ── Feature 11b: Periodicity ──────────────────────────────────────────────
   setPeriodicity(periodicity: Periodicity): void;
@@ -180,6 +205,27 @@ export interface IChartApi {
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
+
+/**
+ * Tracks animated display values for the last bar of a series.
+ * Display values chase the actual store values via exponential lerp.
+ */
+interface LastBarAnimState {
+  /** The bar index we're tracking — reset animation if this changes. */
+  lastIdx: number;
+  /** Current display values (what gets rendered). */
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  /** True while display values are converging toward actual values. */
+  animating: boolean;
+}
+
+/** Lerp factor for last-bar OHLC animation. */
+const LAST_BAR_LERP = 0.3;
+/** Snap threshold relative to price range. */
+const LAST_BAR_SNAP = 0.0005;
 
 interface SeriesEntry {
   api: SeriesApi<SeriesType>;
@@ -236,6 +282,7 @@ class ChartApi implements IChartApi {
   private _eventRouter: EventRouter;
   private _panZoomHandler: PanZoomHandler;
   private _crosshairHandler: CrosshairHandler | null = null;
+  private _contextMenuHandler: ContextMenuHandler | null = null;
 
   private _series: SeriesEntry[] = [];
 
@@ -294,6 +341,9 @@ class ChartApi implements IChartApi {
   // Market sessions
   private _marketSessions: MarketSession[] = [];
   private _sessionFilter: string = 'all';
+
+  // Animation state for smooth streaming updates
+  private _lastBarAnims: Map<SeriesApi<SeriesType>, LastBarAnimState> = new Map();
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -393,6 +443,112 @@ class ChartApi implements IChartApi {
     this._eventRouter.addHandler(this._panZoomHandler);
     this._eventRouter.attach(mainPane.canvases.overlayCanvas);
 
+    // ── Context Menu ───────────────────────────────────────────────────────
+    this._contextMenuHandler = new ContextMenuHandler({
+      getDrawings: () => this._drawings
+        .filter((d): d is BaseDrawing => d instanceof BaseDrawing)
+        .map(d => ({ drawing: d, id: d.id })),
+      getIndicatorAtPane: (paneId: string) => {
+        const ind = this._indicators.find(i => i.paneId() === paneId);
+        return ind ? { id: `indicator-${ind.id}`, label: ind.label() } : null;
+      },
+      getPaneAtY: (y: number) => {
+        let cumY = 0;
+        for (const paneId of this._paneOrder) {
+          const pane = this._paneMap.get(paneId)!;
+          if (y >= cumY && y < cumY + pane.height) return paneId;
+          cumY += pane.height;
+        }
+        return null;
+      },
+      mainPaneId: this._mainPaneId,
+      editDrawing: (id) => {
+        const drawing = this._drawings.find(d => d instanceof BaseDrawing && d.id === id) as BaseDrawing | undefined;
+        if (drawing) { drawing.selected = true; this.requestRepaint(InvalidationLevel.Full); }
+      },
+      removeDrawing: (id) => {
+        const api = this._drawingApis.get(id);
+        if (api) this.removeDrawing(api);
+      },
+      duplicateDrawing: (id) => {
+        const drawing = this._drawings.find(d => d instanceof BaseDrawing && d.id === id) as BaseDrawing | undefined;
+        if (!drawing) return;
+        const s = drawing.serialize();
+        // Offset both time (+1 bar) and price (+1% of price range) so duplicate is visible
+        const priceRange = this._mainPane.priceScale.priceRange;
+        const priceOffset = (priceRange.max - priceRange.min) * 0.02;
+        const offsetPoints = s.points.map(p => ({ time: p.time + 1, price: p.price + priceOffset }));
+        this.addDrawing(s.type, offsetPoints, s.options);
+      },
+      bringDrawingToFront: (id) => {
+        const idx = this._drawings.findIndex(d => d instanceof BaseDrawing && d.id === id);
+        if (idx !== -1 && idx < this._drawings.length - 1) {
+          const [d] = this._drawings.splice(idx, 1);
+          this._drawings.push(d);
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      sendDrawingToBack: (id) => {
+        const idx = this._drawings.findIndex(d => d instanceof BaseDrawing && d.id === id);
+        if (idx > 0) {
+          const [d] = this._drawings.splice(idx, 1);
+          this._drawings.unshift(d);
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      openIndicatorSettings: (id) => {
+        // Find the indicator's pane HUD and programmatically trigger its gear button
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) {
+          const hud = this._huds.get(ind.paneId());
+          if (hud) {
+            // Click the gear button for this indicator's HUD row
+            hud.triggerSettings?.(id);
+          }
+        }
+      },
+      toggleIndicatorVisibility: (id) => {
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) {
+          const newVis = !ind.isVisible();
+          ind.applyOptions({ visible: newVis });
+          for (const s of (ind as any).internalSeries) { s.applyOptions({ visible: newVis }); }
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      removeIndicator: (id) => {
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) this.removeIndicator(ind);
+      },
+      fitContent: () => { this._timeScale.fitContent(); this.requestRepaint(InvalidationLevel.Full); },
+      scrollToRealTime: () => this.scrollToRealTime(),
+      toggleCrosshair: () => {
+        if (this._crosshairHandler) {
+          this._eventRouter.removeHandler(this._crosshairHandler);
+          this._crosshairHandler = null;
+          this._crosshair.hide();
+        } else if (this._series.length > 0) {
+          this._crosshairHandler = new CrosshairHandler(
+            this._crosshair, this._series[0].api.getDataLayer(),
+            this._timeScale, this._mainPane.priceScale,
+            () => this.requestRepaint(InvalidationLevel.Cursor),
+          );
+          this._eventRouter.addHandler(this._crosshairHandler);
+        }
+        this.requestRepaint(InvalidationLevel.Full);
+      },
+      theme: {
+        bg: this._options.layout.backgroundColor,
+        text: this._options.layout.textColor,
+        border: this._options.layout.backgroundColor === '#131722' ? '#2a2e39' : '#e0e3eb',
+      },
+      localToScreen: (x, y) => {
+        const rect = this._wrapper.getBoundingClientRect();
+        return { x: rect.left + x, y: rect.top + y };
+      },
+    });
+    this._eventRouter.addHandler(this._contextMenuHandler);
+
     // ── Click detection via overlay canvas ─────────────────────────────────
     mainPane.canvases.overlayCanvas.addEventListener('click', this._handleClick);
 
@@ -421,34 +577,47 @@ class ChartApi implements IChartApi {
 
   // ── Series management ───────────────────────────────────────────────────
 
+  addSeries(options: SeriesOptions): ISeriesApi<SeriesType> {
+    const { type, ...rest } = options;
+    return this._addSeries(type, rest as DeepPartial<SeriesOptionsMap[typeof type]>);
+  }
+
+  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'> {
     return this._addSeries('candlestick', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'line' }) instead. */
   addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'> {
     return this._addSeries('line', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'area' }) instead. */
   addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'> {
     return this._addSeries('area', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
   addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'> {
     return this._addSeries('bar', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
   addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'> {
     return this._addSeries('baseline', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
   addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'> {
     return this._addSeries('hollow-candle', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
   addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'> {
     return this._addSeries('histogram', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
   addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'> {
     return this._addSeries('heikin-ashi', options ?? {});
   }
@@ -466,6 +635,7 @@ class ChartApi implements IChartApi {
       }
 
       this._series.splice(idx, 1);
+      this._lastBarAnims.delete(entry.api);
 
       // If we removed the primary (first) series the crosshair handler holds a
       // reference to its DataLayer. Reset it so the handler is recreated with
@@ -961,6 +1131,36 @@ class ChartApi implements IChartApi {
         const r = computePivotPoints(high, low, close, len);
         return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 };
       }
+      case 'aroon': {
+        const r = computeAroon(high, low, len, params.period ?? 25);
+        return { up: r.up, down: r.down };
+      }
+      case 'awesome-oscillator':
+        return { histogram: computeAwesomeOscillator(high, low, len, params.fastPeriod ?? 5, params.slowPeriod ?? 34) };
+      case 'chaikin-mf':
+        return { value: computeChaikinMF(high, low, close, volume, len, params.period ?? 20) };
+      case 'coppock':
+        return { value: computeCoppock(close, len, params.wmaPeriod ?? 10, params.longROC ?? 14, params.shortROC ?? 11) };
+      case 'elder-force':
+        return { value: computeElderForce(close, volume, len, params.period ?? 13) };
+      case 'trix': {
+        const r = computeTRIX(close, len, params.period ?? 15, params.signalPeriod ?? 9);
+        return { trix: r.trix, signal: r.signal };
+      }
+      case 'supertrend': {
+        const r = computeSupertrend(high, low, close, len, params.period ?? 10, params.multiplier ?? 3);
+        return { value: r.value };
+      }
+      case 'vwma':
+        return { value: computeVWMA(close, volume, len, params.period ?? 20) };
+      case 'choppiness':
+        return { value: computeChoppiness(high, low, close, len, params.period ?? 14) };
+      case 'mfi':
+        return { value: computeMFI(high, low, close, volume, len, params.period ?? 14) };
+      case 'roc':
+        return { value: computeROC(close, len, params.period ?? 12) };
+      case 'linear-regression':
+        return { value: computeLinearRegression(close, len, params.period ?? 20) };
       default:
         throw new Error(`Unknown indicator type: ${type}`);
     }
@@ -1044,6 +1244,10 @@ class ChartApi implements IChartApi {
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'pivot-points':
         return { pp: primaryColor, r1: '#F7525F', r2: '#F7525F', r3: '#F7525F', s1: '#22AB94', s2: '#22AB94', s3: '#22AB94' };
+      case 'aroon':
+        return { up: '#22AB94', down: '#F7525F' };
+      case 'trix':
+        return { trix: primaryColor, signal: '#ff6d00' };
       default:
         return { value: primaryColor };
     }
@@ -1476,6 +1680,83 @@ class ChartApi implements IChartApi {
     }
 
     this._mask.reset();
+
+    // Continue animation loop if any price scale or last bar is still animating
+    if (this._isAnimating()) {
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  /**
+   * Tick the last bar animation for a series. Returns the animation state
+   * (with interpolated display values), or null if no animation is needed.
+   */
+  private _tickLastBarAnim(
+    api: SeriesApi<SeriesType>,
+    store: ColumnStore,
+    lastIdx: number,
+  ): LastBarAnimState | null {
+    const anim = this._lastBarAnims.get(api);
+    const actualOpen = store.open[lastIdx];
+    const actualHigh = store.high[lastIdx];
+    const actualLow = store.low[lastIdx];
+    const actualClose = store.close[lastIdx];
+
+    if (!anim || anim.lastIdx !== lastIdx) {
+      // First time seeing this bar, or bar index changed — snap, no animation
+      this._lastBarAnims.set(api, {
+        lastIdx,
+        open: actualOpen,
+        high: actualHigh,
+        low: actualLow,
+        close: actualClose,
+        animating: false,
+      });
+      return null;
+    }
+
+    // Check if actual values have changed from what we're displaying
+    const range = Math.abs(actualHigh - actualLow) || 1;
+    const eps = range * LAST_BAR_SNAP;
+    const diffO = Math.abs(anim.open - actualOpen);
+    const diffH = Math.abs(anim.high - actualHigh);
+    const diffL = Math.abs(anim.low - actualLow);
+    const diffC = Math.abs(anim.close - actualClose);
+
+    if (diffO < eps && diffH < eps && diffL < eps && diffC < eps) {
+      // Already converged
+      anim.open = actualOpen;
+      anim.high = actualHigh;
+      anim.low = actualLow;
+      anim.close = actualClose;
+      anim.animating = false;
+      return anim;
+    }
+
+    // Lerp toward actual values
+    anim.open += (actualOpen - anim.open) * LAST_BAR_LERP;
+    anim.high += (actualHigh - anim.high) * LAST_BAR_LERP;
+    anim.low += (actualLow - anim.low) * LAST_BAR_LERP;
+    anim.close += (actualClose - anim.close) * LAST_BAR_LERP;
+    anim.animating = true;
+
+    return anim;
+  }
+
+  /** Returns true if any animation (price scale or last bar) is still running. */
+  private _isAnimating(): boolean {
+    // Check price scales
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      if (pane.priceScale.isAnimating || pane.leftPriceScale.isAnimating) {
+        return true;
+      }
+    }
+    // Check last bar animations
+    for (const anim of this._lastBarAnims.values()) {
+      if (anim.animating) return true;
+    }
+    return false;
   }
 
   private _emitCrosshairCallbacks(): void {
@@ -1554,6 +1835,10 @@ class ChartApi implements IChartApi {
 
     // Auto-scale price from visible data (only series assigned to this pane)
     this._updatePaneDataRange(pane, seriesForPane, range);
+
+    // Advance price scale animations (smooth Y-axis transitions)
+    pane.priceScale.tick();
+    pane.leftPriceScale.tick();
 
     if (isMain) {
       // Draw watermark BEFORE grid/series so it appears behind everything
@@ -1682,6 +1967,27 @@ class ChartApi implements IChartApi {
   ): void {
     const barWidth = this._timeScale.barSpacing * 0.8;
 
+    // ── Last bar animation: interpolate OHLC for smooth streaming ────────
+    const lastIdx = store.length - 1;
+    let saved: { o: number; h: number; l: number; c: number } | null = null;
+
+    if (lastIdx >= 0 && lastIdx >= range.fromIdx && lastIdx <= range.toIdx) {
+      const anim = this._tickLastBarAnim(entry.api, store, lastIdx);
+      if (anim && anim.animating) {
+        // Temporarily write interpolated values into the store for rendering
+        saved = {
+          o: store.open[lastIdx],
+          h: store.high[lastIdx],
+          l: store.low[lastIdx],
+          c: store.close[lastIdx],
+        };
+        store.open[lastIdx] = anim.open;
+        store.high[lastIdx] = anim.high;
+        store.low[lastIdx] = anim.low;
+        store.close[lastIdx] = anim.close;
+      }
+    }
+
     switch (entry.type) {
       case 'candlestick':
       case 'heikin-ashi':
@@ -1705,6 +2011,14 @@ class ChartApi implements IChartApi {
       case 'histogram':
         (entry.renderer as HistogramRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
         break;
+    }
+
+    // Restore original store values after rendering
+    if (saved !== null) {
+      store.open[lastIdx] = saved.o;
+      store.high[lastIdx] = saved.h;
+      store.low[lastIdx] = saved.l;
+      store.close[lastIdx] = saved.c;
     }
   }
 
@@ -2456,6 +2770,18 @@ class ChartApi implements IChartApi {
       fontFamily: this._options.layout.fontFamily,
     });
     this._huds.set(paneId, hud);
+
+    // Wire cross-pane sync: collapsing the main pane HUD collapses all others
+    if (paneId === this._mainPaneId) {
+      hud.onGlobalCollapseToggle = () => {
+        const collapsed = hud.isGlobalCollapsed;
+        for (const [id, otherHud] of this._huds) {
+          if (id !== this._mainPaneId) {
+            otherHud.setGlobalCollapsed(collapsed);
+          }
+        }
+      };
+    }
   }
 
   private _getCrosshairBarIndex(): number {

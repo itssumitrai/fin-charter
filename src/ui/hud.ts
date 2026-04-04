@@ -41,7 +41,6 @@ interface HudRowEntry {
   buttonsEl: HTMLDivElement;
   eyeBtn: HTMLButtonElement;
   visible: boolean;
-  collapsed: boolean;
 }
 
 export class HudManager {
@@ -51,6 +50,13 @@ export class HudManager {
   private _activePopup: HTMLDivElement | null = null;
   private _outsideClickHandler: ((e: MouseEvent) => void) | null = null;
   private _pendingRaf: number = 0;
+
+  // Global collapse state
+  private _globalCollapsed: boolean = false;
+  private _compactLine!: HTMLDivElement;
+  private _globalChevron!: HTMLButtonElement;
+  private _rowsWrapper!: HTMLDivElement;
+  private _onGlobalCollapseToggle: (() => void) | null = null;
 
   constructor(
     paneRow: HTMLElement,
@@ -62,24 +68,60 @@ export class HudManager {
     this._container.style.cssText =
       `position:absolute;top:4px;left:8px;z-index:10;pointer-events:none;` +
       `font-size:11px;font-family:${theme.fontFamily};color:${theme.text};`;
+
+    // Global header: chevron + compact summary line
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:4px;height:18px;pointer-events:auto;';
+
+    this._globalChevron = document.createElement('button');
+    this._globalChevron.appendChild(_svgIcon(MDI_CHEVRON_DOWN, 14));
+    this._globalChevron.title = 'Collapse legend';
+    this._globalChevron.style.cssText = this._chevronStyle();
+    this._globalChevron.addEventListener('click', () => {
+      this.setGlobalCollapsed(!this._globalCollapsed);
+      this._onGlobalCollapseToggle?.();
+    });
+    header.appendChild(this._globalChevron);
+
+    this._compactLine = document.createElement('div');
+    this._compactLine.style.cssText =
+      `color:${theme.text};white-space:nowrap;font-size:11px;display:none;cursor:default;`;
+    header.appendChild(this._compactLine);
+
+    this._container.appendChild(header);
+
+    this._rowsWrapper = document.createElement('div');
+    this._container.appendChild(this._rowsWrapper);
+
     paneRow.appendChild(this._container);
   }
+
+  // ── Global collapse ──────────────────────────────────────────────────────
+
+  get isGlobalCollapsed(): boolean { return this._globalCollapsed; }
+
+  set onGlobalCollapseToggle(cb: (() => void) | null) { this._onGlobalCollapseToggle = cb; }
+
+  setGlobalCollapsed(collapsed: boolean): void {
+    if (this._globalCollapsed === collapsed) return;
+    this._globalCollapsed = collapsed;
+    this._rowsWrapper.style.display = collapsed ? 'none' : 'block';
+    this._compactLine.style.display = collapsed ? 'block' : 'none';
+    this._globalChevron.innerHTML = '';
+    this._globalChevron.appendChild(_svgIcon(collapsed ? MDI_CHEVRON_RIGHT : MDI_CHEVRON_DOWN, 14));
+    this._globalChevron.title = collapsed ? 'Expand legend' : 'Collapse legend';
+  }
+
+  // ── Row management ───────────────────────────────────────────────────────
 
   addRow(config: HudRowConfig): void {
     const row = document.createElement('div');
     row.style.cssText = 'margin-bottom:1px;';
 
-    // ── Header line: chevron + swatch + label + action buttons ──────
+    // ── Header line: swatch + label + action buttons ──────
     const headerLine = document.createElement('div');
     headerLine.style.cssText =
       'display:flex;align-items:center;gap:4px;height:18px;pointer-events:auto;';
-
-    // Collapse chevron
-    const chevronBtn = document.createElement('button');
-    chevronBtn.appendChild(_svgIcon(MDI_CHEVRON_DOWN, 14));
-    chevronBtn.title = 'Collapse';
-    chevronBtn.style.cssText = this._chevronStyle();
-    headerLine.appendChild(chevronBtn);
 
     // Color swatch
     const swatch = document.createElement('div');
@@ -143,28 +185,17 @@ export class HudManager {
       buttonsEl.style.opacity = '0';
     });
 
-    // ── Values line (collapsible) ──────────────────────────────────
+    // ── Values line (always visible within expanded HUD) ──────────────────
     const valuesEl = document.createElement('span');
     valuesEl.style.cssText =
       `color:${this._theme.text};white-space:nowrap;display:block;` +
-      `padding-left:18px;height:15px;line-height:15px;`;
+      `padding-left:14px;height:15px;line-height:15px;`;
     row.appendChild(valuesEl);
 
-    // Collapse toggle
-    let collapsed = false;
-    chevronBtn.addEventListener('click', () => {
-      collapsed = !collapsed;
-      entry.collapsed = collapsed;
-      valuesEl.style.display = collapsed ? 'none' : 'block';
-      chevronBtn.innerHTML = '';
-      chevronBtn.appendChild(_svgIcon(collapsed ? MDI_CHEVRON_RIGHT : MDI_CHEVRON_DOWN, 14));
-      chevronBtn.title = collapsed ? 'Expand' : 'Collapse';
-    });
-
-    this._container.appendChild(row);
+    this._rowsWrapper.appendChild(row);
 
     const entry: HudRowEntry = {
-      config, el: row, valuesEl, buttonsEl, eyeBtn, visible: true, collapsed: false,
+      config, el: row, valuesEl, buttonsEl, eyeBtn, visible: true,
     };
     this._rows.set(config.id, entry);
   }
@@ -178,10 +209,24 @@ export class HudManager {
   }
 
   updateValues(barIndex: number): void {
+    let firstValues = '';
     for (const entry of this._rows.values()) {
-      if (!entry.collapsed) {
-        entry.valuesEl.textContent = entry.config.getValues(barIndex);
+      const vals = entry.config.getValues(barIndex);
+      entry.valuesEl.textContent = vals;
+      if (!firstValues) {
+        firstValues = `${entry.config.label}  ${vals}`;
       }
+    }
+    this._compactLine.textContent = firstValues;
+  }
+
+  /** Programmatically open the settings popup for a row. */
+  triggerSettings(rowId: string): void {
+    const entry = this._rows.get(rowId);
+    if (entry) {
+      // Find the gear button (second button in the buttons container)
+      const gearBtn = entry.buttonsEl.children[1] as HTMLButtonElement | undefined;
+      gearBtn?.click();
     }
   }
 
