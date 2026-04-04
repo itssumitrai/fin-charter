@@ -812,43 +812,6 @@ class ChartApi implements IChartApi {
     });
   }
 
-  /**
-   * Attach lightweight pointer listeners to an indicator pane's overlay canvas
-   * so the crosshair works when hovering over non-main panes.
-   */
-  private _attachPanePointerListeners(paneId: string, pane: Pane): void {
-    const overlay = pane.canvases.overlayCanvas;
-    overlay.style.touchAction = 'none';
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!this._crosshairHandler || this._series.length === 0) return;
-      const rect = overlay.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      // Update crosshair handler to use this pane's price scale and pane ID
-      this._crosshairHandler.setSourcePaneId(paneId);
-      this._crosshairHandler.setPriceScale(pane.priceScale);
-      this._crosshairHandler.onPointerMove(x, y, e.pointerId);
-    };
-
-    const onPointerLeave = () => {
-      if (!this._crosshairHandler) return;
-      // Restore main pane context and hide crosshair
-      this._crosshairHandler.setSourcePaneId(this._mainPaneId);
-      this._crosshairHandler.setPriceScale(this._mainPane.priceScale);
-      this._crosshairHandler.onPointerUp(0);
-    };
-
-    overlay.addEventListener('pointermove', onPointerMove);
-    overlay.addEventListener('pointerleave', onPointerLeave);
-
-    this._panePointerCleanup.set(paneId, () => {
-      overlay.removeEventListener('pointermove', onPointerMove);
-      overlay.removeEventListener('pointerleave', onPointerLeave);
-    });
-  }
-
   // ── Scale access ────────────────────────────────────────────────────────
 
   timeScale(): TimeScale {
