@@ -241,7 +241,7 @@ series.setData(data);`,
     return withDocs(container, {
       description:
         'The <strong>column</strong> chart draws vertical bars from the chart bottom to the close price. ' +
-        'Bars are colored green when the close is above the previous close and red when below, giving an instant read on directional movement.',
+        'Bars are colored green when the close is at or above the open and red when the close is below the open, giving an instant read on intrabar direction.',
       code: `
 import { createChart } from 'fin-charter';
 

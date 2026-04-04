@@ -49,6 +49,7 @@ export class KagiRenderer {
     const { reversalAmount } = this._options;
     const end = Math.min(toIdx, store.length - 1);
     if (fromIdx > end) return [];
+    if (reversalAmount <= 0) return [];
 
     const segments: KagiSegment[] = [];
 
@@ -190,22 +191,19 @@ export class KagiRenderer {
 
       ctx.beginPath();
 
-      // If there is a previous segment, draw a horizontal connector from the
-      // previous endpoint to this segment's x position at the start price.
+      // Kagi: each segment is a vertical line at the segment's end X position.
+      // A horizontal connector bridges from the previous segment's X to this one.
       if (s > 0) {
         const prevSeg = segments[s - 1];
         const prevX = Math.round(indexToX(prevSeg.endIndex) * pr);
-        const prevY = Math.round(priceToY(prevSeg.endPrice) * pr);
-        // Horizontal connector.
-        ctx.moveTo(prevX, prevY);
-        ctx.lineTo(x1, prevY);
-        // Vertical from connector to start of this segment.
-        ctx.lineTo(x1, y1);
+        // Horizontal connector at the start price level.
+        ctx.moveTo(prevX, y1);
+        ctx.lineTo(x2, y1);
       } else {
-        ctx.moveTo(x1, y1);
+        ctx.moveTo(x2, y1);
       }
 
-      // Vertical line of this segment.
+      // Vertical line from startPrice to endPrice at a single X.
       ctx.lineTo(x2, y2);
       ctx.stroke();
     }

@@ -95,8 +95,8 @@ export class RenkoRenderer {
         // (standard Renko rule: reversal needs to exceed the previous brick).
         if (boxes >= 2) {
           direction = movingUp ? 'up' : 'down';
-          // The first reversal box starts one boxSize offset from current base
-          // (because the previous brick already occupies the base level).
+          // Reversal bricks start from the current base level. The first brick
+          // overlaps the previous brick's base, which is standard Renko behavior.
           for (let b = 0; b < boxes; b++) {
             if (movingUp) {
               const bottom = basePrice + b * boxSize;

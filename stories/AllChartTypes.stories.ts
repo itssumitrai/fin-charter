@@ -252,8 +252,8 @@ chart.addSeries({ type: 'point-figure', boxSize: 2, reversalBoxes: 3 }).setData(
 
     return withDocs(root, {
       description:
-        'fin-charter supports <strong>18 chart types</strong> out of the box. Each type uses the same OHLCV data format ' +
-        'but renders it differently. Classic types include candlestick, hollow candle, OHLC bar, line, area, and baseline. ' +
+        'fin-charter supports <strong>20 chart types</strong> out of the box. Each type uses the same OHLCV data format ' +
+        'but renders it differently. Classic types include candlestick, hollow candle, OHLC bar, line, area, baseline, histogram, and heikin-ashi. ' +
         'Additional types include step-line, colored-line, colored-mountain, hlc-area, high-low, column, volume-candle, ' +
         'baseline-delta-mountain, renko, kagi, line-break, and point-figure.',
       code: `

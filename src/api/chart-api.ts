@@ -2235,6 +2235,42 @@ class ChartApi implements IChartApi {
       case 'histogram':
         (entry.renderer as HistogramRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
         break;
+      case 'step-line':
+        (entry.renderer as StepLineRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'colored-line':
+        (entry.renderer as ColoredLineRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'colored-mountain':
+        (entry.renderer as ColoredMountainRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'hlc-area':
+        (entry.renderer as HLCAreaRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'high-low':
+        (entry.renderer as HighLowRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'column':
+        (entry.renderer as ColumnRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'volume-candle':
+        (entry.renderer as VolumeCandleRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'baseline-delta-mountain':
+        (entry.renderer as BaselineDeltaMountainRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'renko':
+        (entry.renderer as RenkoRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'kagi':
+        (entry.renderer as KagiRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'line-break':
+        (entry.renderer as LineBreakRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'point-figure':
+        (entry.renderer as PointFigureRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
     }
 
     // Restore original store values after rendering

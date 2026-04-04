@@ -39,7 +39,9 @@ export class LineBreakRenderer {
   }
 
   private _buildBlocks(store: ColumnStore, fromIdx: number, toIdx: number): LineBreakBlock[] {
-    const { breakCount } = this._options;
+    const breakCount = Number.isFinite(this._options.breakCount)
+      ? Math.max(1, Math.floor(this._options.breakCount))
+      : DEFAULT_OPTIONS.breakCount;
     const end = Math.min(toIdx, store.length - 1);
     if (fromIdx > end) return [];
 
