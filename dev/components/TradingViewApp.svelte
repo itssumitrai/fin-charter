@@ -65,7 +65,7 @@
       if (reqId !== loadRequestId || !appStore.comparisonSymbols.includes(sym) || comparisonSeries.has(sym)) return;
       const colors = ['#2196F3', '#ff9800', '#e91e63', '#4caf50', '#9c27b0'];
       const colorIdx = comparisonSeries.size % colors.length;
-      const s = chart!.addLineSeries({ color: colors[colorIdx], lineWidth: 2 });
+      const s = chart!.addSeries({ type: 'line', color: colors[colorIdx], lineWidth: 2 });
       s.setData(bars);
       comparisonSeries.set(sym, s);
       chart!.setComparisonMode(true);
@@ -258,7 +258,11 @@
   });
 
   onDestroy(() => {
+    // Invalidate in-flight requests so they don't touch removed chart
+    ++loadRequestId;
     chart?.remove();
+    chart = undefined;
+    mainSeries = undefined;
   });
 </script>
 

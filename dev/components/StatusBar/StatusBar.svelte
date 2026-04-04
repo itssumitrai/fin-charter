@@ -2,6 +2,7 @@
   import { appStore } from '../../data/store.svelte.ts';
   import { getMarketForExchange } from 'fin-charter/market';
   import { getSymbolInfo } from '../../data/symbols';
+  import { VERSION } from 'fin-charter';
 
   let info = $derived(getSymbolInfo(appStore.symbol));
   let market = $derived(info ? getMarketForExchange(info.exchange) : undefined);
@@ -22,7 +23,7 @@
       Watchlist ▶
     </button>
   {/if}
-  <span class="version">fin-charter v0.1.0</span>
+  <span class="version">fin-charter v{VERSION}</span>
 </div>
 
 <style>

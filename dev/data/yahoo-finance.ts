@@ -104,6 +104,8 @@ export async function fetchBars(
     });
   }
 
+  if (bars.length === 0) return generateFallbackData(symbol);
+
   // For 4h: aggregate 1h bars into 4h
   const finalBars = key === '4h' ? aggregate4h(bars) : bars;
 
