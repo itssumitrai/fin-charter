@@ -760,6 +760,15 @@ class ChartApi implements IChartApi {
       this._panePointerCleanup.delete(paneId);
     }
 
+    // If the crosshair is currently pointing at the removed pane, reset it
+    if (this._crosshair.sourcePaneId === paneId) {
+      this._crosshair.hide();
+      if (this._crosshairHandler) {
+        this._crosshairHandler.setSourcePaneId(this._mainPaneId);
+        this._crosshairHandler.setPriceScale(this._mainPane.priceScale);
+      }
+    }
+
     // Destroy HUD for this pane
     const hud = this._huds.get(paneId);
     if (hud) {

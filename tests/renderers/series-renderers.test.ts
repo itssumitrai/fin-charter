@@ -573,17 +573,30 @@ describe('HollowCandleRenderer', () => {
     });
 
     it('draws wick with wickColor', () => {
+      const customWickColor = '#123456';
+      renderer.applyOptions({ wickColor: customWickColor });
+
       const store = makeStore([SAMPLE_BARS[0]]);
       const range: VisibleRange = { fromIdx: 0, toIdx: 1 };
 
+      // Track fillStyle at each fillRect call
+      let currentFillStyle = '';
+      Object.defineProperty(mock.ctx, 'fillStyle', {
+        configurable: true,
+        get() { return currentFillStyle; },
+        set(value: string | CanvasGradient | CanvasPattern) { currentFillStyle = String(value); },
+      });
+
+      const fillStyleAtFillRect: string[] = [];
+      mock.ctx.fillRect.mockImplementation(() => {
+        fillStyleAtFillRect.push(currentFillStyle);
+      });
+
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      // First fillStyle set should be the wickColor
-      const fillStyleCalls: string[] = [];
-      // Track the fillStyle assignments via the property
+      expect(mock.ctx.fillRect).toHaveBeenCalled();
       // The wick is drawn first, so the first fillRect should use wickColor
-      // We verify by checking the fillStyle was set to wickColor before the first fillRect
-      expect(mock.ctx.fillStyle).not.toBe('');
+      expect(fillStyleAtFillRect[0]).toBe(customWickColor);
     });
   });
 
