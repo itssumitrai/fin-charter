@@ -38,6 +38,18 @@ export interface ISeriesApi<T extends SeriesType> {
   removePriceLine(line: PriceLine): void;
   /** Get all price lines. */
   getPriceLines(): readonly PriceLine[];
+  /** Prepend historical bars to the beginning of the series (for pagination). */
+  prependData(data: Bar[] | ColumnData): void;
+  /**
+   * Return metadata about how many bars fall outside the given logical index range.
+   * Useful for deciding when to load more historical data.
+   */
+  barsInLogicalRange(range: { from: number; to: number }): {
+    barsBefore: number;
+    barsAfter: number;
+    from: number;
+    to: number;
+  };
   /** Subscribe to data changes (setData / update). */
   subscribeDataChanged(callback: DataChangedCallback): void;
   /** Unsubscribe from data changes. */
@@ -90,6 +102,34 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     this._notifyPrimitives('update');
     this._requestRepaint();
     this._emitDataChanged();
+  }
+
+  prependData(data: Bar[] | ColumnData): void {
+    this._dataLayer.prepend(data);
+    this._notifyPrimitives('full');
+    this._requestRepaint();
+    this._emitDataChanged();
+  }
+
+  barsInLogicalRange(range: { from: number; to: number }): {
+    barsBefore: number;
+    barsAfter: number;
+    from: number;
+    to: number;
+  } {
+    const store = this._dataLayer.store;
+    const fromIdx = Math.max(0, Math.floor(range.from));
+    const toIdx = Math.min(store.length - 1, Math.ceil(range.to));
+    return {
+      barsBefore: fromIdx,
+      barsAfter: Math.max(0, store.length - 1 - toIdx),
+      from:
+        store.length > 0 && fromIdx < store.length ? store.time[fromIdx] : 0,
+      to:
+        store.length > 0 && toIdx >= 0 && toIdx < store.length
+          ? store.time[toIdx]
+          : 0,
+    };
   }
 
   attachPrimitive(primitive: ISeriesPrimitive): void {
