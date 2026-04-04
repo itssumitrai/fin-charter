@@ -15,7 +15,7 @@
  *   updateChartContext({ symbol: 'GOOGL' });
  */
 
-import type { Periodicity, SeriesType } from 'fin-charter';
+import type { Periodicity } from 'fin-charter';
 import type { ChartTypeLabel } from './store.svelte.ts';
 
 // ─── Context shape ─────────────────────────────────────────────────────

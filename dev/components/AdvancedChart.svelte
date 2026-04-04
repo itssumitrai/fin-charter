@@ -5,7 +5,7 @@
   import { fetchBars, fetchMoreBars } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
-  import { chartContext } from '../data/chart-context';
+  import { chartContext } from '../data/chart-context.svelte.ts';
   import { stylesToColorMap } from '../data/indicator-settings';
   import Toolbar from './Toolbar/Toolbar.svelte';
   import Sidebar from './Sidebar/Sidebar.svelte';

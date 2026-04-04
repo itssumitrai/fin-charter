@@ -124,7 +124,7 @@ export type VisibleRangeChangeCallback = (range: { from: number; to: number } | 
 export type DrawingEventType = 'created' | 'modified' | 'removed';
 export type DrawingEventCallback = (event: { type: DrawingEventType; drawingId: string; drawingType: string }) => void;
 
-export type IndicatorEventType = 'added' | 'removed' | 'updated';
+export type IndicatorEventType = 'added' | 'removed';
 export type IndicatorEventCallback = (event: { type: IndicatorEventType; indicatorId: string; indicatorType: string; paneId: string }) => void;
 
 export type ResizeCallback = (size: { width: number; height: number }) => void;
@@ -135,7 +135,8 @@ export type ChartTypeChangeCallback = (chartType: { seriesType: SeriesType }) =>
 
 export type PreferencesChangeCallback = (options: DeepPartial<ChartOptions>) => void;
 
-export type LayoutChangeCallback = (event: { action: string; paneId?: string }) => void;
+export type LayoutChangeAction = 'pane-added' | 'pane-removed';
+export type LayoutChangeCallback = (event: { action: LayoutChangeAction; paneId: string }) => void;
 
 // ─── IDrawingApi ──────────────────────────────────────────────────────────────
 
@@ -1735,10 +1736,11 @@ class ChartApi implements IChartApi {
         self._drawingApis.set(id, api);
         self.requestRepaint(InvalidationLevel.Full);
       },
-      onDrawingUpdated() {
+      onDrawingUpdated(drawing) {
         self.requestRepaint(InvalidationLevel.Full);
-        // Emit drawing modified for the most recently edited drawing
-        for (const cb of self._drawingEventCallbacks) cb({ type: 'modified', drawingId: '', drawingType: '' });
+        if (drawing && drawing instanceof BaseDrawing) {
+          for (const cb of self._drawingEventCallbacks) cb({ type: 'modified', drawingId: drawing.id, drawingType: drawing.drawingType });
+        }
       },
       xToTime(x: number): number {
         return self._timeScale.xToIndex(x);

@@ -12,6 +12,7 @@ export type {
   SymbolChangeCallback,
   ChartTypeChangeCallback,
   PreferencesChangeCallback,
+  LayoutChangeAction,
   LayoutChangeCallback,
 } from './api/chart-api';
 export type { ISeriesApi, DataChangedCallback, VisibilityChangeCallback } from './api/series-api';
