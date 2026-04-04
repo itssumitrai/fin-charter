@@ -81,6 +81,7 @@ export interface TimeGapsOptions {
 }
 
 export interface ChartOptions {
+  symbol?: string;
   width: number;
   height: number;
   autoSize: boolean;
