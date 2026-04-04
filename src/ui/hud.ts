@@ -27,6 +27,7 @@ export class HudManager {
   private _theme: { bg: string; text: string; border: string; fontFamily: string };
   private _activePopup: HTMLDivElement | null = null;
   private _outsideClickHandler: ((e: MouseEvent) => void) | null = null;
+  private _pendingRaf: number = 0;
 
   constructor(
     paneRow: HTMLElement,
@@ -157,7 +158,9 @@ export class HudManager {
     this._activePopup = popup;
 
     // Close on outside click (delayed to avoid immediate trigger)
-    requestAnimationFrame(() => {
+    this._pendingRaf = requestAnimationFrame(() => {
+      this._pendingRaf = 0;
+      if (this._activePopup !== popup) return; // popup was closed before RAF fired
       this._outsideClickHandler = (e: MouseEvent) => {
         if (!popup.contains(e.target as Node)) {
           this._closePopup();
@@ -168,6 +171,10 @@ export class HudManager {
   }
 
   private _closePopup(): void {
+    if (this._pendingRaf) {
+      cancelAnimationFrame(this._pendingRaf);
+      this._pendingRaf = 0;
+    }
     if (this._activePopup) {
       this._activePopup.remove();
       this._activePopup = null;

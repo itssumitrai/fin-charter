@@ -52,6 +52,12 @@ export const DataChangedCounter: Story = {
     let currentPrice = lastBar.close;
 
     const intervalId = setInterval(() => {
+      // Clean up when the wrapper is removed from the DOM
+      if (!document.contains(wrapper)) {
+        clearInterval(intervalId);
+        return;
+      }
+
       const change = (Math.random() - 0.48) * 2;
       const open = currentPrice;
       const close = +(currentPrice + change).toFixed(2);
@@ -65,9 +71,6 @@ export const DataChangedCounter: Story = {
       currentPrice = close;
       currentTime += 86400;
     }, 1000);
-
-    // Clean up interval when the element is removed from DOM
-    wrapper.addEventListener('disconnected', () => clearInterval(intervalId));
 
     wrapper.appendChild(counter);
     wrapper.appendChild(container);

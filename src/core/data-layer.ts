@@ -118,6 +118,16 @@ export class DataLayer {
    * The prepended data must be strictly older than the existing data.
    */
   prepend(data: Bar[] | ColumnData): void {
+    // Validate ColumnData column lengths before conversion
+    if (!Array.isArray(data)) {
+      const len = data.time.length;
+      for (const field of ['open', 'high', 'low', 'close', 'volume'] as const) {
+        if (data[field].length !== len) {
+          throw new Error(`ColumnData field '${field}' has length ${data[field].length}, expected ${len}`);
+        }
+      }
+    }
+
     const bars: Bar[] = Array.isArray(data)
       ? data
       : Array.from({ length: data.time.length }, (_, i) => ({
@@ -131,7 +141,16 @@ export class DataLayer {
 
     if (bars.length === 0) return;
 
+    // Validate that prepended bars are strictly increasing by time
+    for (let i = 1; i < bars.length; i++) {
+      if (bars[i - 1].time >= bars[i].time) {
+        throw new Error('Prepended bars must be strictly increasing by time');
+      }
+    }
     const oldLen = this.store.length;
+    if (oldLen > 0 && bars[bars.length - 1].time >= this.store.time[0]) {
+      throw new Error('Prepended bars must be strictly older than existing data');
+    }
     const newLen = oldLen + bars.length;
     const newCapacity = Math.max(Math.ceil(newLen * 1.5), 2048);
     const newStore = createColumnStore(newCapacity);

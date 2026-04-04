@@ -601,10 +601,12 @@ Attaches chart event markers to the series (e.g. earnings releases, dividends). 
 
 ```ts
 interface ChartEvent {
-  time:   number;   // Unix timestamp (seconds)
-  type:   string;   // event category
-  label?: string;   // tooltip text
-  color?: string;
+  time:        number;      // Unix timestamp (seconds)
+  eventType:   EventType;   // 'earnings' | 'dividend' | 'split' | 'ipo' | 'other'
+  title:       string;      // short label
+  description?: string;     // tooltip text
+  value?:      string;      // e.g. EPS amount
+  color?:      string;
 }
 ```
 

@@ -229,10 +229,12 @@ console.log(series.getEvents());  // readonly ChartEvent[]
 
 ```ts
 interface ChartEvent {
-  time:   number;   // Unix timestamp (seconds)
-  type:   string;   // arbitrary event type string
-  label?: string;   // tooltip text
-  color?: string;   // marker color (overrides series default)
+  time:        number;      // Unix timestamp (seconds)
+  eventType:   EventType;   // 'earnings' | 'dividend' | 'split' | 'ipo' | 'other'
+  title:       string;      // short label
+  description?: string;     // tooltip text
+  value?:      string;      // e.g. EPS amount
+  color?:      string;      // marker color (overrides series default)
 }
 ```
 
@@ -243,14 +245,16 @@ interface ChartEvent {
 Subscribe to any data mutation on a series — useful for recomputing derived indicators when new bars arrive.
 
 ```ts
-const unsubscribe = series.subscribeDataChanged(() => {
+const onDataChanged = () => {
   // Recompute the SMA whenever setData / update / prependData fires
   const sma = computeSMA(store.close, store.length, 20);
   smaSeries.setData(buildBars(store.time, sma, store.length));
-});
+};
+
+series.subscribeDataChanged(onDataChanged);
 
 // Tear down when done
-series.unsubscribeDataChanged(unsubscribe);
+series.unsubscribeDataChanged(onDataChanged);
 ```
 
 ```ts

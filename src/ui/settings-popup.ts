@@ -25,16 +25,21 @@ export function createSettingsPopup(
     `font-size:11px;pointer-events:auto;min-width:160px;box-shadow:0 2px 8px rgba(0,0,0,0.3);`;
 
   const inputs: Map<string, HTMLInputElement> = new Map();
+  let fieldIdx = 0;
 
   for (const field of fields) {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;';
 
+    const inputId = `settings-field-${field.key}-${fieldIdx++}`;
+
     const label = document.createElement('label');
     label.textContent = field.label;
     label.style.cssText = 'flex-shrink:0;';
+    label.htmlFor = inputId;
 
     const input = document.createElement('input');
+    input.id = inputId;
     input.type = field.type;
 
     if (field.type === 'number') {

@@ -104,7 +104,7 @@ chart.setActiveDrawingTool('trendline');
 chart.setActiveDrawingTool(null);
 ```
 
-While a drawing tool is active, left-clicks place anchor points instead of triggering pan. The tool is automatically cleared after the required points are collected.
+While a drawing tool is active, left-clicks place anchor points instead of triggering pan. The tool stays active for repeated placement after a drawing is completed. Call `chart.setActiveDrawingTool(null)` to exit drawing mode and return to pan/zoom.
 
 ## Drawing Options
 

@@ -79,7 +79,10 @@ export class DrawingHandler implements EventHandler {
     if (hit) {
       this._state = 'EDITING';
       const drawings = this._callbacks.getDrawings();
-      const drawing = drawings.find(d => d instanceof BaseDrawing && d.id === hit.drawingId);
+      const drawing = drawings.find(d =>
+        'drawingType' in d && 'points' in d && 'selected' in d && 'drawingHitTest' in d
+        && 'id' in d && (d as unknown as { id: string }).id === hit.drawingId
+      );
       if (drawing) {
         // Deselect previous
         if (this._selectedDrawing) this._selectedDrawing.selected = false;
@@ -106,13 +109,14 @@ export class DrawingHandler implements EventHandler {
   }
 
   onPointerMove(x: number, y: number, _pointerId: number): boolean {
-    // While placing and first point set: update the second (preview) point
+    // While placing: update the next (preview) point at _placedPointCount index
     if (this._state === 'PLACING' && this._placingDrawing && this._placedPointCount >= 1) {
       const time = this._callbacks.xToTime(x);
       const price = this._callbacks.yToPrice(y);
       const pts = this._placingDrawing.points;
-      if (pts.length >= 2) {
-        pts[1] = { time, price };
+      const previewIdx = this._placedPointCount;
+      if (pts.length > previewIdx) {
+        pts[previewIdx] = { time, price };
       } else {
         pts.push({ time, price });
       }
@@ -182,7 +186,7 @@ export class DrawingHandler implements EventHandler {
       // Create the drawing with the first point
       const factory = DRAWING_REGISTRY.get(type);
       if (!factory) return false;
-      const id = `drawing_${this._nextId++}`;
+      const id = `interactive-drawing-${Date.now()}-${this._nextId++}`;
       const drawing = factory(id, [{ time, price }], {}) as BaseDrawing & DrawingPrimitive;
       const drawingCtx = this._callbacks.getDrawingContext();
       if (drawingCtx) drawing.setContext(drawingCtx);
