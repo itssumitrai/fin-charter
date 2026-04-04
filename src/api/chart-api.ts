@@ -478,7 +478,7 @@ class ChartApi implements IChartApi {
         const priceRange = this._mainPane.priceScale.priceRange;
         const priceOffset = (priceRange.max - priceRange.min) * 0.02;
         const offsetPoints = s.points.map(p => ({ time: p.time + 1, price: p.price + priceOffset }));
-        this.addDrawing(s.type, offsetPoints, s.options);
+        this._addDrawingByIndex(s.type, offsetPoints, s.options);
       },
       bringDrawingToFront: (id) => {
         const idx = this._drawings.findIndex(d => d instanceof BaseDrawing && d.id === id);
@@ -1271,6 +1271,24 @@ class ChartApi implements IChartApi {
   // ── Feature 8: Drawing Tools ──────────────────────────────────────────────
 
   addDrawing(type: string, points: AnchorPoint[], options: DrawingOptions = {}): IDrawingApi {
+    // Public API: convert timestamp-based AnchorPoints to bar-index-based points.
+    // Internally, drawings store time as a bar index, but callers provide Unix
+    // timestamps matching the underlying series data.
+    let resolvedPoints = points;
+    if (this._series.length > 0) {
+      const dl = this._series[0].api.getDataLayer();
+      if (dl.store.length > 0) {
+        resolvedPoints = points.map(p => ({
+          ...p,
+          time: dl.findIndex(p.time),
+        }));
+      }
+    }
+    return this._addDrawingByIndex(type, resolvedPoints, options);
+  }
+
+  /** @internal Add a drawing with points already expressed as bar indices. */
+  _addDrawingByIndex(type: string, points: AnchorPoint[], options: DrawingOptions = {}): IDrawingApi {
     const id = `drawing_${this._nextDrawingId++}`;
     const drawing = createBuiltinDrawing(type, id, points, options);
     if (!drawing) throw new Error(`Unknown drawing type: ${type}`);
