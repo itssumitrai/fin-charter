@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -49,7 +50,21 @@ const chart = createChart(container, {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Custom Fonts</strong> — Customize chart fonts via <code>layout: { fontFamily, fontSize }</code>. ' +
+        'Affects all text elements: price scale labels, time scale labels, legend, and tooltips.',
+      code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  layout: {
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: 11,
+  },
+});`,
+    });
   },
 };
 
@@ -81,7 +96,19 @@ export const SystemSansSerif: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>System Sans-Serif</strong> — Uses the platform\'s native sans-serif font stack for a clean, ' +
+        'familiar appearance. Set via <code>layout: { fontFamily }</code>.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  layout: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: 12,
+  },
+});`,
+    });
   },
 };
 
@@ -110,6 +137,15 @@ export const LargeFontSize: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Large Font Size</strong> — Increase <code>layout.fontSize</code> for better readability on ' +
+        'large displays or high-density dashboards.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  layout: { fontSize: 14 },
+});`,
+    });
   },
 };

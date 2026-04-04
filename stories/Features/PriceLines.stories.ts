@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -63,7 +64,26 @@ series.createPriceLine({
       axisLabelVisible: true,
     });
 
-    return container;
+    const description = '<strong>Price lines</strong> are horizontal lines anchored to a fixed price level. Use <code>series.createPriceLine(options)</code> to add support/resistance levels, stop-loss markers, or target prices. Each line can be styled with custom colors, line styles (<code>solid</code>, <code>dashed</code>, <code>dotted</code>), and optional axis labels.';
+    const code = `series.createPriceLine({
+  price: 185,
+  color: '#22AB94',
+  lineWidth: 1,
+  lineStyle: 'dashed',
+  title: 'Support',
+  axisLabelVisible: true,
+});
+
+series.createPriceLine({
+  price: 195,
+  color: '#F7525F',
+  lineWidth: 1,
+  lineStyle: 'dashed',
+  title: 'Resistance',
+  axisLabelVisible: true,
+});`;
+
+    return withDocs(container, { description, code });
   },
 };
 
@@ -126,6 +146,20 @@ series.createPriceLine({
       axisLabelTextColor: '#ffffff',
     });
 
-    return container;
+    const description = 'Use price lines to visualize <strong>trade levels</strong> such as entry, stop loss, and target prices. Combine different <code>lineStyle</code> values (<code>solid</code>, <code>dotted</code>, <code>dashed</code>) and custom <code>axisLabelColor</code> / <code>axisLabelTextColor</code> to distinguish each level at a glance.';
+    const code = `series.createPriceLine({
+  price: 190, color: '#2196F3', lineStyle: 'solid', title: 'Entry',
+  axisLabelVisible: true,
+});
+series.createPriceLine({
+  price: 182, color: '#F7525F', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#F7525F',
+});
+series.createPriceLine({
+  price: 210, color: '#22AB94', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#22AB94',
+});`;
+
+    return withDocs(container, { description, code });
   },
 };

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -43,7 +44,18 @@ const chart = createChart(container, {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Currency Format</strong> — Format prices as currency (<code>$XXX.XX</code>) using a custom ' +
+        '<code>priceFormatter</code> function passed to <code>createChart()</code>.',
+      code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  priceFormatter: (price: number) => \`$\${price.toFixed(2)}\`,
+});`,
+    });
   },
 };
 
@@ -77,7 +89,20 @@ export const CompactFormat: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Compact Format</strong> — Shorten large numbers to human-readable abbreviations like ' +
+        '<code>1.5K</code> and <code>2.3M</code> using a custom <code>priceFormatter</code>.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  priceFormatter: (price: number) => {
+    if (price >= 1_000_000) return \`\${(price / 1_000_000).toFixed(2)}M\`;
+    if (price >= 1_000) return \`\${(price / 1_000).toFixed(1)}K\`;
+    return price.toFixed(2);
+  },
+});`,
+    });
   },
 };
 
@@ -112,6 +137,15 @@ export const BasisPoints: Story = {
       close: b.close / base,
     }));
     series.setData(normalized);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Basis Points</strong> — Convert prices to basis points by multiplying by 100. ' +
+        'Useful for displaying yields, spreads, or normalized values with a <code>priceFormatter</code>.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  priceFormatter: (price: number) => \`\${(price * 100).toFixed(0)} bps\`,
+});`,
+    });
   },
 };

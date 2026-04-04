@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Indicator Panes',
@@ -72,7 +73,34 @@ chart.addIndicator('macd', {
       label: 'MACD',
     });
 
-    return container;
+    return withDocs(container, {
+      description:
+        'Add <strong>indicators</strong> in separate panes below the main chart or as overlays using ' +
+        '<code>chart.addIndicator()</code>. Overlays like <strong>SMA</strong> render on the price pane, while ' +
+        'oscillators like <strong>RSI</strong> and <strong>MACD</strong> get their own dedicated panes.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Overlay indicator on the price pane
+chart.addIndicator('sma', {
+  source: series, params: { period: 20 }, color: '#f4c430', label: 'SMA 20',
+});
+
+// Separate-pane indicators
+chart.addIndicator('rsi', {
+  source: series, params: { period: 14 }, color: '#00e5ff', label: 'RSI 14',
+});
+chart.addIndicator('macd', {
+  source: series,
+  params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  color: '#ff6b6b', label: 'MACD',
+});
+      `,
+    });
   },
 };
 
@@ -149,6 +177,22 @@ chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX'
       label: 'ADX 14',
     });
 
-    return container;
+    return withDocs(container, {
+      description:
+        'A comprehensive example showing <strong>all supported indicator types</strong>: overlays like ' +
+        '<code>VWAP</code> and <code>Bollinger Bands</code> on the price pane, plus oscillators like ' +
+        '<code>RSI</code>, <code>Stochastic</code>, <code>ATR</code>, and <code>ADX</code> in separate panes.',
+      code: `
+chart.addIndicator('vwap', { source: series, color: '#ff9800', label: 'VWAP' });
+chart.addIndicator('bollinger', {
+  source: series, params: { period: 20, stdDev: 2 }, label: 'BB 20,2',
+});
+chart.addIndicator('stochastic', {
+  source: series, params: { kPeriod: 14, dPeriod: 3 }, label: 'Stoch',
+});
+chart.addIndicator('atr', { source: series, params: { period: 14 }, label: 'ATR' });
+chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX' });
+      `,
+    });
   },
 };

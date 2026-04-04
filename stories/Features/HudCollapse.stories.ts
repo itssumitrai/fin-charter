@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/HUD Collapse',
@@ -99,6 +100,28 @@ chart.addIndicator('mfi', { source: series, params: { period: 14 }, color: '#E91
       label: 'MFI 14',
     });
 
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Collapse or expand</strong> the HUD indicator rows to save screen space. ' +
+        'Click the <strong>chevron (^)</strong> in the top-right corner of the HUD to collapse all indicator rows at once. ' +
+        'Individual rows can be toggled independently via the <strong>visibility eye icon</strong> in the HUD.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Overlay indicators appear in the main HUD row
+chart.addIndicator('sma', {
+  source: series, params: { period: 20 }, color: '#f4c430', label: 'SMA 20',
+});
+
+// Separate-pane indicators get their own collapsible HUD row
+chart.addIndicator('rsi', {
+  source: series, params: { period: 14 }, color: '#ab47bc', label: 'RSI 14',
+});
+      `,
+    });
   },
 };

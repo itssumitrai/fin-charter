@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -46,7 +47,17 @@ series.setData(data);`,
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+
+    const description = 'The <strong>OHLC legend</strong> and <strong>tooltip</strong> update live as you move the crosshair over the chart. The legend shows Open/High/Low/Close values in the top-left corner, while the tooltip follows the cursor as a floating panel. Enable the tooltip with <code>tooltip: { enabled: true }</code> in chart options.';
+    const code = `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  tooltip: { enabled: true },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`;
+
+    return withDocs(container, { description, code });
   },
 };
 
@@ -72,7 +83,15 @@ export const TooltipDisabled: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+
+    const description = 'Disable the floating tooltip with <code>tooltip: { enabled: false }</code>. The <strong>OHLC legend</strong> in the top-left corner still updates as you hover, providing a cleaner look when the tooltip panel is not needed.';
+    const code = `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  tooltip: { enabled: false },
+});`;
+
+    return withDocs(container, { description, code });
   },
 };
 
@@ -100,6 +119,15 @@ export const WithVolume: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+
+    const description = 'Combine the <strong>OHLC legend</strong> with a <strong>volume overlay</strong> for a complete data view. The legend and tooltip include volume information when <code>volume: { visible: true }</code> is set alongside the tooltip.';
+    const code = `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  tooltip: { enabled: true },
+  volume: { visible: true },
+});`;
+
+    return withDocs(container, { description, code });
   },
 };

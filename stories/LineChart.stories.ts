@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
+import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
   title: 'Chart Types/Line',
@@ -37,7 +38,22 @@ series.setData(data);
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addLineSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'A <strong>line chart</strong> connects the close price of each bar with a smooth polyline. ' +
+        'It is the simplest chart type and is ideal for showing price trends at a glance.\n' +
+        'The chart uses the <code>close</code> field from each data point for the Y value.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), {
+  autoSize: true,
+  symbol: 'AAPL',
+});
+const series = chart.addLineSeries();
+series.setData(data); // Uses the 'close' field from each bar
+      `,
+    });
   },
 };
 
@@ -64,7 +80,18 @@ series.setData(data);
       lineWidth: 2,
     });
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'Customize the line appearance with <code>color</code> and <code>lineWidth</code>. ' +
+        'Any valid CSS color value is accepted.',
+      code: `
+const series = chart.addLineSeries({
+  color: '#00e5ff',   // Cyan line
+  lineWidth: 2,       // 2px width
+});
+series.setData(data);
+      `,
+    });
   },
 };
 
@@ -85,6 +112,14 @@ series.setData(data);
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addLineSeries({ color: '#ff6b6b' });
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'Line charts are effective for visualizing volatile price action. ' +
+        'The red line color here is commonly used to indicate bearish or high-risk instruments.',
+      code: `
+const series = chart.addLineSeries({ color: '#ff6b6b' });
+series.setData(data);
+      `,
+    });
   },
 };

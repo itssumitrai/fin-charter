@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer, generateOHLCV } from '../helpers';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Pagination',
@@ -92,6 +93,26 @@ chart.subscribeVisibleRangeChange(async (range) => {
 
     wrapper.appendChild(statusBar);
     wrapper.appendChild(container);
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        '<strong>Infinite scroll-back</strong> loads older data as the user pans left. ' +
+        'Use <code>chart.subscribeVisibleRangeChange()</code> to detect when the visible range approaches the first bar, ' +
+        'then call <code>series.prependData()</code> to prepend historical bars without replacing existing data.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(initialData);
+
+chart.subscribeVisibleRangeChange(async (range) => {
+  const info = series.barsInLogicalRange({ from: 0, to: range.from });
+  if (info.barsBefore <= 20) {
+    const olderBars = await fetchOlderData();
+    series.prependData(olderBars);
+  }
+});
+      `,
+    });
   },
 };

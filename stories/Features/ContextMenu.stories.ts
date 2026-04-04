@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Context Menu',
@@ -99,6 +100,30 @@ chart.addIndicator('rsi', {
       label: 'RSI 14',
     });
 
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Context-sensitive right-click menus</strong> adapt to what you click on. ' +
+        'Right-click a <strong>drawing</strong> for Edit, Duplicate, Remove, Bring to Front, and Send to Back. ' +
+        'Right-click on the <strong>chart area</strong> for Reset Zoom and Scroll to Latest. ' +
+        'Right-click an <strong>indicator pane</strong> header for Settings, Hide, and Remove.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Add a drawing — right-click it to see the context menu
+chart.addDrawing('trendline', [
+  { time: data[20].time, price: data[20].close },
+  { time: data[60].time, price: data[60].close },
+], { color: '#2196F3', lineWidth: 2 });
+
+// Add an indicator pane — right-click the header for options
+chart.addIndicator('rsi', {
+  source: series, params: { period: 14 }, color: '#ab47bc', label: 'RSI 14',
+});
+      `,
+    });
   },
 };

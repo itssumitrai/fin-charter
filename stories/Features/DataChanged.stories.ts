@@ -3,6 +3,7 @@ import { createChart } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Data Changed',
@@ -93,6 +94,25 @@ series.update({ time, open, high, low, close, volume });`,
     wrapper.appendChild(counter);
     wrapper.appendChild(container);
 
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        'Subscribe to <strong>data change events</strong> with <code>series.subscribeDataChanged()</code>. ' +
+        'The callback fires each time data is updated via <code>series.update()</code> or <code>series.setData()</code>. ' +
+        'This demo simulates real-time bar updates every second and counts the events.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.subscribeDataChanged(() => {
+  console.log('Data updated');
+});
+
+// Trigger an update
+series.update({ time, open, high, low, close, volume });
+      `,
+    });
   },
 };

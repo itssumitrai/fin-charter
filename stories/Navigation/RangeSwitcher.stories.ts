@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Navigation/Range Switcher',
@@ -117,6 +118,20 @@ chart.scrollToRealTime();`,
 
     root.appendChild(toolbar);
     root.appendChild(container);
-    return root;
+    return withDocs(root, {
+      description:
+        '<strong>Range Switcher</strong> provides quick navigation buttons for predefined time ranges ' +
+        '(<code>1M</code>, <code>3M</code>, <code>6M</code>, <code>1Y</code>, <code>ALL</code>). ' +
+        'Each button calls <code>chart.setVisibleRange(from, to)</code> to jump to the desired window. ' +
+        'The "Go to Realtime" button calls <code>chart.scrollToRealTime()</code> to snap back to the latest bar.',
+      code: `const DAY = 86400;
+const lastTime = bars[bars.length - 1].time;
+
+// Jump to a 3-month window
+chart.setVisibleRange(lastTime - 90 * DAY, lastTime);
+
+// Snap back to the latest bar
+chart.scrollToRealTime();`,
+    });
   },
 };
