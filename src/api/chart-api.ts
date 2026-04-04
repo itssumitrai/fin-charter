@@ -53,6 +53,7 @@ import {
   type HistogramSeriesOptions,
   type PaneOptions,
   type SeriesOptionsMap,
+  type SeriesOptions,
   type IndicatorType,
   type IndicatorOptions,
   DEFAULT_CHART_OPTIONS,
@@ -111,12 +112,21 @@ export interface IDrawingApi {
 }
 
 export interface IChartApi {
+  /** Add a series using a unified options object with a `type` discriminator. */
+  addSeries(options: SeriesOptions): ISeriesApi<SeriesType>;
+  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
+  /** @deprecated Use addSeries({ type: 'line' }) instead. */
   addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>;
+  /** @deprecated Use addSeries({ type: 'area' }) instead. */
   addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'>;
+  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
   addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'>;
+  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
   addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'>;
+  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
   addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'>;
+  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
   addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'>;
   removeSeries(series: ISeriesApi<SeriesType>): void;
   addPane(options?: PaneOptions): IPaneApi;
@@ -166,6 +176,7 @@ export interface IChartApi {
   /** Restore a previously exported chart state, loading bar data via the provided loader. */
   importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
   // ── Feature 11a: Heikin-Ashi ──────────────────────────────────────────────
+  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
   addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>;
   // ── Feature 11b: Periodicity ──────────────────────────────────────────────
   setPeriodicity(periodicity: Periodicity): void;
@@ -180,6 +191,27 @@ export interface IChartApi {
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
+
+/**
+ * Tracks animated display values for the last bar of a series.
+ * Display values chase the actual store values via exponential lerp.
+ */
+interface LastBarAnimState {
+  /** The bar index we're tracking — reset animation if this changes. */
+  lastIdx: number;
+  /** Current display values (what gets rendered). */
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  /** True while display values are converging toward actual values. */
+  animating: boolean;
+}
+
+/** Lerp factor for last-bar OHLC animation. */
+const LAST_BAR_LERP = 0.3;
+/** Snap threshold relative to price range. */
+const LAST_BAR_SNAP = 0.0005;
 
 interface SeriesEntry {
   api: SeriesApi<SeriesType>;
@@ -294,6 +326,9 @@ class ChartApi implements IChartApi {
   // Market sessions
   private _marketSessions: MarketSession[] = [];
   private _sessionFilter: string = 'all';
+
+  // Animation state for smooth streaming updates
+  private _lastBarAnims: Map<SeriesApi<SeriesType>, LastBarAnimState> = new Map();
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -421,34 +456,47 @@ class ChartApi implements IChartApi {
 
   // ── Series management ───────────────────────────────────────────────────
 
+  addSeries(options: SeriesOptions): ISeriesApi<SeriesType> {
+    const { type, ...rest } = options;
+    return this._addSeries(type, rest as DeepPartial<SeriesOptionsMap[typeof type]>);
+  }
+
+  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
   addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'> {
     return this._addSeries('candlestick', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'line' }) instead. */
   addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'> {
     return this._addSeries('line', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'area' }) instead. */
   addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'> {
     return this._addSeries('area', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
   addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'> {
     return this._addSeries('bar', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
   addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'> {
     return this._addSeries('baseline', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
   addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'> {
     return this._addSeries('hollow-candle', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
   addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'> {
     return this._addSeries('histogram', options ?? {});
   }
 
+  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
   addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'> {
     return this._addSeries('heikin-ashi', options ?? {});
   }
@@ -466,6 +514,7 @@ class ChartApi implements IChartApi {
       }
 
       this._series.splice(idx, 1);
+      this._lastBarAnims.delete(entry.api);
 
       // If we removed the primary (first) series the crosshair handler holds a
       // reference to its DataLayer. Reset it so the handler is recreated with
@@ -1476,6 +1525,83 @@ class ChartApi implements IChartApi {
     }
 
     this._mask.reset();
+
+    // Continue animation loop if any price scale or last bar is still animating
+    if (this._isAnimating()) {
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  /**
+   * Tick the last bar animation for a series. Returns the animation state
+   * (with interpolated display values), or null if no animation is needed.
+   */
+  private _tickLastBarAnim(
+    api: SeriesApi<SeriesType>,
+    store: ColumnStore,
+    lastIdx: number,
+  ): LastBarAnimState | null {
+    const anim = this._lastBarAnims.get(api);
+    const actualOpen = store.open[lastIdx];
+    const actualHigh = store.high[lastIdx];
+    const actualLow = store.low[lastIdx];
+    const actualClose = store.close[lastIdx];
+
+    if (!anim || anim.lastIdx !== lastIdx) {
+      // First time seeing this bar, or bar index changed — snap, no animation
+      this._lastBarAnims.set(api, {
+        lastIdx,
+        open: actualOpen,
+        high: actualHigh,
+        low: actualLow,
+        close: actualClose,
+        animating: false,
+      });
+      return null;
+    }
+
+    // Check if actual values have changed from what we're displaying
+    const range = Math.abs(actualHigh - actualLow) || 1;
+    const eps = range * LAST_BAR_SNAP;
+    const diffO = Math.abs(anim.open - actualOpen);
+    const diffH = Math.abs(anim.high - actualHigh);
+    const diffL = Math.abs(anim.low - actualLow);
+    const diffC = Math.abs(anim.close - actualClose);
+
+    if (diffO < eps && diffH < eps && diffL < eps && diffC < eps) {
+      // Already converged
+      anim.open = actualOpen;
+      anim.high = actualHigh;
+      anim.low = actualLow;
+      anim.close = actualClose;
+      anim.animating = false;
+      return anim;
+    }
+
+    // Lerp toward actual values
+    anim.open += (actualOpen - anim.open) * LAST_BAR_LERP;
+    anim.high += (actualHigh - anim.high) * LAST_BAR_LERP;
+    anim.low += (actualLow - anim.low) * LAST_BAR_LERP;
+    anim.close += (actualClose - anim.close) * LAST_BAR_LERP;
+    anim.animating = true;
+
+    return anim;
+  }
+
+  /** Returns true if any animation (price scale or last bar) is still running. */
+  private _isAnimating(): boolean {
+    // Check price scales
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      if (pane.priceScale.isAnimating || pane.leftPriceScale.isAnimating) {
+        return true;
+      }
+    }
+    // Check last bar animations
+    for (const anim of this._lastBarAnims.values()) {
+      if (anim.animating) return true;
+    }
+    return false;
   }
 
   private _emitCrosshairCallbacks(): void {
@@ -1554,6 +1680,10 @@ class ChartApi implements IChartApi {
 
     // Auto-scale price from visible data (only series assigned to this pane)
     this._updatePaneDataRange(pane, seriesForPane, range);
+
+    // Advance price scale animations (smooth Y-axis transitions)
+    pane.priceScale.tick();
+    pane.leftPriceScale.tick();
 
     if (isMain) {
       // Draw watermark BEFORE grid/series so it appears behind everything
@@ -1682,6 +1812,27 @@ class ChartApi implements IChartApi {
   ): void {
     const barWidth = this._timeScale.barSpacing * 0.8;
 
+    // ── Last bar animation: interpolate OHLC for smooth streaming ────────
+    const lastIdx = store.length - 1;
+    let saved: { o: number; h: number; l: number; c: number } | null = null;
+
+    if (lastIdx >= 0 && lastIdx >= range.fromIdx && lastIdx <= range.toIdx) {
+      const anim = this._tickLastBarAnim(entry.api, store, lastIdx);
+      if (anim && anim.animating) {
+        // Temporarily write interpolated values into the store for rendering
+        saved = {
+          o: store.open[lastIdx],
+          h: store.high[lastIdx],
+          l: store.low[lastIdx],
+          c: store.close[lastIdx],
+        };
+        store.open[lastIdx] = anim.open;
+        store.high[lastIdx] = anim.high;
+        store.low[lastIdx] = anim.low;
+        store.close[lastIdx] = anim.close;
+      }
+    }
+
     switch (entry.type) {
       case 'candlestick':
       case 'heikin-ashi':
@@ -1705,6 +1856,14 @@ class ChartApi implements IChartApi {
       case 'histogram':
         (entry.renderer as HistogramRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
         break;
+    }
+
+    // Restore original store values after rendering
+    if (saved !== null) {
+      store.open[lastIdx] = saved.o;
+      store.high[lastIdx] = saved.h;
+      store.low[lastIdx] = saved.l;
+      store.close[lastIdx] = saved.c;
     }
   }
 

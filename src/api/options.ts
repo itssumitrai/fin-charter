@@ -239,6 +239,17 @@ export interface SeriesOptionsMap {
   'heikin-ashi': CandlestickSeriesOptions;
 }
 
+/** Discriminated union for the unified addSeries() API. */
+export type SeriesOptions =
+  | ({ type: 'candlestick' } & Partial<CandlestickSeriesOptions>)
+  | ({ type: 'line' } & Partial<LineSeriesOptions>)
+  | ({ type: 'area' } & Partial<AreaSeriesOptions>)
+  | ({ type: 'bar' } & Partial<BarSeriesOptions>)
+  | ({ type: 'baseline' } & Partial<BaselineSeriesOptions>)
+  | ({ type: 'hollow-candle' } & Partial<HollowCandleSeriesOptions>)
+  | ({ type: 'histogram' } & Partial<HistogramSeriesOptions>)
+  | ({ type: 'heikin-ashi' } & Partial<CandlestickSeriesOptions>);
+
 // ─── Indicators ────────────────────────────────────────────────────────────
 
 export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger'
