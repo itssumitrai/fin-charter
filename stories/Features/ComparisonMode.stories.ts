@@ -27,7 +27,7 @@ export const CompareSymbols: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const mainSeries = chart.addCandlestickSeries();
 mainSeries.setData(aaplData);
 
@@ -70,7 +70,7 @@ compSeries.setData(msftData);`,
     toolbar.appendChild(legendEl);
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const mainSeries = chart.addCandlestickSeries({
       upColor: '#22AB94',

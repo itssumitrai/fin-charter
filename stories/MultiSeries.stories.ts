@@ -25,7 +25,7 @@ export const TwoLineSeriesOverlaid: Story = {
         code: `
 import { createChart } from 'fin-charter';
 
-const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 
 const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
 series1.setData(stockA);
@@ -38,7 +38,7 @@ series2.setData(stockB);
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series1 = chart.addLineSeries({ color: '#2962FF', lineWidth: 2 });
     series1.setData(AAPL_DAILY);
@@ -75,7 +75,7 @@ sma.setData(smaData);
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -102,6 +102,7 @@ export const WithVolumeOverlay: Story = {
         code: `
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   volume: { visible: true },
 });
 chart.addCandlestickSeries().setData(data);
@@ -113,6 +114,7 @@ chart.addCandlestickSeries().setData(data);
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       volume: { visible: true },
     });
 
@@ -146,7 +148,7 @@ series.createPriceLine({
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -179,6 +181,7 @@ export const WithWatermark: Story = {
         code: `
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   watermark: {
     visible: true,
     text: 'AAPL',
@@ -195,6 +198,7 @@ chart.addCandlestickSeries().setData(data);
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       watermark: {
         visible: true,
         text: 'AAPL',

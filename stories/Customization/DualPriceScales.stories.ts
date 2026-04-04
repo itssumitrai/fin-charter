@@ -41,6 +41,7 @@ export const Default: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   rightPriceScale: { visible: true },
   leftPriceScale: { visible: true },
 });
@@ -54,6 +55,7 @@ chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       rightPriceScale: { visible: true },
       leftPriceScale: { visible: true },
     });
@@ -79,6 +81,7 @@ export const RightOnly: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   rightPriceScale: { visible: true },
   leftPriceScale: { visible: false },
 });`,
@@ -89,6 +92,7 @@ export const RightOnly: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       rightPriceScale: { visible: true },
       leftPriceScale: { visible: false },
     });
@@ -105,6 +109,7 @@ export const LeftOnly: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   rightPriceScale: { visible: false },
   leftPriceScale: { visible: true },
 });`,
@@ -115,6 +120,7 @@ export const LeftOnly: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       rightPriceScale: { visible: false },
       leftPriceScale: { visible: true },
     });

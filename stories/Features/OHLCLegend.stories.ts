@@ -29,6 +29,7 @@ export const LegendAndTooltip: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   tooltip: { enabled: true },
 });
 const series = chart.addCandlestickSeries();
@@ -40,6 +41,7 @@ series.setData(data);`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       tooltip: { enabled: true },
     });
     const series = chart.addCandlestickSeries();
@@ -55,6 +57,7 @@ export const TooltipDisabled: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   tooltip: { enabled: false },
 });`,
       },
@@ -64,6 +67,7 @@ export const TooltipDisabled: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       tooltip: { enabled: false },
     });
     const series = chart.addCandlestickSeries();
@@ -79,6 +83,7 @@ export const WithVolume: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   tooltip: { enabled: true },
   volume: { visible: true },
 });`,
@@ -89,6 +94,7 @@ export const WithVolume: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       tooltip: { enabled: true },
       volume: { visible: true },
     });

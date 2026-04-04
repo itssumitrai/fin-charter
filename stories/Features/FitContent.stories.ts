@@ -28,6 +28,7 @@ export const FitContentDemo: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   timeScale: { barSpacing: 2 },
 });
 const series = chart.addCandlestickSeries();
@@ -52,6 +53,7 @@ chart.fitContent();`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       timeScale: { barSpacing: 2 },
     });
 

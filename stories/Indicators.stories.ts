@@ -41,7 +41,7 @@ export const SMAandEMA: Story = {
         code: `import { createChart } from 'fin-charter';
 import { computeSMA, computeEMA } from 'fin-charter/indicators';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
@@ -56,7 +56,7 @@ chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(emaLineBars);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
@@ -93,7 +93,7 @@ smaSeries.setData(smaLineBars);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));
@@ -125,7 +125,7 @@ chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 }).setData(ema26Bars);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const bars = AAPL_DAILY;
     const closes = new Float64Array(bars.map((b) => b.close));

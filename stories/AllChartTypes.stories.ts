@@ -56,7 +56,7 @@ export const Overview: Story = {
         code: `
 import { createChart } from 'fin-charter';
 
-const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 
 // Candlestick
 chart.addCandlestickSeries().setData(data);
@@ -99,7 +99,7 @@ chart.addBaselineSeries().setData(data);
         title: 'Candlestick',
         color: '#22AB94',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addCandlestickSeries().setData(bars);
         },
       },
@@ -107,7 +107,7 @@ chart.addBaselineSeries().setData(data);
         title: 'Hollow Candle',
         color: '#00e5ff',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addHollowCandleSeries().setData(bars);
         },
       },
@@ -115,7 +115,7 @@ chart.addBaselineSeries().setData(data);
         title: 'OHLC Bar',
         color: '#f4c430',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addBarSeries().setData(bars);
         },
       },
@@ -123,7 +123,7 @@ chart.addBaselineSeries().setData(data);
         title: 'Line',
         color: '#9c27b0',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 }).setData(bars);
         },
       },
@@ -131,7 +131,7 @@ chart.addBaselineSeries().setData(data);
         title: 'Area',
         color: '#ff9800',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addAreaSeries({
             lineColor: '#ff9800',
             topColor: 'rgba(255, 152, 0, 0.4)',
@@ -143,7 +143,7 @@ chart.addBaselineSeries().setData(data);
         title: 'Baseline',
         color: '#e91e63',
         create: (el) => {
-          const chart = createChart(el, { autoSize: true });
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
           chart.addBaselineSeries().setData(bars);
         },
       },

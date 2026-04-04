@@ -27,7 +27,7 @@ export const InfiniteScrollBack: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(initialData);
 
@@ -52,7 +52,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
     statusBar.textContent = 'Total bars: 200 — scroll left to load more history';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     // Seed initial 200 bars ending "today"
     const INITIAL_START = 1704067200; // 2024-01-01

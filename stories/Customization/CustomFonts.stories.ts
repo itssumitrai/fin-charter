@@ -28,6 +28,7 @@ export const Monospace: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   layout: {
     fontFamily: '"Courier New", Courier, monospace',
     fontSize: 11,
@@ -40,6 +41,7 @@ const chart = createChart(container, {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       layout: {
         fontFamily: '"Courier New", Courier, monospace',
         fontSize: 11,
@@ -58,6 +60,7 @@ export const SystemSansSerif: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   layout: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: 12,
@@ -70,6 +73,7 @@ export const SystemSansSerif: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       layout: {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: 12,
@@ -88,6 +92,7 @@ export const LargeFontSize: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   layout: { fontSize: 14 },
 });`,
       },
@@ -97,6 +102,7 @@ export const LargeFontSize: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       layout: {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: 14,

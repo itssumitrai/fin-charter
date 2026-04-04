@@ -28,6 +28,7 @@ export const Default: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   watermark: {
     visible: true,
     text: 'AAPL',
@@ -42,6 +43,7 @@ const chart = createChart(container, {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       watermark: {
         visible: true,
         text: 'AAPL',
@@ -64,6 +66,7 @@ export const LargeText: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   watermark: {
     visible: true,
     text: 'FIN-CHARTER',
@@ -78,6 +81,7 @@ export const LargeText: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       watermark: {
         visible: true,
         text: 'FIN-CHARTER',
@@ -104,6 +108,7 @@ export const CornerWatermark: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   watermark: {
     visible: true, text: 'DEMO', fontSize: 32,
     horzAlign: 'right', vertAlign: 'bottom',
@@ -116,6 +121,7 @@ export const CornerWatermark: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       watermark: {
         visible: true,
         text: 'DEMO',

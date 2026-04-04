@@ -28,7 +28,7 @@ export const SaveRestore: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data);
 
@@ -76,7 +76,7 @@ await chart.importState(JSON.parse(json), async (seriesId) => {
 
     // Chart
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
 

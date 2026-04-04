@@ -24,7 +24,7 @@ export const Default: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data); // Array of { time, open, high, low, close, volume }`,
       },
@@ -32,7 +32,7 @@ series.setData(data); // Array of { time, open, high, low, close, volume }`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
     return container;
@@ -56,7 +56,7 @@ series.setData(data);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries({
       upColor: '#00e5ff',
       downColor: '#ff4081',
@@ -80,7 +80,7 @@ series.setData(data.slice(0, 20)); // Only 20 bars`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(generateOHLCV(20));
     return container;
@@ -94,6 +94,7 @@ export const WithoutLastPriceLine: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   lastPriceLine: { visible: false },
 });
 const series = chart.addCandlestickSeries();
@@ -103,7 +104,7 @@ series.setData(data);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true, lastPriceLine: { visible: false } });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL', lastPriceLine: { visible: false } });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
     return container;

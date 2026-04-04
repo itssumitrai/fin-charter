@@ -37,7 +37,7 @@ export const InteractiveDrawing: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data);
 
@@ -61,7 +61,7 @@ chart.setActiveDrawingTool(null);`,
     status.textContent = 'No tool active — click a tool to start drawing';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
 
@@ -115,7 +115,7 @@ chart.addDrawing('trendline',
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
 

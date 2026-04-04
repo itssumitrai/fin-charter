@@ -26,7 +26,7 @@ export const Default: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
@@ -45,7 +45,7 @@ chart.scrollToRealTime();`,
     toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 8px;background:#1a1a2e;border-radius:4px;';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
 
     const seedData = generateOHLCV(100);

@@ -28,6 +28,7 @@ export const CustomTimeFormatter: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   timeScale: {
     tickMarkFormatter: (time, tickType) => {
       if (tickType === 'day') {
@@ -45,6 +46,7 @@ const chart = createChart(container, {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       timeScale: {
         tickMarkFormatter: (time: number, tickType: 'year' | 'month' | 'day' | 'time') => {
           if (tickType === 'day') {

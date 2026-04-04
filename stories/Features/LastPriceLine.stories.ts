@@ -29,6 +29,7 @@ export const Visible: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
 const series = chart.addCandlestickSeries();
@@ -40,6 +41,7 @@ series.setData(data);`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       lastPriceLine: { visible: true },
     });
     const series = chart.addCandlestickSeries();
@@ -55,6 +57,7 @@ export const Hidden: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   lastPriceLine: { visible: false },
 });`,
       },
@@ -64,6 +67,7 @@ export const Hidden: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       lastPriceLine: { visible: false },
     });
     const series = chart.addCandlestickSeries();
@@ -79,6 +83,7 @@ export const OnLineSeries: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
 const series = chart.addLineSeries({ color: '#00e5ff' });
@@ -90,6 +95,7 @@ series.setData(data);`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       lastPriceLine: { visible: true },
     });
     const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
