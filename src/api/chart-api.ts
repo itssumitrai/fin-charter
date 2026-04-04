@@ -1015,13 +1015,16 @@ class ChartApi implements IChartApi {
     // 5-6. Create internal series
     const color = options.color ?? '#2962ff';
     const lineWidth = options.lineWidth ?? 2;
+    const customColors = options.colors;
+    const histUpColor = options.histogramUpColor ?? 'rgba(34, 171, 148, 0.4)';
+    const histDownColor = options.histogramDownColor ?? 'rgba(247, 82, 95, 0.4)';
 
     const indicator = new IndicatorApi(id, type, options, paneId, () => {
       this.removeIndicator(indicator);
     });
     indicator.autoCreatedPaneId = autoCreatedPaneId;
 
-    this._createIndicatorSeries(indicator, result, store, paneId, color, lineWidth);
+    this._createIndicatorSeries(indicator, result, store, paneId, color, lineWidth, customColors, histUpColor, histDownColor);
 
     // 7. Subscribe to source's dataChanged for auto-recompute
     const dataChangedCallback = (): void => {
@@ -1035,7 +1038,7 @@ class ChartApi implements IChartApi {
       indicator.internalSeries = [];
 
       // Recreate with updated data
-      this._createIndicatorSeries(indicator, updatedResult, updatedStore, paneId, color, lineWidth);
+      this._createIndicatorSeries(indicator, updatedResult, updatedStore, paneId, color, lineWidth, customColors, histUpColor, histDownColor);
     };
     indicator._dataChangedCallback = dataChangedCallback;
     options.source.subscribeDataChanged(dataChangedCallback);
@@ -1194,11 +1197,15 @@ class ChartApi implements IChartApi {
     paneId: string,
     primaryColor: string,
     lineWidth: number,
+    customColors?: Record<string, string>,
+    histUpColor: string = 'rgba(34, 171, 148, 0.4)',
+    histDownColor: string = 'rgba(247, 82, 95, 0.4)',
   ): void {
     const type = indicator.indicatorType();
 
-    // Color map for multi-output indicators
-    const colorMap = this._getIndicatorColorMap(type, primaryColor);
+    // Color map for multi-output indicators — custom overrides take precedence
+    const defaultColorMap = this._getIndicatorColorMap(type, primaryColor);
+    const colorMap = customColors ? { ...defaultColorMap, ...customColors } : defaultColorMap;
 
     // Draw histogram series first so line series render on top
     const sortedKeys = Object.keys(result).sort((a, b) =>
@@ -1228,8 +1235,8 @@ class ChartApi implements IChartApi {
         series = this._addSeries('histogram', {
           paneId,
           data: bars,
-          upColor: 'rgba(34, 171, 148, 0.4)',
-          downColor: 'rgba(247, 82, 95, 0.4)',
+          upColor: histUpColor,
+          downColor: histDownColor,
         }, true);
       } else {
         series = this._addSeries('line', {

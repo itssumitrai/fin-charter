@@ -1,22 +1,32 @@
 <script lang="ts">
   import { appStore } from '../../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import {
+    mdiFinance,
+    mdiChartLine,
+    mdiChartAreaspline,
+    mdiChartBar,
+    mdiChartBellCurve,
+    mdiChartTimelineVariant,
+    mdiCandle,
+  } from '@mdi/js';
 
   let open = $state(false);
   let containerEl: HTMLDivElement | undefined;
 
   const CHART_TYPES: { label: ChartTypeLabel; icon: string }[] = [
-    { label: 'Candlestick', icon: '🕯' },
-    { label: 'Line', icon: '📈' },
-    { label: 'Area', icon: '▤' },
-    { label: 'Bar', icon: '┃' },
-    { label: 'Baseline', icon: '⎯' },
-    { label: 'HollowCandle', icon: '◇' },
-    { label: 'HeikinAshi', icon: '⊞' },
+    { label: 'Candlestick', icon: mdiFinance },
+    { label: 'Line', icon: mdiChartLine },
+    { label: 'Area', icon: mdiChartAreaspline },
+    { label: 'Bar', icon: mdiChartBar },
+    { label: 'Baseline', icon: mdiChartBellCurve },
+    { label: 'HollowCandle', icon: mdiCandle },
+    { label: 'HeikinAshi', icon: mdiChartTimelineVariant },
   ];
 
   let currentIcon = $derived(
-    CHART_TYPES.find(t => t.label === appStore.chartType)?.icon ?? '🕯'
+    CHART_TYPES.find(t => t.label === appStore.chartType)?.icon ?? mdiFinance
   );
 
   function select(type: ChartTypeLabel) {
@@ -42,7 +52,7 @@
 
 <div class="chart-type-selector" bind:this={containerEl}>
   <button class="trigger" aria-label="Chart type" onclick={() => (open = !open)}>
-    {currentIcon}
+    <Icon path={currentIcon} size={18} />
   </button>
 
   {#if open}
@@ -53,7 +63,7 @@
           class:active={appStore.chartType === ct.label}
           onclick={() => select(ct.label)}
         >
-          <span class="icon">{ct.icon}</span>
+          <span class="icon"><Icon path={ct.icon} size={18} /></span>
           <span class="label">{ct.label}</span>
         </button>
       {/each}
@@ -75,6 +85,8 @@
     cursor: pointer;
     font-size: 14px;
     font-family: inherit;
+    display: flex;
+    align-items: center;
   }
 
   .trigger:hover {
@@ -91,7 +103,7 @@
     border: 1px solid #1a2332;
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    min-width: 160px;
+    min-width: 170px;
     padding: 4px 0;
   }
 
@@ -120,7 +132,8 @@
 
   .icon {
     width: 20px;
-    text-align: center;
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>

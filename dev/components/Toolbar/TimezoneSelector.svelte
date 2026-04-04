@@ -1,5 +1,7 @@
 <script lang="ts">
   import { appStore, TIMEZONE_OPTIONS } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import { mdiEarth } from '@mdi/js';
 
   let open = $state(false);
   let containerEl: HTMLDivElement | undefined;
@@ -31,6 +33,7 @@
 
 <div class="timezone-selector" bind:this={containerEl}>
   <button class="trigger" onclick={() => (open = !open)}>
+    <Icon path={mdiEarth} size={14} />
     {currentLabel}
   </button>
 
@@ -56,6 +59,9 @@
   }
 
   .trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     background: transparent;
     border: 1px solid transparent;
     color: #758696;

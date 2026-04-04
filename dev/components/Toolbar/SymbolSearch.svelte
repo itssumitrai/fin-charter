@@ -1,6 +1,8 @@
 <script lang="ts">
   import { searchSymbols } from '../../data/symbols';
   import { appStore } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import { mdiMagnify } from '@mdi/js';
 
   let open = $state(false);
   let query = $state('');
@@ -45,6 +47,7 @@
 
 <div class="symbol-search" bind:this={containerEl}>
   <button class="trigger" onclick={toggle}>
+    <Icon path={mdiMagnify} size={14} />
     {appStore.symbol}
   </button>
 
@@ -81,6 +84,9 @@
   }
 
   .trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 4px 10px;
     background: #1a2332;
     border: 1px solid transparent;

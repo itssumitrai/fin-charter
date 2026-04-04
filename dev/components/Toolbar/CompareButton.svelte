@@ -1,6 +1,8 @@
 <script lang="ts">
   import { searchSymbols } from '../../data/symbols';
   import { appStore } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import { mdiChartMultiple, mdiClose } from '@mdi/js';
 
   let open = $state(false);
   let query = $state('');
@@ -49,6 +51,7 @@
 
 <div class="compare-button" bind:this={containerEl}>
   <button class="trigger" class:active={appStore.comparisonMode} onclick={toggle}>
+    <Icon path={mdiChartMultiple} size={16} />
     Compare
   </button>
 
@@ -69,7 +72,9 @@
           {#each appStore.comparisonSymbols as sym}
             <div class="active-item">
               <span class="sym">{sym}</span>
-              <button class="remove" onclick={() => removeComparison(sym)}>&#10005;</button>
+              <button class="remove" onclick={() => removeComparison(sym)}>
+                <Icon path={mdiClose} size={14} />
+              </button>
             </div>
           {/each}
         </div>
@@ -98,6 +103,9 @@
   }
 
   .trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     background: transparent;
     border: 1px solid transparent;
     color: #758696;
@@ -177,10 +185,11 @@
     border: none;
     color: #758696;
     cursor: pointer;
-    font-size: 12px;
     padding: 2px 4px;
     border-radius: 2px;
     font-family: inherit;
+    display: flex;
+    align-items: center;
   }
 
   .remove:hover {

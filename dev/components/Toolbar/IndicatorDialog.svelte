@@ -1,5 +1,8 @@
 <script lang="ts">
   import { appStore } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import { mdiChartBellCurveCumulative, mdiCog, mdiCheck } from '@mdi/js';
+  import IndicatorSettingsPanel from './IndicatorSettingsPanel.svelte';
 
   const INDICATOR_LIST = [
     { id: 'sma', name: 'SMA', category: 'Overlay' },
@@ -35,6 +38,7 @@
 
   let open = $state(false);
   let query = $state('');
+  let settingsFor = $state<string | null>(null);
   let containerEl: HTMLDivElement | undefined;
   let inputEl: HTMLInputElement | undefined = $state(undefined);
 
@@ -51,21 +55,31 @@
   function toggleIndicator(id: string) {
     if (appStore.activeIndicators.includes(id)) {
       appStore.removeIndicator(id);
+      if (settingsFor === id) settingsFor = null;
     } else {
       appStore.addIndicator(id);
     }
   }
 
+  function openSettings(e: MouseEvent, id: string) {
+    e.stopPropagation();
+    settingsFor = settingsFor === id ? null : id;
+  }
+
   function toggle() {
     open = !open;
     if (open) setTimeout(() => inputEl?.focus(), 0);
-    if (!open) query = '';
+    if (!open) {
+      query = '';
+      settingsFor = null;
+    }
   }
 
   function handleClickOutside(e: MouseEvent) {
     if (containerEl && !containerEl.contains(e.target as Node)) {
       open = false;
       query = '';
+      settingsFor = null;
     }
   }
 
@@ -81,6 +95,7 @@
 
 <div class="indicator-dialog" bind:this={containerEl}>
   <button class="trigger" onclick={toggle}>
+    <Icon path={mdiChartBellCurveCumulative} size={16} />
     Indicators
     {#if indicatorCount > 0}
       <span class="badge">{indicatorCount}</span>
@@ -100,23 +115,41 @@
       </div>
       <div class="list">
         {#each filtered() as ind}
-          <button
-            class="item"
-            class:active={appStore.activeIndicators.includes(ind.id)}
-            onclick={() => toggleIndicator(ind.id)}
-          >
-            <span class="name">{ind.name}</span>
-            <span class="category">{ind.category}</span>
+          <div class="item-row" class:active={appStore.activeIndicators.includes(ind.id)}>
+            <button
+              class="item"
+              class:active={appStore.activeIndicators.includes(ind.id)}
+              onclick={() => toggleIndicator(ind.id)}
+            >
+              <span class="name">{ind.name}</span>
+              <span class="category">{ind.category}</span>
+              {#if appStore.activeIndicators.includes(ind.id)}
+                <span class="check"><Icon path={mdiCheck} size={14} /></span>
+              {/if}
+            </button>
             {#if appStore.activeIndicators.includes(ind.id)}
-              <span class="check">&#10003;</span>
+              <button
+                class="gear-btn"
+                title="Settings"
+                onclick={(e: MouseEvent) => openSettings(e, ind.id)}
+              >
+                <Icon path={mdiCog} size={14} />
+              </button>
             {/if}
-          </button>
+          </div>
         {/each}
         {#if filtered().length === 0}
           <div class="no-results">No indicators found</div>
         {/if}
       </div>
     </div>
+  {/if}
+
+  {#if settingsFor}
+    <IndicatorSettingsPanel
+      indicatorId={settingsFor}
+      onclose={() => { settingsFor = null; }}
+    />
   {/if}
 </div>
 
@@ -166,7 +199,7 @@
     border: 1px solid #1a2332;
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    width: 280px;
+    width: 300px;
     max-height: 400px;
     display: flex;
     flex-direction: column;
@@ -200,11 +233,16 @@
     padding: 4px 0;
   }
 
+  .item-row {
+    display: flex;
+    align-items: center;
+  }
+
   .item {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 100%;
+    flex: 1;
     padding: 8px 12px;
     background: transparent;
     border: none;
@@ -234,7 +272,24 @@
 
   .check {
     color: #2962ff;
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+  }
+
+  .gear-btn {
+    background: transparent;
+    border: none;
+    color: #758696;
+    cursor: pointer;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    border-radius: 3px;
+  }
+
+  .gear-btn:hover {
+    color: #d1d4dc;
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .no-results {

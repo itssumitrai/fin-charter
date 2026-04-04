@@ -1,13 +1,17 @@
 <script lang="ts">
   import { appStore } from '../../data/store.svelte.ts';
   import Watchlist from './Watchlist.svelte';
+  import Icon from '../Icon.svelte';
+  import { mdiFormatListBulleted, mdiChevronLeft } from '@mdi/js';
 </script>
 
 {#if appStore.sidebarOpen}
   <div class="sidebar">
     <div class="sidebar-header">
-      <span class="title">Watchlist</span>
-      <button class="collapse-btn" onclick={() => { appStore.sidebarOpen = false; }}>◀</button>
+      <span class="title"><Icon path={mdiFormatListBulleted} size={14} /> Watchlist</span>
+      <button class="collapse-btn" onclick={() => { appStore.sidebarOpen = false; }}>
+        <Icon path={mdiChevronLeft} size={16} />
+      </button>
     </div>
     <Watchlist />
   </div>
@@ -34,6 +38,9 @@
   }
 
   .title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     font-weight: 600;
     color: #d1d4dc;
