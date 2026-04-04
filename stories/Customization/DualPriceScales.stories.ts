@@ -3,6 +3,7 @@ import { createChart } from 'fin-charter';
 import { computeSMA } from 'fin-charter/indicators';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -70,7 +71,26 @@ chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
     const smaSeries = chart.addLineSeries({ color: '#f4c430', lineWidth: 2, priceScaleId: 'left' });
     smaSeries.setData(indicatorToLineBars(AAPL_DAILY, smaValues));
 
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Dual Price Scales</strong> — Enable both left and right price scales simultaneously. ' +
+        'Assign a series to a specific scale with <code>priceScaleId: \'left\'</code>. ' +
+        'Useful for overlaying instruments with different price ranges.',
+      code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  rightPriceScale: { visible: true },
+  leftPriceScale: { visible: true },
+});
+
+// Candlesticks on right scale (default)
+chart.addCandlestickSeries();
+
+// SMA line on left scale
+chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
+    });
   },
 };
 
@@ -98,7 +118,17 @@ export const RightOnly: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Right Scale Only</strong> — The default configuration with only the right price scale visible. ' +
+        'Set <code>leftPriceScale: { visible: false }</code> to explicitly disable the left scale.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  rightPriceScale: { visible: true },
+  leftPriceScale: { visible: false },
+});`,
+    });
   },
 };
 
@@ -126,6 +156,16 @@ export const LeftOnly: Story = {
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        '<strong>Left Scale Only</strong> — Show only the left price scale by disabling the right. ' +
+        'Set <code>rightPriceScale: { visible: false }</code> and <code>leftPriceScale: { visible: true }</code>.',
+      code: `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  rightPriceScale: { visible: false },
+  leftPriceScale: { visible: true },
+});`,
+    });
   },
 };

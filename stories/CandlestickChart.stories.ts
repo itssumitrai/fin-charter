@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { generateOHLCV, createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
+import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
   title: 'Chart Types/Candlestick',
@@ -35,7 +36,22 @@ series.setData(data); // Array of { time, open, high, low, close, volume }`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'The <strong>candlestick chart</strong> is the most common financial chart type, showing open, high, low, and close (OHLC) prices for each time period. ' +
+        'Green (bullish) candles indicate the close was higher than the open; red (bearish) candles indicate the close was lower.\n' +
+        'Pass an array of <code>{ time, open, high, low, close, volume }</code> objects to <code>series.setData()</code>.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), {
+  autoSize: true,
+  symbol: 'AAPL',
+});
+const series = chart.addCandlestickSeries();
+series.setData(data); // Array of { time, open, high, low, close, volume }
+      `,
+    });
   },
 };
 
@@ -64,7 +80,20 @@ series.setData(data);`,
       wickDownColor: '#ff4081',
     });
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'Customize candle colors by passing <code>upColor</code>, <code>downColor</code>, <code>wickUpColor</code>, and <code>wickDownColor</code> to <code>addCandlestickSeries()</code>. ' +
+        'You can also set <code>borderUpColor</code> and <code>borderDownColor</code> for the candle body border.',
+      code: `
+const series = chart.addCandlestickSeries({
+  upColor: '#00e5ff',       // Bullish candle body
+  downColor: '#ff4081',     // Bearish candle body
+  wickUpColor: '#00e5ff',   // Bullish wick color
+  wickDownColor: '#ff4081', // Bearish wick color
+});
+series.setData(data);
+      `,
+    });
   },
 };
 
@@ -83,7 +112,14 @@ series.setData(data.slice(0, 20)); // Only 20 bars`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
     series.setData(generateOHLCV(20));
-    return container;
+    return withDocs(container, {
+      description:
+        'The chart automatically adjusts its scale to fit any number of bars. Here only 20 bars are rendered, demonstrating that the chart handles small datasets gracefully.',
+      code: `
+const series = chart.addCandlestickSeries();
+series.setData(data.slice(0, 20)); // Only 20 bars
+      `,
+    });
   },
 };
 
@@ -107,6 +143,19 @@ series.setData(data);`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', lastPriceLine: { visible: false } });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+    return withDocs(container, {
+      description:
+        'By default, a horizontal dashed line is drawn at the latest close price. ' +
+        'Disable it by setting <code>lastPriceLine: { visible: false }</code> in chart options.',
+      code: `
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  lastPriceLine: { visible: false },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);
+      `,
+    });
   },
 };

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Extended Hours',
@@ -131,6 +132,24 @@ chart.setSessionFilter('regular');`,
 
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        'Display <strong>pre-market</strong> and <strong>post-market</strong> trading sessions alongside regular hours. ' +
+        'Use <code>chart.setMarketSessions()</code> to define session boundaries and ' +
+        '<code>chart.setSessionFilter()</code> to toggle between <code>"regular"</code>, <code>"extended"</code>, or <code>"all"</code> sessions.',
+      code: `
+import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+chart.setMarketSessions(US_EQUITY_SESSIONS);
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+
+const series = chart.addCandlestickSeries();
+series.setData(intradayData);
+
+// Filter to regular hours only
+chart.setSessionFilter('regular');
+      `,
+    });
   },
 };

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -45,7 +46,17 @@ series.setData(data);`,
     });
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
-    return container;
+
+    const description = 'Enable the built-in <strong>volume overlay</strong> with <code>volume: { visible: true }</code>. Volume bars render at the bottom of the chart using the same up/down color conventions as the candlesticks, providing a quick visual read on trading activity.';
+    const code = `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  volume: { visible: true },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`;
+
+    return withDocs(container, { description, code });
   },
 };
 
@@ -84,6 +95,18 @@ export const CustomVolumeColors: Story = {
       wickDownColor: '#ff4081',
     });
     series.setData(AAPL_DAILY);
-    return container;
+
+    const description = 'Customize volume bar colors with <code>upColor</code> and <code>downColor</code> in the <code>volume</code> options. Use rgba values for semi-transparent overlays that blend with the chart background. Pair with matching candlestick colors for a cohesive look.';
+    const code = `const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  volume: {
+    visible: true,
+    upColor: 'rgba(0, 229, 255, 0.5)',
+    downColor: 'rgba(255, 64, 129, 0.5)',
+  },
+});`;
+
+    return withDocs(container, { description, code });
   },
 };

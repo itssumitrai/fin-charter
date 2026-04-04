@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import type { ChartEvent } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -134,6 +135,25 @@ series.setEvents([
 
     series.setEvents(events);
 
-    return container;
+    const description = '<strong>Event markers</strong> display corporate events such as dividends, earnings, and stock splits directly on the chart. Call <code>series.setEvents(array)</code> with objects specifying <code>eventType</code> (<code>dividend</code>, <code>earnings</code>, <code>split</code>), <code>title</code>, <code>description</code>, and <code>value</code>. Events appear as shaped markers with tooltips showing details on hover.';
+    const code = `series.setEvents([
+  {
+    time: dividendDate, position: 'belowBar', shape: 'arrowUp',
+    color: '#4caf50', text: 'D', eventType: 'dividend',
+    title: 'Quarterly Dividend', value: '$0.24/share',
+  },
+  {
+    time: earningsDate, position: 'aboveBar', shape: 'arrowDown',
+    color: '#F7525F', text: 'E', eventType: 'earnings',
+    title: 'Q1 Earnings', value: 'Beat estimates',
+  },
+  {
+    time: splitDate, position: 'aboveBar', shape: 'square',
+    color: '#ff9800', text: 'S', eventType: 'split',
+    title: 'Stock Split', value: '4:1',
+  },
+]);`;
+
+    return withDocs(container, { description, code });
   },
 };

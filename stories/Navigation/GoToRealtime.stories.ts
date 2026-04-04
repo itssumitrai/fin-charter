@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { generateOHLCV, createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Navigation/Go to Realtime',
@@ -89,6 +90,17 @@ chart.scrollToRealTime();`,
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return root;
+    return withDocs(root, {
+      description:
+        '<strong>Go to Realtime</strong> snaps the chart viewport back to the most recent bar after the user has panned away. ' +
+        'Call <code>chart.scrollToRealTime()</code> to instantly scroll to the latest data point. ' +
+        'This story also streams new bars every second to demonstrate real-time updates.',
+      code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+// Snap the viewport to the most recent bar
+chart.scrollToRealTime();`,
+    });
   },
 };
