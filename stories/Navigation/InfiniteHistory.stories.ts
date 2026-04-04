@@ -3,6 +3,7 @@ import { createChart } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Navigation/Infinite History',
@@ -104,6 +105,25 @@ chart.subscribeVisibleRangeChange(async (range) => {
 
     root.appendChild(loadingEl);
     root.appendChild(container);
-    return root;
+    return withDocs(root, {
+      description:
+        'Load <strong>historical data on demand</strong> when the user pans to the left edge of the chart. ' +
+        'Subscribe to <code>chart.subscribeVisibleRangeChange()</code> and detect when <code>range.from</code> ' +
+        'reaches the earliest bar time, then fetch and prepend older data with <code>series.setData()</code>.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+chart.subscribeVisibleRangeChange(async (range) => {
+  if (range.from <= firstBarTime) {
+    const olderBars = await fetchHistory();
+    series.setData([...olderBars, ...bars]);
+  }
+});
+      `,
+    });
   },
 };

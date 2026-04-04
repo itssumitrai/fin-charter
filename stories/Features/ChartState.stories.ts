@@ -3,6 +3,7 @@ import { createChart } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Chart State',
@@ -117,6 +118,27 @@ await chart.importState(JSON.parse(json), async (seriesId) => {
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
     wrapper.appendChild(pre);
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        '<strong>Save and restore</strong> the full chart state including layout, series configuration, and indicators. ' +
+        'Use <code>chart.exportState()</code> to serialize the current state to JSON, and ' +
+        '<code>chart.importState()</code> to restore it. Bar data is reloaded via a <code>dataLoader</code> callback.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Save state
+const state = chart.exportState();
+const json = JSON.stringify(state);
+
+// Restore state (dataLoader fetches bar data for each series)
+await chart.importState(JSON.parse(json), async (seriesId) => {
+  return await fetchData(seriesId);
+});
+      `,
+    });
   },
 };

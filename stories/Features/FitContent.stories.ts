@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Fit Content',
@@ -67,6 +68,25 @@ chart.fitContent();`,
     wrapper.appendChild(button);
     wrapper.appendChild(container);
 
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        'Auto-fit all data to the visible area with <code>chart.fitContent()</code>. ' +
+        'The chart starts with a narrow <code>barSpacing: 2</code> so bars are compressed. ' +
+        'Click the <strong>Fit Content</strong> button to auto-scale so all bars fill the visible width.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  timeScale: { barSpacing: 2 },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Auto-scale to fit all bars in the visible area
+chart.fitContent();
+      `,
+    });
   },
 };

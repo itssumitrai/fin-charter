@@ -4,6 +4,7 @@ import type { Periodicity } from 'fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Periodicity',
@@ -133,6 +134,23 @@ chart.fitContent();`,
 
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        'Switch between different chart <strong>timeframes / periodicities</strong> such as ' +
+        '<code>1m</code>, <code>5m</code>, <code>1h</code>, and <code>1D</code>. ' +
+        'Call <code>chart.setPeriodicity({ interval, unit })</code> to change the interval, then reload data for that timeframe.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(dailyData);
+
+// Switch to 5-minute bars
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+series.setData(fiveMinData);
+chart.fitContent();
+      `,
+    });
   },
 };

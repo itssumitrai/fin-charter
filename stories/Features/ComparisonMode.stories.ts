@@ -3,6 +3,7 @@ import { createChart } from 'fin-charter';
 import type { ISeriesApi } from 'fin-charter';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'Features/Comparison Mode',
@@ -122,6 +123,24 @@ compSeries.setData(msftData);`,
 
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
-    return wrapper;
+    return withDocs(wrapper, {
+      description:
+        'Compare <strong>multiple symbols</strong> on the same chart with a <strong>percentage change</strong> Y-axis. ' +
+        'Enable comparison mode with <code>chart.setComparisonMode(true)</code>, then add comparison series ' +
+        'using <code>chart.addLineSeries()</code>. The Y-axis automatically switches to show relative performance.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const mainSeries = chart.addCandlestickSeries();
+mainSeries.setData(aaplData);
+
+// Enable comparison mode (Y-axis shows % change)
+chart.setComparisonMode(true);
+
+const compSeries = chart.addLineSeries({ color: '#2196F3' });
+compSeries.setData(msftData);
+      `,
+    });
   },
 };

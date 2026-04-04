@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -72,6 +73,19 @@ const dataUrl = canvas.toDataURL('image/png');`,
     wrapper.appendChild(label);
     wrapper.appendChild(img);
 
-    return wrapper;
+    const description = 'Export the chart as an image with <code>chart.takeScreenshot()</code>. This returns an HTML <code>&lt;canvas&gt;</code> element that you can convert to a data URL via <code>canvas.toDataURL(\'image/png\')</code> for download or display. Click the button above to try it.';
+    const code = `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Capture the chart as a canvas
+const canvas = chart.takeScreenshot();
+const dataUrl = canvas.toDataURL('image/png');
+
+// Use the data URL for download or display
+const img = document.createElement('img');
+img.src = dataUrl;`;
+
+    return withDocs(wrapper, { description, code });
   },
 };

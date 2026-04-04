@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { mount, unmount } from 'svelte';
 import TradingViewApp from '../../dev/components/TradingViewApp.svelte';
+import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
   title: 'TradingView/Full Application',
@@ -57,6 +58,21 @@ export const Default: Story = {
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return container;
+    return withDocs(container, {
+      description:
+        'A full <strong>TradingView-like charting application</strong> built with fin-charter and reusable Svelte components. ' +
+        'Features include <code>symbol search</code>, <code>interval switching</code>, <code>chart type selection</code>, ' +
+        '30+ technical indicators, 16 drawing tools, <code>comparison mode</code>, <code>timezone selection</code>, ' +
+        'a collapsible watchlist sidebar, and live Yahoo Finance data.',
+      code: `import { mount } from 'svelte';
+import TradingViewApp from './components/TradingViewApp.svelte';
+
+const container = document.createElement('div');
+container.style.width = '100%';
+container.style.height = '100vh';
+
+// Mount the full TradingView clone
+const app = mount(TradingViewApp, { target: container });`,
+    });
   },
 };

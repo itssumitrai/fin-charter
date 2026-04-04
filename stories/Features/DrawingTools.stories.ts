@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { createChartContainer } from '../helpers';
+import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
 
 const meta: Meta = {
@@ -93,7 +94,19 @@ chart.setActiveDrawingTool(null);`,
     toolbar.appendChild(status);
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
-    return wrapper;
+
+    const description = '<strong>Drawing tools</strong> allow users to annotate charts interactively. Call <code>chart.setActiveDrawingTool(type)</code> to activate a tool, then click on the chart to place the drawing. Pass <code>null</code> to deactivate. Supported types: <code>horizontal-line</code>, <code>trendline</code>, <code>fibonacci</code>, <code>rectangle</code>, and more.';
+    const code = `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Activate a drawing tool (user clicks chart to place it)
+chart.setActiveDrawingTool('trendline');
+
+// Cancel the active tool
+chart.setActiveDrawingTool(null);`;
+
+    return withDocs(wrapper, { description, code });
   },
 };
 
@@ -157,6 +170,27 @@ chart.addDrawing('trendline',
       { color: '#ef9a9a', lineWidth: 1 },
     );
 
-    return container;
+    const description = 'Add drawings <strong>programmatically</strong> with <code>chart.addDrawing(type, points, options)</code>. Each drawing type takes an array of anchor points (with <code>time</code> and <code>price</code> fields) and optional styling. This is useful for pre-populating charts with saved analysis.';
+    const code = `chart.addDrawing('horizontal-line',
+  [{ time: t1, price: 190 }],
+  { color: '#f4c430', lineWidth: 1, lineDash: [4, 4] },
+);
+
+chart.addDrawing('trendline',
+  [{ time: t1, price: low1 }, { time: t2, price: high2 }],
+  { color: '#22AB94', lineWidth: 2 },
+);
+
+chart.addDrawing('rectangle',
+  [{ time: t1, price: low1 }, { time: t2, price: high2 }],
+  { color: 'rgba(33, 150, 243, 0.3)', lineWidth: 1 },
+);
+
+chart.addDrawing('fibonacci',
+  [{ time: t1, price: swingLow }, { time: t2, price: swingHigh }],
+  { color: '#ef9a9a', lineWidth: 1 },
+);`;
+
+    return withDocs(container, { description, code });
   },
 };

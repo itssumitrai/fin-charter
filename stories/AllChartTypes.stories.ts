@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { createChart } from 'fin-charter';
 import { AAPL_DAILY } from './sample-data';
+import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
   title: 'Chart Types/All Chart Types',
@@ -153,6 +154,25 @@ chart.addBaselineSeries().setData(data);
       root.appendChild(makePanel(spec));
     }
 
-    return root;
+    return withDocs(root, {
+      description:
+        'fin-charter supports <strong>6 chart types</strong> out of the box. Each type uses the same OHLCV data format ' +
+        'but renders it differently. Use <code>addCandlestickSeries()</code>, <code>addHollowCandleSeries()</code>, ' +
+        '<code>addBarSeries()</code>, <code>addLineSeries()</code>, <code>addAreaSeries()</code>, or <code>addBaselineSeries()</code> ' +
+        'to create the type you need.',
+      code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+
+// Pick the series type that fits your use case:
+chart.addCandlestickSeries().setData(data);   // Classic OHLC candles
+chart.addHollowCandleSeries().setData(data);  // Hollow bullish / filled bearish
+chart.addBarSeries().setData(data);            // Traditional OHLC bars
+chart.addLineSeries().setData(data);           // Close-price polyline
+chart.addAreaSeries().setData(data);           // Line with gradient fill
+chart.addBaselineSeries().setData(data);       // Split above/below reference price
+      `,
+    });
   },
 };
