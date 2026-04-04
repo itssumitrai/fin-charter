@@ -2744,6 +2744,18 @@ class ChartApi implements IChartApi {
       fontFamily: this._options.layout.fontFamily,
     });
     this._huds.set(paneId, hud);
+
+    // Wire cross-pane sync: collapsing the main pane HUD collapses all others
+    if (paneId === this._mainPaneId) {
+      hud.onGlobalCollapseToggle = () => {
+        const collapsed = hud.isGlobalCollapsed;
+        for (const [id, otherHud] of this._huds) {
+          if (id !== this._mainPaneId) {
+            otherHud.setGlobalCollapsed(collapsed);
+          }
+        }
+      };
+    }
   }
 
   private _getCrosshairBarIndex(): number {
