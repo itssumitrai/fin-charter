@@ -28,6 +28,7 @@ export const CurrencyFormat: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   priceFormatter: (price) => \`$\${price.toFixed(2)}\`,
 });`,
       },
@@ -37,6 +38,7 @@ const chart = createChart(container, {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       priceFormatter: (price: number) => `$${price.toFixed(2)}`,
     });
     const series = chart.addCandlestickSeries();
@@ -52,6 +54,7 @@ export const CompactFormat: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   priceFormatter: (price) => {
     if (price >= 1_000_000) return \`\${(price / 1_000_000).toFixed(2)}M\`;
     if (price >= 1_000) return \`\${(price / 1_000).toFixed(1)}K\`;
@@ -65,6 +68,7 @@ export const CompactFormat: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       priceFormatter: (price: number) => {
         if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(2)}M`;
         if (price >= 1_000) return `${(price / 1_000).toFixed(1)}K`;
@@ -84,6 +88,7 @@ export const BasisPoints: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   priceFormatter: (price) => \`\${(price * 100).toFixed(0)} bps\`,
 });`,
       },
@@ -93,6 +98,7 @@ export const BasisPoints: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       priceFormatter: (price: number) => `${(price * 100).toFixed(0)} bps`,
     });
     const series = chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 });

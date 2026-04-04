@@ -26,7 +26,7 @@ export const FullHUD: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries({ label: 'AAPL' });
 series.setData(data);
 
@@ -42,7 +42,7 @@ chart.addIndicator('rsi', {
   render: () => {
     const container = createChartContainer();
     container.style.height = '700px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries({ label: 'AAPL' });
     candleSeries.setData(AAPL_DAILY);

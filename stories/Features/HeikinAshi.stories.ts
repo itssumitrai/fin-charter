@@ -27,7 +27,7 @@ export const HeikinAshiChart: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addHeikinAshiSeries({
   upColor: '#22AB94',
   downColor: '#F7525F',
@@ -38,7 +38,7 @@ series.setData(data);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addHeikinAshiSeries({
       upColor: '#22AB94',

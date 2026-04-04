@@ -25,7 +25,7 @@ export const LiveStream: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(historicalBars);
 
@@ -39,7 +39,7 @@ setInterval(() => {
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
 
     // Seed with 100 historical bars
@@ -97,7 +97,7 @@ setInterval(() => {
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
 
     const seedData = generateOHLCV(100);

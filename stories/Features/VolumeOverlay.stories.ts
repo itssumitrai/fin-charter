@@ -28,6 +28,7 @@ export const Default: Story = {
 
 const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   volume: { visible: true },
 });
 const series = chart.addCandlestickSeries();
@@ -39,6 +40,7 @@ series.setData(data);`,
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       volume: { visible: true },
     });
     const series = chart.addCandlestickSeries();
@@ -54,6 +56,7 @@ export const CustomVolumeColors: Story = {
       source: {
         code: `const chart = createChart(container, {
   autoSize: true,
+  symbol: 'AAPL',
   volume: {
     visible: true,
     upColor: 'rgba(0, 229, 255, 0.5)',
@@ -67,6 +70,7 @@ export const CustomVolumeColors: Story = {
     const container = createChartContainer();
     const chart = createChart(container, {
       autoSize: true,
+      symbol: 'AAPL',
       volume: {
         visible: true,
         upColor: 'rgba(0, 229, 255, 0.5)',

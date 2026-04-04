@@ -26,7 +26,7 @@ export const TakeScreenshot: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data);
 
@@ -47,7 +47,7 @@ const dataUrl = canvas.toDataURL('image/png');`,
       'padding: 8px 16px; cursor: pointer; background: #2196f3; color: white; border: none; border-radius: 4px; font-size: 14px; width: fit-content;';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);

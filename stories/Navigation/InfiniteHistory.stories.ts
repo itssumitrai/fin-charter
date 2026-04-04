@@ -47,7 +47,7 @@ export const Default: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
@@ -74,7 +74,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
     loadingEl.textContent = 'Loading historical data...';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries();
 
     let allBars: Bar[] = [...AAPL_DAILY];

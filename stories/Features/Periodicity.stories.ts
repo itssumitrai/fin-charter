@@ -53,7 +53,7 @@ export const IntervalSwitcher: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(dailyData);
 
@@ -74,7 +74,7 @@ chart.fitContent();`,
       'background: #1e2235; border-radius: 4px;';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addCandlestickSeries({
       upColor: '#22AB94',
       downColor: '#F7525F',

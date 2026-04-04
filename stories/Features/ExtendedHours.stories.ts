@@ -61,7 +61,7 @@ export const MarketSessions: Story = {
       source: {
         code: `import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 chart.setMarketSessions(US_EQUITY_SESSIONS);
 chart.setPeriodicity({ interval: 5, unit: 'minute' });
 
@@ -111,7 +111,7 @@ chart.setSessionFilter('regular');`,
     toolbar.appendChild(label);
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     // Apply US equity sessions
     chart.setMarketSessions(US_EQUITY_SESSIONS);

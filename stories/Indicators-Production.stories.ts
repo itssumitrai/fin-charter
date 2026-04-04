@@ -28,7 +28,7 @@ export const IchimokuCloud: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
@@ -43,7 +43,7 @@ chart.addIndicator('ichimoku', {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -77,7 +77,7 @@ export const ParabolicSAR: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -112,7 +112,7 @@ export const KeltnerChannel: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -147,7 +147,7 @@ export const DonchianChannel: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -182,7 +182,7 @@ export const CCIIndicator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -216,7 +216,7 @@ export const PivotPoints: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);

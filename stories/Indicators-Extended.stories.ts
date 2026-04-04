@@ -51,7 +51,7 @@ export const VWAPOverlay: Story = {
         code: `import { createChart } from 'fin-charter';
 import { computeVWAP } from 'fin-charter/indicators';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(bars);
 
@@ -62,7 +62,7 @@ chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -99,7 +99,7 @@ export const StochasticOscillator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -134,7 +134,7 @@ export const ATRIndicator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -169,7 +169,7 @@ export const ADXIndicator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -203,7 +203,7 @@ export const OBVIndicator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -237,7 +237,7 @@ export const WilliamsRIndicator: Story = {
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);

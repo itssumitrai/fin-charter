@@ -25,7 +25,7 @@ export const RSIAndMACD: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data);
 
@@ -42,7 +42,7 @@ chart.addIndicator('macd', {
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);
@@ -96,7 +96,7 @@ chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX'
   render: () => {
     const container = createChartContainer();
     container.style.height = '800px';
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const candleSeries = chart.addCandlestickSeries();
     candleSeries.setData(AAPL_DAILY);

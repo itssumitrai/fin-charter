@@ -25,7 +25,7 @@ export const Default: Story = {
         code: `
 import { createChart } from 'fin-charter';
 
-const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addAreaSeries();
 series.setData(data);
 `.trim(),
@@ -34,7 +34,7 @@ series.setData(data);
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addAreaSeries();
     series.setData(AAPL_DAILY);
     return container;
@@ -59,7 +59,7 @@ series.setData(data);
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addAreaSeries({
       lineColor: '#00e5ff',
       topColor: 'rgba(0, 229, 255, 0.4)',

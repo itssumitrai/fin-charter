@@ -26,14 +26,14 @@ export const Dark: Story = {
       source: {
         code: `import { createChart, DARK_THEME } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true, theme: 'dark' });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'dark' });
 chart.applyOptions(DARK_THEME);`,
       },
     },
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true, theme: 'dark' });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'dark' });
     chart.applyOptions(DARK_THEME);
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
@@ -46,7 +46,7 @@ export const Light: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const chart = createChart(container, { autoSize: true, theme: 'light' });
+        code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
 chart.applyOptions(LIGHT_THEME);
 chart.addCandlestickSeries({
   upColor: '#22AB94', downColor: '#F7525F',
@@ -57,7 +57,7 @@ chart.addCandlestickSeries({
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true, theme: 'light' });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
     chart.applyOptions(LIGHT_THEME);
     const series = chart.addCandlestickSeries({
       upColor: '#22AB94',
@@ -75,7 +75,7 @@ export const Colorful: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const chart = createChart(container, { autoSize: true, theme: 'colorful' });
+        code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
 chart.applyOptions(COLORFUL_THEME);
 chart.addCandlestickSeries({
   upColor: '#00c176', downColor: '#ff4a68',
@@ -86,7 +86,7 @@ chart.addCandlestickSeries({
   },
   render: () => {
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true, theme: 'colorful' });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
     chart.applyOptions(COLORFUL_THEME);
     const series = chart.addCandlestickSeries({
       upColor: '#00c176',

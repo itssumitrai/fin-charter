@@ -27,7 +27,7 @@ export const DataChangedCounter: Story = {
       source: {
         code: `import { createChart } from 'fin-charter';
 
-const chart = createChart(container, { autoSize: true });
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addCandlestickSeries();
 series.setData(data);
 
@@ -52,7 +52,7 @@ series.update({ time, open, high, low, close, volume });`,
     counter.textContent = 'Data change events: 0';
 
     const container = createChartContainer();
-    const chart = createChart(container, { autoSize: true });
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addCandlestickSeries();
     series.setData(AAPL_DAILY);
