@@ -1,46 +1,67 @@
 <script lang="ts">
   import { appStore } from '../../data/store.svelte.ts';
+  import Icon from '../Icon.svelte';
+  import {
+    mdiPencilRuler,
+    mdiMinus,
+    mdiArrowTopRight,
+    mdiVectorLine,
+    mdiRayStartArrow,
+    mdiArrowRight,
+    mdiCrosshairsGps,
+    mdiWaves,
+    mdiChartSankey,
+    mdiCircleOutline,
+    mdiSetCenter,
+    mdiRectangleOutline,
+    mdiEllipseOutline,
+    mdiViewParallel,
+    mdiPitchfork,
+    mdiTextBox,
+    mdiRuler,
+    mdiClose,
+  } from '@mdi/js';
 
   interface DrawingGroup {
     label: string;
-    tools: { id: string; name: string }[];
+    tools: { id: string; name: string; icon: string }[];
   }
 
   const DRAWING_GROUPS: DrawingGroup[] = [
     {
       label: 'Lines',
       tools: [
-        { id: 'horizontal-line', name: 'Horizontal Line' },
-        { id: 'vertical-line', name: 'Vertical Line' },
-        { id: 'trendline', name: 'Trendline' },
-        { id: 'ray', name: 'Ray' },
-        { id: 'arrow', name: 'Arrow' },
-        { id: 'crossline', name: 'Crossline' },
+        { id: 'horizontal-line', name: 'Horizontal Line', icon: mdiMinus },
+        { id: 'vertical-line', name: 'Vertical Line', icon: mdiArrowTopRight },
+        { id: 'trendline', name: 'Trendline', icon: mdiVectorLine },
+        { id: 'ray', name: 'Ray', icon: mdiRayStartArrow },
+        { id: 'arrow', name: 'Arrow', icon: mdiArrowRight },
+        { id: 'crossline', name: 'Crossline', icon: mdiCrosshairsGps },
       ],
     },
     {
       label: 'Fibonacci',
       tools: [
-        { id: 'fibonacci', name: 'Fibonacci Retracement' },
-        { id: 'fib-projection', name: 'Fib Projection' },
-        { id: 'fib-arc', name: 'Fib Arc' },
-        { id: 'fib-fan', name: 'Fib Fan' },
+        { id: 'fibonacci', name: 'Fibonacci Retracement', icon: mdiWaves },
+        { id: 'fib-projection', name: 'Fib Projection', icon: mdiChartSankey },
+        { id: 'fib-arc', name: 'Fib Arc', icon: mdiCircleOutline },
+        { id: 'fib-fan', name: 'Fib Fan', icon: mdiSetCenter },
       ],
     },
     {
       label: 'Shapes',
       tools: [
-        { id: 'rectangle', name: 'Rectangle' },
-        { id: 'ellipse', name: 'Ellipse' },
-        { id: 'channel', name: 'Channel' },
-        { id: 'pitchfork', name: 'Pitchfork' },
+        { id: 'rectangle', name: 'Rectangle', icon: mdiRectangleOutline },
+        { id: 'ellipse', name: 'Ellipse', icon: mdiEllipseOutline },
+        { id: 'channel', name: 'Channel', icon: mdiViewParallel },
+        { id: 'pitchfork', name: 'Pitchfork', icon: mdiPitchfork },
       ],
     },
     {
       label: 'Annotations',
       tools: [
-        { id: 'text-annotation', name: 'Text Annotation' },
-        { id: 'measurement', name: 'Measurement' },
+        { id: 'text-annotation', name: 'Text Annotation', icon: mdiTextBox },
+        { id: 'measurement', name: 'Measurement', icon: mdiRuler },
       ],
     },
   ];
@@ -82,12 +103,14 @@
 
 <div class="drawing-toolbar" bind:this={containerEl}>
   <button class="trigger" class:active={hasActiveTool} onclick={() => (open = !open)}>
+    <Icon path={mdiPencilRuler} size={16} />
     Draw
   </button>
 
   {#if open}
     <div class="dropdown">
       <button class="item none" class:active={!hasActiveTool} onclick={clearTool}>
+        <span class="tool-icon"><Icon path={mdiClose} size={16} /></span>
         None
       </button>
 
@@ -99,6 +122,7 @@
             class:active={appStore.activeDrawingTool === tool.id}
             onclick={() => selectTool(tool.id)}
           >
+            <span class="tool-icon"><Icon path={tool.icon} size={16} /></span>
             {tool.name}
           </button>
         {/each}
@@ -113,6 +137,9 @@
   }
 
   .trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     background: transparent;
     border: 1px solid transparent;
     color: #758696;
@@ -141,7 +168,7 @@
     border: 1px solid #1a2332;
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    width: 200px;
+    width: 220px;
     max-height: 400px;
     overflow-y: auto;
     padding: 4px 0;
@@ -157,7 +184,9 @@
   }
 
   .item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 100%;
     padding: 6px 12px;
     background: transparent;
@@ -180,5 +209,13 @@
   .item.none {
     border-bottom: 1px solid #1a2332;
     margin-bottom: 2px;
+  }
+
+  .tool-icon {
+    width: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 </style>

@@ -2,9 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { createChart } from 'fin-charter';
   import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from 'fin-charter';
-  import { fetchBars } from '../data/yahoo-finance';
+  import { fetchBars, fetchMoreBars } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
+  import { stylesToColorMap } from '../data/indicator-settings';
   import Toolbar from './Toolbar/Toolbar.svelte';
   import Sidebar from './Sidebar/Sidebar.svelte';
   import StatusBar from './StatusBar/StatusBar.svelte';
@@ -20,6 +21,8 @@
   let prevPeriodicity = '';
   let prevChartType: ChartTypeLabel = 'Candlestick';
   let loadRequestId = 0;
+  let isFetchingHistory = false;
+  let allBars: import('fin-charter').Bar[] = [];
 
   function createSeries(c: IChartApi, type: ChartTypeLabel): ISeriesApi<SeriesType> {
     const seriesType: SeriesType = CHART_TYPE_TO_SERIES[type] ?? 'candlestick';
@@ -45,6 +48,7 @@
         symbol: appStore.symbol,
       });
 
+      allBars = bars;
       mainSeries.setData(bars);
       chart.timeScale().scrollToEnd();
       // Comparisons are loaded by the comparison $effect — no need to duplicate here
@@ -101,8 +105,16 @@
     for (const id of desired) {
       if (!indicatorApis.has(id)) {
         try {
+          const settings = appStore.indicatorSettings[id];
+          const colors = settings ? stylesToColorMap(id, settings.styles) : undefined;
           const api = chart.addIndicator(id as IndicatorType, {
             source: mainSeries,
+            ...(settings?.params && Object.keys(settings.params).length > 0 ? { params: settings.params } : {}),
+            ...(colors ? { colors } : {}),
+            ...(settings?.styles.lineWidth ? { lineWidth: Number(settings.styles.lineWidth) } : {}),
+            ...(settings?.styles.histUpColor ? { histogramUpColor: String(settings.styles.histUpColor) } : {}),
+            ...(settings?.styles.histDownColor ? { histogramDownColor: String(settings.styles.histDownColor) } : {}),
+            ...(settings?.styles.color ? { color: String(settings.styles.color) } : {}),
           });
           indicatorApis.set(id, api);
         } catch (err) {
@@ -145,6 +157,27 @@
     prevChartType = appStore.chartType;
     prevSymbol = appStore.symbol;
     prevPeriodicity = appStore.periodicityLabel;
+
+    // Auto-load historical data when scrolling to the left edge
+    c.subscribeVisibleRangeChange(async (range) => {
+      if (!range || isFetchingHistory || allBars.length === 0 || !mainSeries) return;
+      const firstBarTime = allBars[0].time;
+      if (range.from <= firstBarTime) {
+        isFetchingHistory = true;
+        try {
+          const olderBars = await fetchMoreBars(appStore.symbol, appStore.periodicity, firstBarTime);
+          // Guard: only apply if symbol/periodicity haven't changed while fetching
+          if (olderBars.length > 0 && mainSeries && allBars.length > 0 && allBars[0].time === firstBarTime) {
+            allBars = [...olderBars, ...allBars];
+            mainSeries.setData(allBars);
+          }
+        } catch (err) {
+          console.error('Failed to load historical data:', err);
+        } finally {
+          isFetchingHistory = false;
+        }
+      }
+    });
 
     loadData();
   }
@@ -199,10 +232,19 @@
     }
   });
 
-  // React to indicator changes
+  // React to indicator changes (including settings updates)
   $effect(() => {
-    // Access the array to track it
+    // Access both to track changes
     const _indicators = appStore.activeIndicators;
+    const _settings = appStore.indicatorSettings;
+
+    // Remove all existing indicators and re-add with current settings
+    if (chart) {
+      for (const [id, api] of indicatorApis) {
+        chart.removeIndicator(api);
+      }
+      indicatorApis.clear();
+    }
     syncIndicators();
   });
 

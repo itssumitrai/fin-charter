@@ -50,6 +50,7 @@ let _sidebarOpen = $state(true);
 let _comparisonMode = $state(false);
 let _comparisonSymbols = $state<string[]>([]);
 let _activeIndicators = $state<string[]>([]);
+let _indicatorSettings = $state<Record<string, { params: Record<string, number>; styles: Record<string, string | number> }>>({});
 let _activeDrawingTool = $state<string | null>(null);
 let _meta = $state<QuoteMeta | null>(null);
 let _loading = $state(false);
@@ -83,7 +84,16 @@ export const appStore = {
 
   get activeIndicators() { return _activeIndicators; },
   addIndicator(id: string) { _activeIndicators = [..._activeIndicators, id]; },
-  removeIndicator(id: string) { _activeIndicators = _activeIndicators.filter(i => i !== id); },
+  removeIndicator(id: string) {
+    _activeIndicators = _activeIndicators.filter(i => i !== id);
+    const { [id]: _, ...rest } = _indicatorSettings;
+    _indicatorSettings = rest;
+  },
+
+  get indicatorSettings() { return _indicatorSettings; },
+  setIndicatorSettings(id: string, params: Record<string, number>, styles: Record<string, string | number>) {
+    _indicatorSettings = { ..._indicatorSettings, [id]: { params, styles } };
+  },
 
   get activeDrawingTool() { return _activeDrawingTool; },
   set activeDrawingTool(v: string | null) { _activeDrawingTool = v; },

@@ -3,6 +3,8 @@
   import { getMarketForExchange } from 'fin-charter/market';
   import { getSymbolInfo } from '../../data/symbols';
   import { VERSION } from 'fin-charter';
+  import Icon from '../Icon.svelte';
+  import { mdiChevronRight } from '@mdi/js';
 
   let info = $derived(getSymbolInfo(appStore.symbol));
   let market = $derived(info ? getMarketForExchange(info.exchange) : undefined);
@@ -20,7 +22,7 @@
   <span class="spacer"></span>
   {#if !appStore.sidebarOpen}
     <button class="sidebar-toggle" onclick={() => { appStore.sidebarOpen = true; }}>
-      Watchlist ▶
+      Watchlist <Icon path={mdiChevronRight} size={12} />
     </button>
   {/if}
   <span class="version">fin-charter v{VERSION}</span>
@@ -66,6 +68,9 @@
   }
 
   .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
     background: transparent;
     border: none;
     color: #758696;

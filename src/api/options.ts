@@ -269,6 +269,12 @@ export interface IndicatorOptions {
   lineWidth?: number;
   visible?: boolean;
   label?: string;
+  /** Per-output color overrides, e.g. { upper: '#ff0', middle: '#0f0', lower: '#ff0' }. */
+  colors?: Record<string, string>;
+  /** Histogram up-bar color override (default: green). */
+  histogramUpColor?: string;
+  /** Histogram down-bar color override (default: red). */
+  histogramDownColor?: string;
 }
 
 export const OVERLAY_INDICATORS: Set<IndicatorType> = new Set([

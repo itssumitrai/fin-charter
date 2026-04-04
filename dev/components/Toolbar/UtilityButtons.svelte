@@ -1,4 +1,7 @@
 <script lang="ts">
+  import Icon from '../Icon.svelte';
+  import { mdiFullscreen, mdiCamera, mdiCogOutline } from '@mdi/js';
+
   interface Props {
     onfullscreen?: () => void;
     onscreenshot?: () => void;
@@ -10,13 +13,13 @@
 
 <div class="utility-buttons">
   <button class="util-btn" title="Fullscreen" aria-label="Fullscreen" onclick={onfullscreen}>
-    &#x26F6;
+    <Icon path={mdiFullscreen} size={18} />
   </button>
   <button class="util-btn" title="Screenshot" aria-label="Screenshot" onclick={onscreenshot}>
-    &#x1F4F7;
+    <Icon path={mdiCamera} size={18} />
   </button>
   <button class="util-btn" title="Settings" aria-label="Settings" onclick={onsettings}>
-    &#x2699;
+    <Icon path={mdiCogOutline} size={18} />
   </button>
 </div>
 
@@ -37,6 +40,8 @@
     font-size: 14px;
     font-family: inherit;
     line-height: 1;
+    display: flex;
+    align-items: center;
   }
 
   .util-btn:hover {
