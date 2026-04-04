@@ -1,3 +1,5 @@
+import { getTimezoneOffsetMinutes } from '../timezone/timezone';
+
 export interface MarketSession {
   id: string;
   label: string;
@@ -23,7 +25,10 @@ export function getSessionForTime(minuteOfDay: number, sessions: MarketSession[]
   return null;
 }
 
-export function timestampToMinuteOfDay(timestamp: number, utcOffsetMinutes: number = -300): number {
-  const totalMinutes = Math.floor(timestamp / 60) + utcOffsetMinutes;
+export function timestampToMinuteOfDay(timestamp: number, utcOffsetOrTimezone: number | string = -300): number {
+  const offset = typeof utcOffsetOrTimezone === 'string'
+    ? getTimezoneOffsetMinutes(timestamp, utcOffsetOrTimezone)
+    : utcOffsetOrTimezone;
+  const totalMinutes = Math.floor(timestamp / 60) + offset;
   return ((totalMinutes % 1440) + 1440) % 1440;
 }

@@ -88,3 +88,27 @@ export type {
   DrawingFactory,
 } from './drawings/index';
 export { DRAWING_REGISTRY, createBuiltinDrawing, distToSegment, pointInRect } from './drawings/index';
+
+// ─── i18n ────────────────────────────────────────────────────────────
+export { t, setLocale, getLocale, registerLocale, loadLocale, enLocale } from './i18n';
+export type { Translations } from './i18n';
+
+// ─── Timezone ────────────────────────────────────────────────────────
+export { timestampToDateParts, formatInTimezone, getTimezoneOffsetMinutes } from './timezone';
+export type { DateParts } from './timezone';
+
+// ─── Formatting ──────────────────────────────────────────────────────
+export { createPriceFormatter, createTimeFormatter, formatVolume } from './formatting';
+export type { PriceFormatterOptions, TimeFormatterOptions } from './formatting';
+
+// ─── Currency ────────────────────────────────────────────────────────
+export { getCurrencyInfo, formatCurrency, CURRENCIES } from './currency';
+export type { CurrencyInfo } from './currency';
+
+// ─── Market Definitions ─────────────────────────────────────────────
+export {
+  getMarket, registerMarket, getMarketForExchange, registerExchange,
+  isMarketDate, getNextOpen, isEarlyClose,
+  US_MARKET, UK_MARKET, JP_MARKET, DE_MARKET, AU_MARKET, CRYPTO_MARKET,
+} from './market';
+export type { MarketDefinition, MarketHoliday } from './market';

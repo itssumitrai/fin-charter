@@ -1,0 +1,445 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Indicators" />
+
+# Indicators
+
+Indicators are pure compute functions that operate on `Float64Array` columns and return `Float64Array` results (or a plain object of `Float64Array`s for multi-output indicators). They have no side effects and no dependency on the chart instance.
+
+## Import
+
+```ts
+import {
+  computeSMA,
+  computeEMA,
+  computeBollinger,
+  computeRSI,
+  computeMACD,
+  computeVolume,
+  computeVWAP,
+  computeStochastic,
+  computeATR,
+  computeADX,
+  computeOBV,
+  computeWilliamsR,
+  computeIchimoku,
+  computeParabolicSAR,
+  computeKeltner,
+  computeDonchian,
+  computeCCI,
+  computePivotPoints,
+  computeAroon,
+  computeAwesomeOscillator,
+  computeChaikinMF,
+  computeCoppock,
+  computeElderForce,
+  computeTRIX,
+  computeSupertrend,
+  computeVWMA,
+  computeChoppiness,
+  computeMFI,
+  computeROC,
+  computeLinearRegression,
+  slidingMax,
+  slidingMin,
+} from 'fin-charter/indicators';
+```
+
+The `fin-charter/indicators` entry point is separate from the core so that bundlers exclude indicators when they are not used.
+
+---
+
+## SMA -- Simple Moving Average
+
+**Overlay indicator, single line.**
+
+```ts
+function computeSMA(close: Float64Array, length: number, period: number): Float64Array
+```
+
+| Parameter | Description |
+|---|---|
+| `close` | Close-price column from a `ColumnStore` |
+| `length` | Number of bars to process (`store.length`) |
+| `period` | Look-back window in bars |
+
+Returns `Float64Array` of length `length`. Values before index `period - 1` are `NaN`. Uses a sliding-window O(1)-per-bar algorithm.
+
+```ts
+const sma20 = computeSMA(store.close, store.length, 20);
+```
+
+---
+
+## EMA -- Exponential Moving Average
+
+**Overlay indicator, single line.**
+
+```ts
+function computeEMA(close: Float64Array, length: number, period: number): Float64Array
+```
+
+First EMA value is seeded with the SMA of the first `period` bars. Subsequent values use `k = 2 / (period + 1)`.
+
+---
+
+## Bollinger Bands
+
+**Overlay indicator, 3 lines: upper, middle (SMA), lower.**
+
+```ts
+function computeBollinger(
+  close: Float64Array, length: number, period: number, stdDev: number,
+): BollingerResult
+
+interface BollingerResult {
+  upper:  Float64Array;
+  middle: Float64Array;
+  lower:  Float64Array;
+}
+```
+
+---
+
+## RSI -- Relative Strength Index
+
+**Separate-pane indicator, oscillates 0--100.**
+
+```ts
+function computeRSI(close: Float64Array, length: number, period: number): Float64Array
+```
+
+Uses Wilder's smoothing (RMA). First valid RSI is at index `period`.
+
+---
+
+## MACD -- Moving Average Convergence Divergence
+
+**Separate-pane indicator, 3 outputs.**
+
+```ts
+function computeMACD(
+  close: Float64Array, length: number,
+  fastPeriod: number, slowPeriod: number, signalPeriod: number,
+): MACDResult
+
+interface MACDResult {
+  macd:      Float64Array;
+  signal:    Float64Array;
+  histogram: Float64Array;
+}
+```
+
+---
+
+## Volume
+
+```ts
+function computeVolume(volume: Float64Array, length: number): Float64Array
+```
+
+Pass-through helper that copies the volume column for use with the indicator pipeline.
+
+---
+
+## VWAP -- Volume Weighted Average Price
+
+Computed from high, low, close, and volume columns.
+
+---
+
+## Stochastic Oscillator
+
+Two-line oscillator (%K and %D) that measures where the close falls within the recent high-low range.
+
+---
+
+## ATR -- Average True Range
+
+Measures market volatility using Wilder's smoothing over true range values.
+
+---
+
+## ADX -- Average Directional Index
+
+Measures trend strength (0-100) using +DI, -DI, and ADX lines.
+
+---
+
+## OBV -- On-Balance Volume
+
+Cumulative volume indicator that adds volume on up days and subtracts on down days.
+
+---
+
+## Williams %R
+
+Momentum oscillator (-100 to 0) measuring overbought/oversold levels.
+
+---
+
+## Ichimoku Cloud
+
+**Overlay indicator, 5 outputs.**
+
+```ts
+function computeIchimoku(
+  high: Float64Array, low: Float64Array, close: Float64Array, length: number,
+  tenkanPeriod?: number, kijunPeriod?: number, senkouPeriod?: number,
+): IchimokuResult
+
+interface IchimokuResult {
+  tenkan:  Float64Array;
+  kijun:   Float64Array;
+  senkouA: Float64Array;
+  senkouB: Float64Array;
+  chikou:  Float64Array;
+}
+```
+
+---
+
+## Parabolic SAR
+
+**Overlay indicator.** Trailing stop-and-reverse with acceleration factor.
+
+```ts
+function computeParabolicSAR(
+  high: Float64Array, low: Float64Array, length: number,
+  afStep?: number, afMax?: number,
+): Float64Array
+```
+
+---
+
+## Keltner Channel
+
+**Overlay, 3 lines.** EMA center with ATR-based bands.
+
+```ts
+function computeKeltner(
+  close: Float64Array, high: Float64Array, low: Float64Array, length: number,
+  emaPeriod?: number, atrPeriod?: number, multiplier?: number,
+): KeltnerResult
+```
+
+---
+
+## Donchian Channel
+
+**Overlay, 3 lines.** Highest high / lowest low channel.
+
+```ts
+function computeDonchian(
+  high: Float64Array, low: Float64Array, length: number, period?: number,
+): DonchianResult
+```
+
+---
+
+## CCI -- Commodity Channel Index
+
+**Separate-pane oscillator.** Readings beyond +/-100 signal potential extremes.
+
+```ts
+function computeCCI(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## Pivot Points
+
+**Overlay, 7 levels.** Supports `'standard'`, `'fibonacci'`, and `'woodie'` variants.
+
+```ts
+function computePivotPoints(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  length: number, variant?: 'standard' | 'fibonacci' | 'woodie',
+): PivotPointsResult
+
+interface PivotPointsResult {
+  pp: Float64Array;
+  r1: Float64Array; r2: Float64Array; r3: Float64Array;
+  s1: Float64Array; s2: Float64Array; s3: Float64Array;
+}
+```
+
+---
+
+## Aroon
+
+**Separate-pane, two lines (0--100).** Measures bars since highest high / lowest low.
+
+```ts
+function computeAroon(
+  high: Float64Array, low: Float64Array, length: number, period?: number,
+): AroonResult
+```
+
+---
+
+## Awesome Oscillator
+
+**Separate-pane histogram.** Difference between 5-period and 34-period SMA of median price.
+
+```ts
+function computeAwesomeOscillator(
+  high: Float64Array, low: Float64Array, length: number,
+  fastPeriod?: number, slowPeriod?: number,
+): Float64Array
+```
+
+---
+
+## Chaikin Money Flow
+
+**Separate-pane oscillator (-1 to +1).** Buying/selling pressure weighted by volume.
+
+```ts
+function computeChaikinMF(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  volume: Float64Array, length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## Coppock Curve
+
+**Separate-pane momentum.** WMA of summed rate-of-change values for long-term buying signals.
+
+```ts
+function computeCoppock(
+  close: Float64Array, length: number,
+  wmaPeriod?: number, longROC?: number, shortROC?: number,
+): Float64Array
+```
+
+---
+
+## Elder Force Index
+
+**Separate-pane.** Price change direction combined with volume, EMA-smoothed.
+
+```ts
+function computeElderForce(
+  close: Float64Array, volume: Float64Array, length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## TRIX
+
+**Separate-pane momentum.** Percentage ROC of triple-smoothed EMA with signal line.
+
+```ts
+function computeTRIX(
+  close: Float64Array, length: number, period?: number, signalPeriod?: number,
+): TRIXResult
+
+interface TRIXResult {
+  trix:   Float64Array;
+  signal: Float64Array;
+}
+```
+
+---
+
+## Supertrend
+
+**Overlay indicator.** ATR-based trend-following band.
+
+```ts
+function computeSupertrend(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  length: number, period?: number, multiplier?: number,
+): SupertrendResult
+
+interface SupertrendResult {
+  value:     Float64Array;
+  direction: Float64Array;  // 1 = uptrend, -1 = downtrend
+}
+```
+
+---
+
+## VWMA -- Volume-Weighted Moving Average
+
+**Overlay.** Like SMA but weighted by volume.
+
+```ts
+function computeVWMA(
+  close: Float64Array, volume: Float64Array, length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## Choppiness Index
+
+**Separate-pane (38.2--61.8).** Values near 100 = choppy; near 0 = trending.
+
+```ts
+function computeChoppiness(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## MFI -- Money Flow Index
+
+**Separate-pane oscillator (0--100).** RSI-like but incorporates volume. Above 80 = overbought; below 20 = oversold.
+
+```ts
+function computeMFI(
+  high: Float64Array, low: Float64Array, close: Float64Array,
+  volume: Float64Array, length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## ROC -- Rate of Change
+
+**Separate-pane momentum.** Percentage change over a look-back period.
+
+```ts
+function computeROC(close: Float64Array, length: number, period?: number): Float64Array
+```
+
+---
+
+## Linear Regression
+
+**Overlay.** OLS regression end-point value over a rolling window.
+
+```ts
+function computeLinearRegression(
+  close: Float64Array, length: number, period?: number,
+): Float64Array
+```
+
+---
+
+## Shared Utilities
+
+```ts
+function slidingMax(data: Float64Array, length: number, period: number): Float64Array
+function slidingMin(data: Float64Array, length: number, period: number): Float64Array
+```
+
+O(n) sliding-window max/min using a monotone deque. Used internally by Donchian and Ichimoku; exported for custom indicators.
+
+---
+
+## Notes
+
+- All indicator functions return **new** `Float64Array` allocations; they do not mutate inputs.
+- Undefined indices are filled with `NaN`. Filter or guard against `NaN` before rendering.
+- Indicators are pure functions -- they can run in a Web Worker, test, or Node.js script without browser dependencies.

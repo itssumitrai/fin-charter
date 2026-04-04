@@ -1,0 +1,179 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Data Integration" />
+
+# Data Integration
+
+This guide covers the four main data patterns in fin-charter: loading paginated history, streaming real-time updates, switching periodicity, and displaying multiple instruments side by side in comparison mode.
+
+---
+
+## Pagination -- Loading Historical Bars on Demand
+
+Use `series.prependData()` together with `series.barsInLogicalRange()` and `chart.subscribeVisibleRangeChange()` to implement infinite-history scrolling.
+
+```ts
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+
+// Load the initial (most recent) page
+series.setData(await fetchBars({ limit: 500 }));
+chart.timeScale().scrollToEnd();
+
+let isFetching = false;
+
+chart.subscribeVisibleRangeChange(async (range) => {
+  if (!range || isFetching) return;
+
+  const { barsBefore } = series.barsInLogicalRange(range);
+
+  // When fewer than 50 bars remain before the viewport, load more
+  if (barsBefore < 50) {
+    isFetching = true;
+    try {
+      const store = series.dataByIndex(0);  // earliest loaded bar
+      if (!store) return;
+      const olderBars = await fetchBars({ before: store.time, limit: 500 });
+      if (olderBars.length > 0) {
+        series.prependData(olderBars);
+      }
+    } finally {
+      isFetching = false;
+    }
+  }
+});
+```
+
+### Key APIs
+
+- **`prependData(data)`** -- inserts bars at the beginning. Bars must be ascending and earlier than existing data.
+- **`barsInLogicalRange(range)`** -- returns how many bars fall before/after the visible range.
+- **`subscribeVisibleRangeChange(callback)`** -- fires on pan, zoom, or programmatic navigation.
+
+---
+
+## Real-Time Streaming
+
+Call `series.update(bar)` to push live ticks. If `bar.time` matches the last bar's timestamp, it updates in-place (O(1)). Otherwise a new bar is appended.
+
+```ts
+const chart  = createChart(container);
+const series = chart.addCandlestickSeries();
+series.setData(await fetchBars({ limit: 300 }));
+chart.timeScale().scrollToEnd();
+
+const ws = new WebSocket('wss://feed.example.com/ticks');
+
+ws.onmessage = (event) => {
+  const tick = JSON.parse(event.data);
+  series.update(tick);
+  chart.scrollToRealTime();
+};
+```
+
+For high-frequency feeds, the internal RAF batching means only one repaint happens per animation frame regardless of how many `update()` calls occur.
+
+---
+
+## Periodicity / Interval Switching
+
+```ts
+import { createChart } from 'fin-charter';
+
+const chart  = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+
+chart.setPeriodicity({ interval: 1, unit: 'day' });
+
+chart.subscribePeriodicityChange(async (periodicity) => {
+  const bars = await fetchBars({ periodicity });
+  series.setData(bars);
+  chart.timeScale().scrollToEnd();
+});
+
+// Trigger from a toolbar button
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+```
+
+### Client-Side Resampling with `aggregateOHLC`
+
+```ts
+import { aggregateOHLC } from 'fin-charter/transforms';
+
+const fiveMin = aggregateOHLC(baseStore, 5 * 60);   // 5-minute bars
+const hourly  = aggregateOHLC(baseStore, 60 * 60);  // 1-hour bars
+```
+
+Groups bars into buckets of `targetIntervalSec` seconds. Returns a new `ColumnStore`.
+
+---
+
+## Comparison Mode
+
+Normalises all series to percentage change from the first visible bar's close.
+
+```ts
+const chart = createChart(container, { autoSize: true });
+
+const appl = chart.addCandlestickSeries({ upColor: '#26a69a', downColor: '#ef5350' });
+appl.setData(await fetchBars('AAPL'));
+
+const msft = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
+msft.setData(await fetchBars('MSFT'));
+
+const googl = chart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+googl.setData(await fetchBars('GOOGL'));
+
+// Enable -- Y-axis now shows % change
+chart.setComparisonMode(true);
+```
+
+### Notes
+
+- Y-axis labels change to `+10.5%` / `-3.2%` style values.
+- The basis price updates automatically when panning or zooming.
+- Disabling comparison mode instantly restores absolute labels.
+- No hard limit on the number of comparison instruments.
+
+---
+
+## Event Markers
+
+```ts
+import type { ChartEvent } from 'fin-charter';
+
+const events: ChartEvent[] = [
+  { time: 1700000000, type: 'earnings', label: 'Q3 EPS Beat', color: '#26a69a' },
+  { time: 1700172800, type: 'dividend', label: '$0.23', color: '#2196F3' },
+];
+
+series.setEvents(events);
+```
+
+### `ChartEvent`
+
+```ts
+interface ChartEvent {
+  time:        number;
+  eventType:   EventType;   // 'earnings' | 'dividend' | 'split' | 'ipo' | 'other'
+  title:       string;
+  description?: string;
+  value?:      string;
+  color?:      string;
+}
+```
+
+---
+
+## Data Change Subscription
+
+Subscribe to any data mutation on a series -- useful for recomputing derived indicators.
+
+```ts
+series.subscribeDataChanged(() => {
+  const sma = computeSMA(store.close, store.length, 20);
+  smaSeries.setData(buildBars(store.time, sma, store.length));
+});
+```

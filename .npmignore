@@ -1,0 +1,23 @@
+# Source & dev
+src/
+dev/
+tests/
+stories/
+docs/
+.storybook/
+storybook-static/
+
+# Config
+.eslintrc*
+eslint.config.*
+.prettierrc*
+tsconfig*.json
+vite.config.ts
+vitest.config.ts
+svelte.config.js
+
+# CI & tooling
+.github/
+.vscode/
+.claude/
+*.tgz

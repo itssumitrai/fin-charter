@@ -1,0 +1,162 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Performance" />
+
+# Performance
+
+This document explains the architectural decisions that keep fin-charter fast and small.
+
+## ColumnStore -- Typed Array Data Model
+
+All series data is stored in a `ColumnStore` -- a struct of six `Float64Array` columns plus a `length` counter.
+
+```ts
+interface ColumnStore {
+  time:     Float64Array;
+  open:     Float64Array;
+  high:     Float64Array;
+  low:      Float64Array;
+  close:    Float64Array;
+  volume:   Float64Array;
+  length:   number;
+  capacity: number;
+}
+```
+
+**Why `Float64Array`?**
+
+- **CPU cache locality** -- iterating `store.close[i]` scans a contiguous block of memory. Each 64-byte cache line holds 8 doubles.
+- **No GC pressure** -- typed arrays are allocated once and reused. No short-lived objects during each render frame.
+- **SIMD-friendly layout** -- V8 and SpiderMonkey recognise typed-array loops and apply loop optimisations.
+
+**Zero-copy fast path** -- `series.setData(columnData)` copies via `TypedArray.prototype.set()`, which maps to a single `memcpy`.
+
+---
+
+## Pre-Allocation Strategy
+
+`DataLayer` initialises with a capacity of **2,048 bars**.
+
+- When `setData(bars[])` exceeds 2,048 bars, `barsToColumnStore` allocates at `Math.ceil(bars.length * 1.5)` -- 50% over-allocation for subsequent `update()` calls.
+- When the store fills during live `update()`, capacity **doubles** (classic geometric growth, O(1) amortised per append).
+
+---
+
+## Layered Canvas Architecture
+
+Two stacked canvases inside a positioned `<div>`:
+
+| Canvas | z-index | Redrawn when |
+|---|---|---|
+| Main (series + grid) | 2 | `InvalidationLevel.Light` or higher |
+| Overlay (crosshair) | 3 | `InvalidationLevel.Cursor` or higher |
+
+Moving the crosshair -- the most frequent interaction -- **only redraws the 2-colour overlay canvas**. The main canvas is left untouched.
+
+All coordinates are multiplied by `devicePixelRatio` and rounded to integers for crisp HiDPI rendering.
+
+---
+
+## `InvalidateMask` -- 4-Level Invalidation
+
+```ts
+const InvalidationLevel = {
+  None:   0,  // nothing to do
+  Cursor: 1,  // overlay (crosshair) only
+  Light:  2,  // main canvas (data changed, layout unchanged)
+  Full:   3,  // everything, including resize
+} as const;
+```
+
+`InvalidateMask` tracks the highest level requested per pane since the last paint. Multiple `requestRepaint()` calls within a single event-loop tick merge into one RAF callback.
+
+---
+
+## Data Conflation -- Batching Updates Within RAF
+
+```ts
+requestRepaint(level: number): void {
+  this._mask.invalidateAll(level);
+  if (this._rafId === null && !this._removed) {
+    this._rafId = requestAnimationFrame(() => {
+      this._rafId = null;
+      this._paint();
+    });
+  }
+}
+```
+
+If `series.update()` is called 60 times in a tight loop, only **one** RAF is scheduled and one repaint occurs.
+
+---
+
+## Text Measurement Caching
+
+`TextMetricsCache` pre-measures every financial-label character (`0-9`, `.`, `,`, `-`, `$`, `%`, etc.) once when the font changes, then answers subsequent calls with fast integer summation.
+
+The cache invalidates only when the font string changes.
+
+---
+
+## Bundle Size Budget
+
+| Entry point | Target (gzip) | Strategy |
+|---|---|---|
+| `fin-charter` (core) | &lt; 15 KB | No runtime deps; typed arrays; no polyfills |
+| `fin-charter/indicators` | &lt; 4 KB | Pure math; no imports outside indicators dir |
+| Full bundle | &lt; 20 KB | All renderers + indicators |
+
+---
+
+## Tree-Shaking
+
+The ES module structure ensures unused chart types are excluded:
+
+```ts
+// Only LineRenderer is bundled
+import { createChart } from 'fin-charter';
+const chart  = createChart(container);
+const series = chart.addLineSeries();
+```
+
+Each renderer is a separate module. The package sets `"sideEffects": false` so this works out of the box with Vite, Rollup, and webpack.
+
+```ts
+// Only sma.ts and ema.ts are included
+import { computeSMA, computeEMA } from 'fin-charter/indicators';
+```
+
+---
+
+## Tips for Users
+
+### Use `ColumnData` for large datasets
+
+```ts
+series.setData({
+  time:   new Float64Array(timestamps),
+  open:   new Float64Array(opens),
+  high:   new Float64Array(highs),
+  low:    new Float64Array(lows),
+  close:  new Float64Array(closes),
+  volume: new Float64Array(volumes),
+});
+```
+
+For datasets over ~10,000 bars, `ColumnData` avoids per-bar loop and object allocation overhead.
+
+### Limit the visible range
+
+Zoom in (increase `barSpacing`) to render fewer bars per frame. At default `barSpacing: 6`, an 800px chart renders ~133 bars per frame.
+
+### Avoid calling `setData` on every tick
+
+Use `series.update(bar)` for real-time streaming. `setData` rebuilds the entire `ColumnStore`; `update` is O(1).
+
+### Use `autoSize: true` instead of polling
+
+```ts
+const chart = createChart(container, { autoSize: true });
+```
+
+Uses native `ResizeObserver` -- fires exactly when the container size changes.

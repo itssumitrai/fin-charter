@@ -1,0 +1,214 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Plugins" />
+
+# Plugins
+
+fin-charter's plugin system uses two interfaces: `ISeriesPrimitive` for overlays in the main series pane and `IPanePrimitive` for overlays in a secondary pane. Both follow the same lifecycle and rendering conventions.
+
+## Interfaces
+
+### `ISeriesPrimitive`
+
+```ts
+interface ISeriesPrimitive {
+  attached?(params: AttachedParams): void;
+  detached?(): void;
+  updateAllViews?(): void;
+  paneViews?(): readonly IPaneView[];
+  priceAxisViews?(): readonly IPriceAxisView[];
+  timeAxisViews?(): readonly ITimeAxisView[];
+  hitTest?(x: number, y: number): PrimitiveHitTestResult | null;
+}
+```
+
+### `IPanePrimitive`
+
+```ts
+interface IPanePrimitive {
+  attached?(params: AttachedParams): void;
+  detached?(): void;
+  updateAllViews?(): void;
+  paneViews?(): readonly IPaneView[];
+  hitTest?(x: number, y: number): PrimitiveHitTestResult | null;
+}
+```
+
+### `AttachedParams`
+
+```ts
+interface AttachedParams {
+  requestUpdate(): void;
+}
+```
+
+---
+
+## `IPaneView` and `IPaneRenderer`
+
+```ts
+interface IPaneView {
+  renderer(): IPaneRenderer | null;
+  zOrder?(): PrimitiveZOrderValue;
+}
+
+interface IPaneRenderer {
+  draw(target: IRenderTarget): void;
+  drawBackground?(target: IRenderTarget): void;
+}
+```
+
+### Z-Order Slots
+
+```ts
+const PrimitiveZOrder = {
+  Bottom: 0,  // drawn before the series
+  Normal: 1,  // drawn after the series (default)
+  Top:    2,  // drawn last (tooltips, annotations)
+} as const;
+```
+
+---
+
+## `IRenderTarget` -- Direct Canvas Access
+
+```ts
+interface IRenderTarget {
+  readonly canvas:     HTMLCanvasElement;
+  readonly context:    CanvasRenderingContext2D;
+  readonly width:      number;   // logical CSS pixels
+  readonly height:     number;
+  readonly pixelRatio: number;   // window.devicePixelRatio
+}
+```
+
+All canvas coordinates must be multiplied by `pixelRatio` and rounded to integers for crisp HiDPI rendering.
+
+---
+
+## Lifecycle
+
+1. **Attach** -- call `series.attachPrimitive(primitive)`. The primitive's `attached(params)` is called synchronously.
+2. **Data updates** -- `updateAllViews()` is called on every attached primitive when data changes.
+3. **Rendering** -- `paneViews()` is called on each repaint; for each view, `renderer()` then `draw()`.
+4. **Detach** -- call `series.detachPrimitive(primitive)`. The primitive's `detached()` is called synchronously.
+
+---
+
+## Hit Testing
+
+```ts
+interface PrimitiveHitTestResult {
+  cursorStyle?: string;
+  externalId?:  string;
+}
+```
+
+Return `null` for no hit. Return a result to change the cursor or receive events in your handler.
+
+---
+
+## Example: Custom Overlay
+
+A horizontal price level line at a fixed price:
+
+```ts
+import type {
+  ISeriesPrimitive, IPaneView, IPaneRenderer,
+  IRenderTarget, AttachedParams,
+} from 'fin-charter';
+
+class PriceLevelRenderer implements IPaneRenderer {
+  constructor(private readonly priceY: number, private readonly color: string) {}
+
+  draw(target: IRenderTarget): void {
+    const { context: ctx, width, pixelRatio: pr } = target;
+    const y = Math.round(this.priceY * pr);
+    ctx.save();
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = Math.round(pr);
+    ctx.setLineDash([6 * pr, 3 * pr]);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(Math.round(width * pr), y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class PriceLevelPrimitive implements ISeriesPrimitive {
+  private _price: number;
+  private _color: string;
+  private _requestUpdate: (() => void) | null = null;
+
+  constructor(price: number, color = '#ff9800') {
+    this._price = price;
+    this._color = color;
+  }
+
+  attached(params: AttachedParams): void {
+    this._requestUpdate = params.requestUpdate;
+    params.requestUpdate();
+  }
+
+  setPrice(price: number): void {
+    this._price = price;
+    this._requestUpdate?.();
+  }
+}
+
+// Usage
+const level = new PriceLevelPrimitive(150);
+series.attachPrimitive(level);
+level.setPrice(160);  // move the line
+```
+
+---
+
+## Example: Separate-Pane Indicator
+
+Use `chart.addPane()` and `IPanePrimitive` to draw into a secondary pane:
+
+```ts
+import type { IPanePrimitive, IPaneView, IPaneRenderer, IRenderTarget } from 'fin-charter';
+
+class RSIRenderer implements IPaneRenderer {
+  constructor(private readonly values: Float64Array) {}
+
+  draw(target: IRenderTarget): void {
+    const { context: ctx, width, height, pixelRatio: pr } = target;
+    ctx.save();
+    ctx.strokeStyle = '#9c27b0';
+    ctx.lineWidth = Math.round(pr);
+    ctx.beginPath();
+
+    let started = false;
+    for (let i = 0; i < this.values.length; i++) {
+      const v = this.values[i];
+      if (isNaN(v)) continue;
+      const x = Math.round((i / this.values.length) * width * pr);
+      const y = Math.round((1 - v / 100) * height * pr);
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class RSIPrimitive implements IPanePrimitive {
+  private _values: Float64Array;
+  constructor(values: Float64Array) { this._values = values; }
+
+  paneViews(): readonly IPaneView[] {
+    const values = this._values;
+    return [{ renderer: () => new RSIRenderer(values) }];
+  }
+}
+
+// Usage
+const rsiPane = chart.addPane({ height: 120 });
+const rsi14   = computeRSI(store.close, store.length, 14);
+rsiPane.attachPrimitive(new RSIPrimitive(rsi14));
+```

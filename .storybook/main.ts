@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, '..');
 
 const config: StorybookConfig = {
-  stories: ['../stories/**/*.stories.@(ts|tsx)'],
-  addons: [],
+  stories: ['../stories/**/*.mdx', '../stories/**/*.stories.@(ts|tsx)'],
+  addons: ['@storybook/addon-docs'],
   framework: '@storybook/html-vite',
   viteFinal: async (config) => {
     return mergeConfig(config, {

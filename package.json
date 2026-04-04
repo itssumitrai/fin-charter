@@ -4,6 +4,15 @@
   "description": "Ultra-fast, tree-shakeable financial charting library",
   "type": "module",
   "license": "MIT",
+  "author": "Sumit Rai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itssumitrai/fin-charter.git"
+  },
+  "homepage": "https://github.com/itssumitrai/fin-charter",
+  "bugs": {
+    "url": "https://github.com/itssumitrai/fin-charter/issues"
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -24,6 +33,26 @@
     "./interactions/*": {
       "types": "./dist/interactions/*.d.ts",
       "import": "./dist/interactions/*.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist/i18n/index.js"
+    },
+    "./timezone": {
+      "types": "./dist/timezone/index.d.ts",
+      "import": "./dist/timezone/index.js"
+    },
+    "./formatting": {
+      "types": "./dist/formatting/index.d.ts",
+      "import": "./dist/formatting/index.js"
+    },
+    "./currency": {
+      "types": "./dist/currency/index.d.ts",
+      "import": "./dist/currency/index.js"
+    },
+    "./market": {
+      "types": "./dist/market/index.d.ts",
+      "import": "./dist/market/index.js"
     }
   },
   "files": [
@@ -32,6 +61,7 @@
   "scripts": {
     "dev": "vite --config dev/vite.config.ts",
     "build": "vite build",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",
@@ -51,6 +81,7 @@
   ],
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@storybook/addon-docs": "^10.3.4",
     "@storybook/html": "^10.3.4",
     "@storybook/html-vite": "^10.3.4",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
@@ -67,6 +98,7 @@
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0",
     "vite": "^8.0.3",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.1.2"
   }
 }
