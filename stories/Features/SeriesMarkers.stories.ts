@@ -31,8 +31,8 @@ const series = chart.addCandlestickSeries();
 series.setData(data);
 
 series.setMarkers([
-  { time: buyTime, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy' },
-  { time: sellTime, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell' },
+  { time: buyTime, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy' },
+  { time: sellTime, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell' },
 ]);`,
       },
     },
@@ -48,14 +48,14 @@ series.setMarkers([
         time: AAPL_DAILY[50].time,
         position: 'belowBar',
         shape: 'arrowUp',
-        color: '#26a69a',
+        color: '#22AB94',
         text: 'Buy',
       },
       {
         time: AAPL_DAILY[100].time,
         position: 'aboveBar',
         shape: 'arrowDown',
-        color: '#ef5350',
+        color: '#F7525F',
         text: 'Sell',
       },
       {
@@ -77,8 +77,8 @@ export const MultipleMarkers: Story = {
     docs: {
       source: {
         code: `series.setMarkers([
-  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy 1' },
-  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell 1' },
+  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 1' },
+  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 1' },
   { time: t3, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
 ]);`,
       },
@@ -91,11 +91,11 @@ export const MultipleMarkers: Story = {
     series.setData(AAPL_DAILY);
 
     series.setMarkers([
-      { time: AAPL_DAILY[10].time, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy 1' },
-      { time: AAPL_DAILY[30].time, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell 1' },
-      { time: AAPL_DAILY[60].time, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy 2' },
+      { time: AAPL_DAILY[10].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 1' },
+      { time: AAPL_DAILY[30].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 1' },
+      { time: AAPL_DAILY[60].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 2' },
       { time: AAPL_DAILY[90].time, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
-      { time: AAPL_DAILY[120].time, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell 2' },
+      { time: AAPL_DAILY[120].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 2' },
       { time: AAPL_DAILY[160].time, position: 'belowBar', shape: 'circle', color: '#2196F3', text: 'Signal' },
     ]);
 

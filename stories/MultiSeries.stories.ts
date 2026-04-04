@@ -133,12 +133,12 @@ const series = chart.addCandlestickSeries();
 series.setData(data);
 
 series.setMarkers([
-  { time: '2024-03-15', position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy' },
-  { time: '2024-05-10', position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell' },
+  { time: '2024-03-15', position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy' },
+  { time: '2024-05-10', position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell' },
 ]);
 
 series.createPriceLine({
-  price: 150, color: '#26a69a', lineWidth: 1, lineStyle: 'dashed', title: 'Support',
+  price: 150, color: '#22AB94', lineWidth: 1, lineStyle: 'dashed', title: 'Support',
 });
 `.trim(),
       },
@@ -152,19 +152,19 @@ series.createPriceLine({
     series.setData(AAPL_DAILY);
 
     series.setMarkers([
-      { time: AAPL_DAILY[20].time, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy', size: 1.5 },
-      { time: AAPL_DAILY[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell', size: 1.5 },
+      { time: AAPL_DAILY[20].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy', size: 1.5 },
+      { time: AAPL_DAILY[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell', size: 1.5 },
       { time: AAPL_DAILY[80].time, position: 'inBar', shape: 'circle', color: '#2962FF', text: 'Info' },
     ]);
 
     series.createPriceLine({
-      price: AAPL_DAILY[20].close, color: '#26a69a', lineWidth: 1, lineStyle: 'dashed',
+      price: AAPL_DAILY[20].close, color: '#22AB94', lineWidth: 1, lineStyle: 'dashed',
       title: 'Support', axisLabelVisible: true,
     });
     series.createPriceLine({
-      price: AAPL_DAILY[50].close, color: '#ef5350', lineWidth: 1, lineStyle: 'dotted',
+      price: AAPL_DAILY[50].close, color: '#F7525F', lineWidth: 1, lineStyle: 'dotted',
       title: 'Resistance', axisLabelVisible: true,
-      axisLabelColor: '#ef5350', axisLabelTextColor: '#ffffff',
+      axisLabelColor: '#F7525F', axisLabelTextColor: '#ffffff',
     });
 
     return container;

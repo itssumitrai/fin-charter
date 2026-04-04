@@ -31,10 +31,10 @@ const series = chart.addCandlestickSeries();
 series.setData(data);
 
 series.createPriceLine({
-  price: 185, color: '#26a69a', lineStyle: 'dashed', title: 'Support',
+  price: 185, color: '#22AB94', lineStyle: 'dashed', title: 'Support',
 });
 series.createPriceLine({
-  price: 195, color: '#ef5350', lineStyle: 'dashed', title: 'Resistance',
+  price: 195, color: '#F7525F', lineStyle: 'dashed', title: 'Resistance',
 });`,
       },
     },
@@ -47,7 +47,7 @@ series.createPriceLine({
 
     series.createPriceLine({
       price: 185,
-      color: '#26a69a',
+      color: '#22AB94',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Support',
@@ -56,7 +56,7 @@ series.createPriceLine({
 
     series.createPriceLine({
       price: 195,
-      color: '#ef5350',
+      color: '#F7525F',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Resistance',
@@ -76,12 +76,12 @@ export const TradeLevels: Story = {
   price: 190, color: '#2196F3', lineStyle: 'solid', title: 'Entry',
 });
 series.createPriceLine({
-  price: 182, color: '#ef5350', lineStyle: 'dotted', title: 'Stop Loss',
-  axisLabelVisible: true, axisLabelColor: '#ef5350',
+  price: 182, color: '#F7525F', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#F7525F',
 });
 series.createPriceLine({
-  price: 210, color: '#26a69a', lineStyle: 'dotted', title: 'Target',
-  axisLabelVisible: true, axisLabelColor: '#26a69a',
+  price: 210, color: '#22AB94', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#22AB94',
 });`,
       },
     },
@@ -105,24 +105,24 @@ series.createPriceLine({
     // Stop loss
     series.createPriceLine({
       price: 182,
-      color: '#ef5350',
+      color: '#F7525F',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Stop Loss',
       axisLabelVisible: true,
-      axisLabelColor: '#ef5350',
+      axisLabelColor: '#F7525F',
       axisLabelTextColor: '#ffffff',
     });
 
     // Target
     series.createPriceLine({
       price: 210,
-      color: '#26a69a',
+      color: '#22AB94',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Target',
       axisLabelVisible: true,
-      axisLabelColor: '#26a69a',
+      axisLabelColor: '#22AB94',
       axisLabelTextColor: '#ffffff',
     });
 

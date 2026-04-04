@@ -105,14 +105,14 @@ chart.scrollToRealTime();`,
     const rtBtn = document.createElement('button');
     rtBtn.textContent = 'Go to Realtime';
     rtBtn.style.cssText = btnStyle(false);
-    rtBtn.style.color = '#26a69a';
+    rtBtn.style.color = '#22AB94';
     rtBtn.addEventListener('click', () => {
       chart.scrollToRealTime();
       if (activeBtn) activeBtn.style.cssText = btnStyle(false);
       activeBtn = null;
     });
     rtBtn.addEventListener('mouseenter', () => { rtBtn.style.background = '#1a3a3a'; });
-    rtBtn.addEventListener('mouseleave', () => { rtBtn.style.cssText = btnStyle(false); rtBtn.style.color = '#26a69a'; });
+    rtBtn.addEventListener('mouseleave', () => { rtBtn.style.cssText = btnStyle(false); rtBtn.style.color = '#22AB94'; });
     toolbar.appendChild(rtBtn);
 
     root.appendChild(toolbar);

@@ -118,12 +118,12 @@ chart.setSessionFilter('regular');`,
     chart.setPeriodicity({ interval: 5, unit: 'minute' });
 
     const series = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      upColor: '#22AB94',
+      downColor: '#F7525F',
+      borderUpColor: '#22AB94',
+      borderDownColor: '#F7525F',
+      wickUpColor: '#22AB94',
+      wickDownColor: '#F7525F',
     });
 
     const intradayBars = generateIntradayBars(5, 300); // 5 days of 5-min bars

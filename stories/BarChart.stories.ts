@@ -48,8 +48,8 @@ export const CustomColors: Story = {
       source: {
         code: `
 const series = chart.addBarSeries({
-  upColor: '#26a69a',
-  downColor: '#ef5350',
+  upColor: '#22AB94',
+  downColor: '#F7525F',
 });
 series.setData(data);
 `.trim(),
@@ -60,8 +60,8 @@ series.setData(data);
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
     const series = chart.addBarSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: '#22AB94',
+      downColor: '#F7525F',
     });
     series.setData(AAPL_DAILY);
     return container;

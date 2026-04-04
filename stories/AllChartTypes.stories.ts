@@ -97,7 +97,7 @@ chart.addBaselineSeries().setData(data);
     const specs: ChartSpec[] = [
       {
         title: 'Candlestick',
-        color: '#26a69a',
+        color: '#22AB94',
         create: (el) => {
           const chart = createChart(el, { autoSize: true });
           chart.addCandlestickSeries().setData(bars);

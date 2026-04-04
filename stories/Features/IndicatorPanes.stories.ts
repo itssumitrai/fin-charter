@@ -129,7 +129,7 @@ chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX'
     chart.addIndicator('stochastic', {
       source: candleSeries,
       params: { kPeriod: 14, dPeriod: 3 },
-      color: '#26a69a',
+      color: '#22AB94',
       label: 'Stoch 14,3',
     });
 
@@ -137,7 +137,7 @@ chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX'
     chart.addIndicator('atr', {
       source: candleSeries,
       params: { period: 14 },
-      color: '#ef5350',
+      color: '#F7525F',
       label: 'ATR 14',
     });
 

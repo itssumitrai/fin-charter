@@ -193,6 +193,8 @@ interface SeriesEntry {
     | HistogramRenderer;
   type: SeriesType;
   paneId: string;
+  /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
+  _haCache?: { length: number; store: import('../core/types').ColumnStore };
 }
 
 // ─── niceStep utility ───────────────────────────────────────────────────────
@@ -1595,7 +1597,7 @@ class ChartApi implements IChartApi {
       if (!entry.api.isVisible()) continue;
 
       const rawStore = entry.api.getDataLayer().store;
-      const store = entry.type === 'heikin-ashi' ? computeHeikinAshi(rawStore) : rawStore;
+      const store = this._getEffectiveStore(entry, rawStore);
       let priceToY: (p: number) => number;
       if (this._comparisonMode) {
         const basis = this._getBasisPrice(entry, range);
@@ -2098,7 +2100,7 @@ class ChartApi implements IChartApi {
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
       const rawStore = entry.api.getDataLayer().store;
-      const store = entry.type === 'heikin-ashi' ? computeHeikinAshi(rawStore) : rawStore;
+      const store = this._getEffectiveStore(entry, rawStore);
       const to = Math.min(range.toIdx, store.length - 1);
 
       const isLeft = entry.api.options().priceScaleId === 'left';
@@ -2783,6 +2785,15 @@ class ChartApi implements IChartApi {
 
     this.requestRepaint(InvalidationLevel.Full);
     return api;
+  }
+
+  private _getEffectiveStore(entry: SeriesEntry, rawStore: ColumnStore): ColumnStore {
+    if (entry.type !== 'heikin-ashi') return rawStore;
+    const cache = entry._haCache;
+    if (cache && cache.length === rawStore.length) return cache.store;
+    const haStore = computeHeikinAshi(rawStore);
+    entry._haCache = { length: rawStore.length, store: haStore };
+    return haStore;
   }
 
   private _createRenderer(

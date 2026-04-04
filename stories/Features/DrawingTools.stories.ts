@@ -108,7 +108,7 @@ export const PresetDrawings: Story = {
 );
 chart.addDrawing('trendline',
   [{ time: t1, price: low1 }, { time: t2, price: high2 }],
-  { color: '#26a69a', lineWidth: 2 },
+  { color: '#22AB94', lineWidth: 2 },
 );`,
       },
     },
@@ -134,7 +134,7 @@ chart.addDrawing('trendline',
         { time: AAPL_DAILY[20].time, price: AAPL_DAILY[20].low },
         { time: AAPL_DAILY[80].time, price: AAPL_DAILY[80].high },
       ],
-      { color: '#26a69a', lineWidth: 2 },
+      { color: '#22AB94', lineWidth: 2 },
     );
 
     // Add a rectangle marking a consolidation zone
