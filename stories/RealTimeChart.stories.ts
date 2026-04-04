@@ -81,6 +81,94 @@ setInterval(() => {
   },
 };
 
+export const CandleBuilding: Story = {
+  name: 'Candle Building (Tick Simulation)',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addCandlestickSeries();
+series.setData(historicalBars);
+
+// Simulate tick-by-tick candle building
+let candle = { time, open: lastClose, high: lastClose, low: lastClose, close: lastClose };
+setInterval(() => {
+  const tick = candle.close + (Math.random() - 0.48) * 0.5;
+  candle.high = Math.max(candle.high, tick);
+  candle.low = Math.min(candle.low, tick);
+  candle.close = tick;
+  series.update(candle);  // Same timestamp — updates in place with smooth animation
+}, 100);`,
+      },
+    },
+  },
+  render: () => {
+    const container = createChartContainer();
+    const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+    const series = chart.addCandlestickSeries();
+
+    // Seed with 100 historical bars
+    const seedData = generateOHLCV(100);
+    series.setData(seedData);
+
+    const lastSeed = seedData[seedData.length - 1];
+    let candleTime = lastSeed.time + 86400;
+    let candle: Bar = {
+      time: candleTime,
+      open: lastSeed.close,
+      high: lastSeed.close,
+      low: lastSeed.close,
+      close: lastSeed.close,
+      volume: 0,
+    };
+    series.update(candle);
+
+    let tickCount = 0;
+
+    const intervalId = setInterval(() => {
+      // Simulate a price tick
+      const tick = candle.close + (Math.random() - 0.48) * 0.5;
+      candle = {
+        ...candle,
+        high: Math.max(candle.high, tick),
+        low: Math.min(candle.low, tick),
+        close: +tick.toFixed(2),
+        volume: candle.volume! + Math.round(1000 + Math.random() * 5000),
+      };
+      series.update(candle);
+
+      tickCount++;
+      // Every ~50 ticks (~5 seconds), start a new candle
+      if (tickCount >= 50) {
+        tickCount = 0;
+        candleTime += 86400;
+        candle = {
+          time: candleTime,
+          open: candle.close,
+          high: candle.close,
+          low: candle.close,
+          close: candle.close,
+          volume: 0,
+        };
+        series.update(candle);
+      }
+    }, 100);
+
+    const observer = new MutationObserver(() => {
+      if (!document.contains(container)) {
+        clearInterval(intervalId);
+        chart.remove();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return container;
+  },
+};
+
 export const LiveLine: Story = {
   name: 'Live Line Chart',
   parameters: {

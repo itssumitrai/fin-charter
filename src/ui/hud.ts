@@ -220,6 +220,16 @@ export class HudManager {
     this._compactLine.textContent = firstValues;
   }
 
+  /** Programmatically open the settings popup for a row. */
+  triggerSettings(rowId: string): void {
+    const entry = this._rows.get(rowId);
+    if (entry) {
+      // Find the gear button (second button in the buttons container)
+      const gearBtn = entry.buttonsEl.children[1] as HTMLButtonElement | undefined;
+      gearBtn?.click();
+    }
+  }
+
   destroy(): void {
     this._closePopup();
     this._container.remove();

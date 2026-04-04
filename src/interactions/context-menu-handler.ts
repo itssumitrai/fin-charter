@@ -18,6 +18,7 @@ export interface ContextMenuCallbacks {
   removeIndicator(id: string): void;
   fitContent(): void;
   scrollToRealTime(): void;
+  toggleCrosshair(): void;
   theme: { bg: string; text: string; border: string };
   localToScreen(x: number, y: number): { x: number; y: number };
 }
@@ -76,6 +77,7 @@ export class ContextMenuHandler implements EventHandler {
     createContextMenu([
       { label: 'Reset Zoom', action: () => cb.fitContent() },
       { label: 'Scroll to Latest', action: () => cb.scrollToRealTime() },
+      { label: 'Toggle Crosshair', action: () => cb.toggleCrosshair(), separator: true },
     ], pos, cb.theme);
   }
 }

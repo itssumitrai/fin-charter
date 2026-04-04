@@ -474,7 +474,10 @@ class ChartApi implements IChartApi {
         const drawing = this._drawings.find(d => d instanceof BaseDrawing && d.id === id) as BaseDrawing | undefined;
         if (!drawing) return;
         const s = drawing.serialize();
-        const offsetPoints = s.points.map(p => ({ time: p.time + 1, price: p.price }));
+        // Offset both time (+1 bar) and price (+1% of price range) so duplicate is visible
+        const priceRange = this._mainPane.priceScale.priceRange;
+        const priceOffset = (priceRange.max - priceRange.min) * 0.02;
+        const offsetPoints = s.points.map(p => ({ time: p.time + 1, price: p.price + priceOffset }));
         this.addDrawing(s.type, offsetPoints, s.options);
       },
       bringDrawingToFront: (id) => {
@@ -493,8 +496,16 @@ class ChartApi implements IChartApi {
           this.requestRepaint(InvalidationLevel.Full);
         }
       },
-      openIndicatorSettings: (_id) => {
-        this.requestRepaint(InvalidationLevel.Full);
+      openIndicatorSettings: (id) => {
+        // Find the indicator's pane HUD and programmatically trigger its gear button
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) {
+          const hud = this._huds.get(ind.paneId());
+          if (hud) {
+            // Click the gear button for this indicator's HUD row
+            hud.triggerSettings?.(id);
+          }
+        }
       },
       toggleIndicatorVisibility: (id) => {
         const ind = this._indicators.find(i => `indicator-${i.id}` === id);
@@ -511,6 +522,21 @@ class ChartApi implements IChartApi {
       },
       fitContent: () => { this._timeScale.fitContent(); this.requestRepaint(InvalidationLevel.Full); },
       scrollToRealTime: () => this.scrollToRealTime(),
+      toggleCrosshair: () => {
+        if (this._crosshairHandler) {
+          this._eventRouter.removeHandler(this._crosshairHandler);
+          this._crosshairHandler = null;
+          this._crosshair.hide();
+        } else if (this._series.length > 0) {
+          this._crosshairHandler = new CrosshairHandler(
+            this._crosshair, this._series[0].api.getDataLayer(),
+            this._timeScale, this._mainPane.priceScale,
+            () => this.requestRepaint(InvalidationLevel.Cursor),
+          );
+          this._eventRouter.addHandler(this._crosshairHandler);
+        }
+        this.requestRepaint(InvalidationLevel.Full);
+      },
       theme: {
         bg: this._options.layout.backgroundColor,
         text: this._options.layout.textColor,

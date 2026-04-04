@@ -10,7 +10,12 @@ export function createContextMenu(
   position: { x: number; y: number },
   theme: { bg: string; text: string; border: string },
 ): HTMLDivElement {
+  // Remove any existing context menu to prevent stacking
+  const existing = document.querySelector('[data-fin-charter-ctx-menu]');
+  if (existing) existing.remove();
+
   const menu = document.createElement('div');
+  menu.setAttribute('data-fin-charter-ctx-menu', '');
   menu.style.cssText =
     `position:fixed;left:${position.x}px;top:${position.y}px;z-index:1000;` +
     `background:${theme.bg};color:${theme.text};border:1px solid ${theme.border};` +

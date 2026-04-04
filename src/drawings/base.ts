@@ -20,6 +20,8 @@ export interface DrawingOptions {
   fillColor?: string;
   text?: string;
   fontSize?: number;
+  /** Whether to show labels on fibonacci and measurement tools. Defaults to true. */
+  showLabels?: boolean;
 }
 
 export interface SerializedDrawing {
