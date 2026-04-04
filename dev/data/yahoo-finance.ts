@@ -83,7 +83,7 @@ export async function fetchBars(
   const ohlcv = quote.indicators?.quote?.[0];
 
   if (!ohlcv || timestamps.length === 0) {
-    throw new Error('Empty quote data');
+    return generateFallbackData(symbol);
   }
 
   const bars: Bar[] = [];

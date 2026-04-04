@@ -22,17 +22,11 @@
   let loadRequestId = 0;
 
   function createSeries(c: IChartApi, type: ChartTypeLabel): ISeriesApi<SeriesType> {
-    const seriesType = CHART_TYPE_TO_SERIES[type];
-    switch (seriesType) {
-      case 'candlestick': return c.addCandlestickSeries();
-      case 'line': return c.addLineSeries({ color: '#2962ff' });
-      case 'area': return c.addAreaSeries();
-      case 'bar': return c.addBarSeries();
-      case 'baseline': return c.addBaselineSeries();
-      case 'hollow-candle': return c.addHollowCandleSeries();
-      case 'heikin-ashi': return c.addHeikinAshiSeries();
-      default: return c.addCandlestickSeries();
-    }
+    const seriesType: SeriesType = CHART_TYPE_TO_SERIES[type] ?? 'candlestick';
+    return c.addSeries({
+      type: seriesType,
+      ...(seriesType === 'line' ? { color: '#2962ff' } : {}),
+    });
   }
 
   async function loadData() {
@@ -53,11 +47,7 @@
 
       mainSeries.setData(bars);
       chart.timeScale().scrollToEnd();
-
-      // Load comparison series
-      for (const sym of appStore.comparisonSymbols) {
-        await loadComparison(sym);
-      }
+      // Comparisons are loaded by the comparison $effect — no need to duplicate here
     } catch (err) {
       if (reqId !== loadRequestId) return;
       console.error('Failed to load data:', err);

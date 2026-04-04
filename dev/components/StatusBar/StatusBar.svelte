@@ -55,10 +55,6 @@
     flex-shrink: 0;
   }
 
-  .dot.open {
-    background: #22ab94;
-  }
-
   .sep {
     color: #1a2332;
     user-select: none;
