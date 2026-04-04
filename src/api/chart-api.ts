@@ -19,6 +19,8 @@ import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
+import { ContextMenuHandler } from '../interactions/context-menu-handler';
+import type { ContextMenuCallbacks } from '../interactions/context-menu-handler';
 
 import { DrawingHandler } from '../interactions/drawing-handler';
 import type { AnchorPoint, DrawingOptions, SerializedDrawing, DrawingPrimitive, DrawingContext } from '../drawings/index';
@@ -83,6 +85,18 @@ import { computeKeltner } from '../indicators/keltner';
 import { computeDonchian } from '../indicators/donchian';
 import { computeCCI } from '../indicators/cci';
 import { computePivotPoints } from '../indicators/pivot-points';
+import { computeAroon } from '../indicators/aroon';
+import { computeAwesomeOscillator } from '../indicators/awesome-oscillator';
+import { computeChaikinMF } from '../indicators/chaikin-mf';
+import { computeCoppock } from '../indicators/coppock';
+import { computeElderForce } from '../indicators/elder-force';
+import { computeTRIX } from '../indicators/trix';
+import { computeSupertrend } from '../indicators/supertrend';
+import { computeVWMA } from '../indicators/vwma';
+import { computeChoppiness } from '../indicators/choppiness';
+import { computeMFI } from '../indicators/mfi';
+import { computeROC } from '../indicators/roc';
+import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
 import type { MarketSession } from '../core/market-session';
 
@@ -268,6 +282,7 @@ class ChartApi implements IChartApi {
   private _eventRouter: EventRouter;
   private _panZoomHandler: PanZoomHandler;
   private _crosshairHandler: CrosshairHandler | null = null;
+  private _contextMenuHandler: ContextMenuHandler | null = null;
 
   private _series: SeriesEntry[] = [];
 
@@ -427,6 +442,86 @@ class ChartApi implements IChartApi {
     );
     this._eventRouter.addHandler(this._panZoomHandler);
     this._eventRouter.attach(mainPane.canvases.overlayCanvas);
+
+    // ── Context Menu ───────────────────────────────────────────────────────
+    this._contextMenuHandler = new ContextMenuHandler({
+      getDrawings: () => this._drawings
+        .filter((d): d is BaseDrawing => d instanceof BaseDrawing)
+        .map(d => ({ drawing: d, id: d.id })),
+      getIndicatorAtPane: (paneId: string) => {
+        const ind = this._indicators.find(i => i.paneId() === paneId);
+        return ind ? { id: `indicator-${ind.id}`, label: ind.label() } : null;
+      },
+      getPaneAtY: (y: number) => {
+        let cumY = 0;
+        for (const paneId of this._paneOrder) {
+          const pane = this._paneMap.get(paneId)!;
+          if (y >= cumY && y < cumY + pane.height) return paneId;
+          cumY += pane.height;
+        }
+        return null;
+      },
+      mainPaneId: this._mainPaneId,
+      editDrawing: (id) => {
+        const drawing = this._drawings.find(d => d instanceof BaseDrawing && d.id === id) as BaseDrawing | undefined;
+        if (drawing) { drawing.selected = true; this.requestRepaint(InvalidationLevel.Full); }
+      },
+      removeDrawing: (id) => {
+        const api = this._drawingApis.get(id);
+        if (api) this.removeDrawing(api);
+      },
+      duplicateDrawing: (id) => {
+        const drawing = this._drawings.find(d => d instanceof BaseDrawing && d.id === id) as BaseDrawing | undefined;
+        if (!drawing) return;
+        const s = drawing.serialize();
+        const offsetPoints = s.points.map(p => ({ time: p.time + 1, price: p.price }));
+        this.addDrawing(s.type, offsetPoints, s.options);
+      },
+      bringDrawingToFront: (id) => {
+        const idx = this._drawings.findIndex(d => d instanceof BaseDrawing && d.id === id);
+        if (idx !== -1 && idx < this._drawings.length - 1) {
+          const [d] = this._drawings.splice(idx, 1);
+          this._drawings.push(d);
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      sendDrawingToBack: (id) => {
+        const idx = this._drawings.findIndex(d => d instanceof BaseDrawing && d.id === id);
+        if (idx > 0) {
+          const [d] = this._drawings.splice(idx, 1);
+          this._drawings.unshift(d);
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      openIndicatorSettings: (_id) => {
+        this.requestRepaint(InvalidationLevel.Full);
+      },
+      toggleIndicatorVisibility: (id) => {
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) {
+          const newVis = !ind.isVisible();
+          ind.applyOptions({ visible: newVis });
+          for (const s of (ind as any).internalSeries) { s.applyOptions({ visible: newVis }); }
+          this.requestRepaint(InvalidationLevel.Full);
+        }
+      },
+      removeIndicator: (id) => {
+        const ind = this._indicators.find(i => `indicator-${i.id}` === id);
+        if (ind) this.removeIndicator(ind);
+      },
+      fitContent: () => { this._timeScale.fitContent(); this.requestRepaint(InvalidationLevel.Full); },
+      scrollToRealTime: () => this.scrollToRealTime(),
+      theme: {
+        bg: this._options.layout.backgroundColor,
+        text: this._options.layout.textColor,
+        border: this._options.layout.backgroundColor === '#131722' ? '#2a2e39' : '#e0e3eb',
+      },
+      localToScreen: (x, y) => {
+        const rect = this._wrapper.getBoundingClientRect();
+        return { x: rect.left + x, y: rect.top + y };
+      },
+    });
+    this._eventRouter.addHandler(this._contextMenuHandler);
 
     // ── Click detection via overlay canvas ─────────────────────────────────
     mainPane.canvases.overlayCanvas.addEventListener('click', this._handleClick);
@@ -1010,6 +1105,36 @@ class ChartApi implements IChartApi {
         const r = computePivotPoints(high, low, close, len);
         return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 };
       }
+      case 'aroon': {
+        const r = computeAroon(high, low, len, params.period ?? 25);
+        return { up: r.up, down: r.down };
+      }
+      case 'awesome-oscillator':
+        return { histogram: computeAwesomeOscillator(high, low, len, params.fastPeriod ?? 5, params.slowPeriod ?? 34) };
+      case 'chaikin-mf':
+        return { value: computeChaikinMF(high, low, close, volume, len, params.period ?? 20) };
+      case 'coppock':
+        return { value: computeCoppock(close, len, params.wmaPeriod ?? 10, params.longROC ?? 14, params.shortROC ?? 11) };
+      case 'elder-force':
+        return { value: computeElderForce(close, volume, len, params.period ?? 13) };
+      case 'trix': {
+        const r = computeTRIX(close, len, params.period ?? 15, params.signalPeriod ?? 9);
+        return { trix: r.trix, signal: r.signal };
+      }
+      case 'supertrend': {
+        const r = computeSupertrend(high, low, close, len, params.period ?? 10, params.multiplier ?? 3);
+        return { value: r.value };
+      }
+      case 'vwma':
+        return { value: computeVWMA(close, volume, len, params.period ?? 20) };
+      case 'choppiness':
+        return { value: computeChoppiness(high, low, close, len, params.period ?? 14) };
+      case 'mfi':
+        return { value: computeMFI(high, low, close, volume, len, params.period ?? 14) };
+      case 'roc':
+        return { value: computeROC(close, len, params.period ?? 12) };
+      case 'linear-regression':
+        return { value: computeLinearRegression(close, len, params.period ?? 20) };
       default:
         throw new Error(`Unknown indicator type: ${type}`);
     }
@@ -1093,6 +1218,10 @@ class ChartApi implements IChartApi {
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'pivot-points':
         return { pp: primaryColor, r1: '#F7525F', r2: '#F7525F', r3: '#F7525F', s1: '#22AB94', s2: '#22AB94', s3: '#22AB94' };
+      case 'aroon':
+        return { up: '#22AB94', down: '#F7525F' };
+      case 'trix':
+        return { trix: primaryColor, signal: '#ff6d00' };
       default:
         return { value: primaryColor };
     }

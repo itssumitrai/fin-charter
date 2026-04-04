@@ -9,6 +9,7 @@ export interface EventHandler {
   onPointerUp?(pointerId: number): boolean | void;
   onWheel?(x: number, y: number, deltaY: number): void;
   onKeyDown?(key: string, shiftKey: boolean): boolean | void;
+  onContextMenu?(x: number, y: number): boolean | void;
 }
 
 export class EventRouter {
@@ -22,6 +23,7 @@ export class EventRouter {
   private _boundPointerLeave: (e: PointerEvent) => void;
   private _boundWheel: (e: WheelEvent) => void;
   private _boundKeyDown: (e: KeyboardEvent) => void;
+  private _boundContextMenu: (e: MouseEvent) => void;
 
   constructor() {
     this._boundPointerDown = this._handlePointerDown.bind(this);
@@ -30,6 +32,7 @@ export class EventRouter {
     this._boundPointerLeave = this._handlePointerLeave.bind(this);
     this._boundWheel = this._handleWheel.bind(this);
     this._boundKeyDown = this._handleKeyDown.bind(this);
+    this._boundContextMenu = this._handleContextMenu.bind(this);
   }
 
   attach(element: HTMLElement): void {
@@ -47,6 +50,7 @@ export class EventRouter {
       element.setAttribute('tabindex', '0');
     }
     element.addEventListener('keydown', this._boundKeyDown);
+    element.addEventListener('contextmenu', this._boundContextMenu);
   }
 
   detach(): void {
@@ -59,6 +63,7 @@ export class EventRouter {
     el.removeEventListener('pointerleave', this._boundPointerLeave);
     el.removeEventListener('wheel', this._boundWheel);
     el.removeEventListener('keydown', this._boundKeyDown);
+    el.removeEventListener('contextmenu', this._boundContextMenu);
 
     this._element = null;
   }
@@ -127,6 +132,16 @@ export class EventRouter {
   private _handleKeyDown(e: KeyboardEvent): void {
     for (const h of this._handlers) {
       if (h.onKeyDown?.(e.key, e.shiftKey) === true) break;
+    }
+  }
+
+  private _handleContextMenu(e: MouseEvent): void {
+    e.preventDefault();
+    const el = this._element;
+    let x = e.clientX, y = e.clientY;
+    if (el) { const rect = el.getBoundingClientRect(); x = e.clientX - rect.left; y = e.clientY - rect.top; }
+    for (const h of this._handlers) {
+      if (h.onContextMenu?.(x, y) === true) break;
     }
   }
 }
