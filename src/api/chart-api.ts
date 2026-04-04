@@ -19,6 +19,9 @@ import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
 
+import { HudManager } from '../ui/hud';
+import type { SettingsField } from '../ui/settings-popup';
+
 import { CandlestickRenderer } from '../renderers/candlestick';
 import { LineRenderer } from '../renderers/line';
 import { AreaRenderer } from '../renderers/area';
@@ -161,7 +164,6 @@ class ChartApi implements IChartApi {
   private _paneContainer: HTMLDivElement;
   private _timeAxisCanvas: HTMLCanvasElement;
   private _timeAxisCtx: CanvasRenderingContext2D;
-  private _legendEl: HTMLDivElement;
   private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
@@ -195,7 +197,6 @@ class ChartApi implements IChartApi {
 
   // ── Tooltip/Legend caching ──────────────────────────────────────────────
   private _lastTooltipBarIdx: number = -1;
-  private _lastLegendBarIdx: number = -1;
   private _tooltipWidth: number = 140;
   private _tooltipHeight: number = 80;
   private _volumeFormatter = new Intl.NumberFormat();
@@ -206,17 +207,8 @@ class ChartApi implements IChartApi {
   private _tooltipLCEl!: HTMLDivElement;
   private _tooltipVEl!: HTMLDivElement;
 
-  // Pre-created legend child elements
-  private _legendOLabelEl!: HTMLSpanElement;
-  private _legendOValEl!: HTMLSpanElement;
-  private _legendHLabelEl!: HTMLSpanElement;
-  private _legendHValEl!: HTMLSpanElement;
-  private _legendLLabelEl!: HTMLSpanElement;
-  private _legendLValEl!: HTMLSpanElement;
-  private _legendCLabelEl!: HTMLSpanElement;
-  private _legendCValEl!: HTMLSpanElement;
-  private _legendVLabelEl!: HTMLSpanElement;
-  private _legendVValEl!: HTMLSpanElement;
+  // HUD management (per-pane heads-up display)
+  private _huds: Map<string, HudManager> = new Map();
 
   // The "primary" pane id for the mask
   private readonly _mainPaneId = 'main';
@@ -275,10 +267,8 @@ class ChartApi implements IChartApi {
     this._timeAxisCanvas.style.zIndex = '1';
     this._wrapper.appendChild(this._timeAxisCanvas);
 
-    // Legend overlay (DOM-based) — appended to main pane's row for positioning
-    this._legendEl = document.createElement('div');
-    this._legendEl.style.cssText = `position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:${options.layout.fontFamily};display:flex;gap:8px;pointer-events:none;color:${options.layout.textColor}`;
-    mainPane.row.appendChild(this._legendEl);
+    // HUD overlay for main pane
+    this._createHudForPane(this._mainPaneId, mainPane);
 
     // Tooltip overlay (DOM-based)
     this._tooltipEl = document.createElement('div');
@@ -300,27 +290,6 @@ class ChartApi implements IChartApi {
     this._tooltipEl.appendChild(this._tooltipVEl);
 
     this._wrapper.appendChild(this._tooltipEl);
-
-    // Pre-create legend child elements
-    const createLegendPair = (): [HTMLSpanElement, HTMLSpanElement] => {
-      const label = document.createElement('span');
-      const val = document.createElement('span');
-      return [label, val];
-    };
-    [this._legendOLabelEl, this._legendOValEl] = createLegendPair();
-    [this._legendHLabelEl, this._legendHValEl] = createLegendPair();
-    [this._legendLLabelEl, this._legendLValEl] = createLegendPair();
-    [this._legendCLabelEl, this._legendCValEl] = createLegendPair();
-    [this._legendVLabelEl, this._legendVValEl] = createLegendPair();
-    for (const el of [
-      this._legendOLabelEl, this._legendOValEl,
-      this._legendHLabelEl, this._legendHValEl,
-      this._legendLLabelEl, this._legendLValEl,
-      this._legendCLabelEl, this._legendCValEl,
-      this._legendVLabelEl, this._legendVValEl,
-    ]) {
-      this._legendEl.appendChild(el);
-    }
 
     container.appendChild(this._wrapper);
 
@@ -408,6 +377,15 @@ class ChartApi implements IChartApi {
   removeSeries(series: ISeriesApi<SeriesType>): void {
     const idx = this._series.findIndex((e) => e.api === series);
     if (idx !== -1) {
+      const entry = this._series[idx];
+
+      // Remove HUD row for this series
+      const hudRowId = `series-${entry.type}-${idx}`;
+      const hud = this._huds.get(entry.paneId);
+      if (hud) {
+        hud.removeRow(hudRowId);
+      }
+
       this._series.splice(idx, 1);
 
       // If we removed the primary (first) series the crosshair handler holds a
@@ -460,6 +438,7 @@ class ChartApi implements IChartApi {
     this._paneContainer.appendChild(pane.row);
 
     this._mask.addPane(id);
+    this._createHudForPane(id, pane);
 
     const paneApi = new PaneApi(id, pane, () =>
       this.requestRepaint(InvalidationLevel.Full),
@@ -497,6 +476,13 @@ class ChartApi implements IChartApi {
     this._paneOrder.splice(orderIdx, 1);
     this._paneApis.delete(paneId);
     this._mask.removePane(paneId);
+
+    // Destroy HUD for this pane
+    const hud = this._huds.get(paneId);
+    if (hud) {
+      hud.destroy();
+      this._huds.delete(paneId);
+    }
 
     // Remove series assigned to this pane
     this._series = this._series.filter((s) => s.paneId !== paneId);
@@ -581,6 +567,10 @@ class ChartApi implements IChartApi {
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
     this._mainPane.canvases.overlayCanvas.removeEventListener('click', this._handleClick);
+
+    // Clean up HUDs
+    for (const hud of this._huds.values()) hud.destroy();
+    this._huds.clear();
 
     // Clean up dividers
     for (const d of this._dividers) d.destroy();
@@ -781,6 +771,10 @@ class ChartApi implements IChartApi {
     options.source.subscribeDataChanged(dataChangedCallback);
 
     this._indicators.push(indicator);
+
+    // Register HUD row for this indicator
+    this._registerIndicatorHudRow(indicator, options);
+
     return indicator;
   }
 
@@ -788,6 +782,12 @@ class ChartApi implements IChartApi {
     const impl = indicator as IndicatorApi;
     const idx = this._indicators.indexOf(impl);
     if (idx === -1) return;
+
+    // Remove HUD row for this indicator
+    const hud = this._huds.get(impl.paneId());
+    if (hud) {
+      hud.removeRow(`indicator-${impl.id}`);
+    }
 
     // 1. Remove all internal series
     for (const s of impl.internalSeries) {
@@ -906,14 +906,14 @@ class ChartApi implements IChartApi {
           data: bars,
           upColor: '#26a69a',
           downColor: '#ef5350',
-        });
+        }, true);
       } else {
         series = this._addSeries('line', {
           paneId,
           data: bars,
           color,
           lineWidth,
-        });
+        }, true);
       }
 
       indicator.internalSeries.push(series);
@@ -1036,7 +1036,7 @@ class ChartApi implements IChartApi {
     // Emit crosshair callbacks
     this._emitCrosshairCallbacks();
 
-    this._updateLegend();
+    this._updateHud();
     this._updateTooltip();
 
     // Emit visible range change callbacks (Feature 3)
@@ -1915,69 +1915,203 @@ class ChartApi implements IChartApi {
     this._tooltipEl.style.display = 'block';
   }
 
-  // ── Legend ────────────────────────────────────────────────────────────
+  // ── HUD ───────────────────────────────────────────────────────────────
 
-  private _updateLegend(): void {
-    if (this._series.length === 0) {
-      this._legendEl.style.display = 'none';
-      this._lastLegendBarIdx = -1;
-      return;
-    }
+  private _createHudForPane(paneId: string, pane: Pane): void {
+    const hud = new HudManager(pane.row, {
+      bg: this._options.layout.backgroundColor,
+      text: this._options.layout.textColor,
+      border: this._options.grid.horzLinesColor,
+      fontFamily: this._options.layout.fontFamily,
+    });
+    this._huds.set(paneId, hud);
+  }
 
-    const primaryEntry = this._series[0];
-    const store = primaryEntry.api.getDataLayer().store;
+  private _getCrosshairBarIndex(): number {
+    if (this._series.length === 0) return -1;
+    const store = this._series[0].api.getDataLayer().store;
+    if (store.length === 0) return -1;
 
-    // Use crosshair bar if visible, otherwise last bar
-    let idx = store.length - 1;
     if (this._crosshair.visible && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
-      idx = this._crosshair.barIndex;
+      return this._crosshair.barIndex;
     }
-    if (idx < 0 || idx >= store.length) {
-      this._legendEl.style.display = 'none';
-      this._lastLegendBarIdx = -1;
-      return;
+    return store.length - 1;
+  }
+
+  private _updateHud(): void {
+    const barIndex = this._getCrosshairBarIndex();
+    for (const hud of this._huds.values()) {
+      hud.updateValues(barIndex);
+    }
+  }
+
+  private _getSeriesColor(type: SeriesType, options: Record<string, unknown>): string {
+    switch (type) {
+      case 'candlestick':
+      case 'bar':
+      case 'hollow-candle':
+        return (options.upColor as string) ?? '#26a69a';
+      case 'line':
+        return (options.color as string) ?? '#2196F3';
+      case 'area':
+        return (options.lineColor as string) ?? '#2196F3';
+      case 'baseline':
+        return (options.topLineColor as string) ?? '#26a69a';
+      case 'histogram':
+        return (options.upColor as string) ?? '#26a69a';
+      default:
+        return '#2196F3';
+    }
+  }
+
+  private _getSeriesValues(api: SeriesApi<SeriesType>, barIndex: number): string {
+    const store = api.getDataLayer().store;
+    if (barIndex < 0 || barIndex >= store.length) return '';
+
+    const type = api.seriesType();
+    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle';
+
+    if (isOHLC) {
+      const o = store.open[barIndex];
+      const h = store.high[barIndex];
+      const l = store.low[barIndex];
+      const c = store.close[barIndex];
+      const v = store.volume ? store.volume[barIndex] : 0;
+      return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${this._volumeFormatter.format(v)}`;
     }
 
-    // Only rebuild content when barIndex changes
-    if (idx !== this._lastLegendBarIdx) {
-      this._lastLegendBarIdx = idx;
+    const c = store.close[barIndex];
+    return this._formatPrice(c);
+  }
 
-      const o = store.open[idx];
-      const h = store.high[idx];
-      const l = store.low[idx];
-      const c = store.close[idx];
-      const v = store.volume ? store.volume[idx] : 0;
-      const isUp = c >= o;
-      const color = isUp ? '#26a69a' : '#ef5350';
-      const textColor = this._options.layout.textColor;
+  private _getIndicatorValues(indicator: IndicatorApi, barIndex: number): string {
+    const parts: string[] = [];
+    for (const s of indicator.internalSeries) {
+      const impl = s as SeriesApi<SeriesType>;
+      const store = impl.getDataLayer().store;
+      if (barIndex >= 0 && barIndex < store.length) {
+        const val = store.close[barIndex];
+        if (!isNaN(val)) {
+          parts.push(this._formatPrice(val));
+        }
+      }
+    }
+    return parts.join('  ');
+  }
 
-      this._legendOLabelEl.textContent = 'O';
-      this._legendOLabelEl.style.color = textColor;
-      this._legendOValEl.textContent = this._formatPrice(o);
-      this._legendOValEl.style.color = color;
+  private _getSeriesSettingsFields(type: SeriesType, options: Record<string, unknown>): SettingsField[] {
+    const fields: SettingsField[] = [];
+    switch (type) {
+      case 'candlestick':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'line':
+        fields.push({ key: 'color', label: 'Color', type: 'color', value: (options.color as string) ?? '#2196F3' });
+        fields.push({ key: 'lineWidth', label: 'Width', type: 'number', value: (options.lineWidth as number) ?? 2, min: 1, max: 5, step: 1 });
+        break;
+      case 'area':
+        fields.push({ key: 'lineColor', label: 'Line Color', type: 'color', value: (options.lineColor as string) ?? '#2196F3' });
+        fields.push({ key: 'topColor', label: 'Top Color', type: 'color', value: (options.topColor as string) ?? 'rgba(33,150,243,0.4)' });
+        fields.push({ key: 'bottomColor', label: 'Bottom Color', type: 'color', value: (options.bottomColor as string) ?? 'rgba(33,150,243,0)' });
+        break;
+      case 'bar':
+      case 'hollow-candle':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'histogram':
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        break;
+      case 'baseline':
+        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#26a69a' });
+        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#ef5350' });
+        fields.push({ key: 'basePrice', label: 'Base Price', type: 'number', value: (options.basePrice as number) ?? 0, step: 0.01 });
+        break;
+    }
+    return fields;
+  }
 
-      this._legendHLabelEl.textContent = 'H';
-      this._legendHLabelEl.style.color = textColor;
-      this._legendHValEl.textContent = this._formatPrice(h);
-      this._legendHValEl.style.color = color;
+  private _getIndicatorSettingsFields(indicator: IndicatorApi): SettingsField[] {
+    const fields: SettingsField[] = [];
+    const opts = indicator.options();
 
-      this._legendLLabelEl.textContent = 'L';
-      this._legendLLabelEl.style.color = textColor;
-      this._legendLValEl.textContent = this._formatPrice(l);
-      this._legendLValEl.style.color = color;
+    // Color field
+    fields.push({ key: 'color', label: 'Color', type: 'color', value: opts.color ?? '#2962ff' });
 
-      this._legendCLabelEl.textContent = 'C';
-      this._legendCLabelEl.style.color = textColor;
-      this._legendCValEl.textContent = this._formatPrice(c);
-      this._legendCValEl.style.color = color;
-
-      this._legendVLabelEl.textContent = 'V';
-      this._legendVLabelEl.style.color = textColor;
-      this._legendVValEl.textContent = this._volumeFormatter.format(v);
-      this._legendVValEl.style.color = textColor;
+    // Params
+    const params = opts.params ?? {};
+    for (const [key, val] of Object.entries(params)) {
+      fields.push({ key, label: key, type: 'number', value: val as number, min: 1, step: 1 });
     }
 
-    this._legendEl.style.display = 'flex';
+    return fields;
+  }
+
+  private _registerSeriesHudRow(
+    api: SeriesApi<SeriesType>,
+    type: SeriesType,
+    resolvedOptions: Record<string, unknown>,
+    paneId: string,
+    seriesIndex: number,
+  ): void {
+    const hud = this._huds.get(paneId);
+    if (!hud) return;
+
+    const hudRowId = `series-${type}-${seriesIndex}`;
+    hud.addRow({
+      id: hudRowId,
+      label: (resolvedOptions.label as string) || type,
+      color: this._getSeriesColor(type, resolvedOptions),
+      getValues: (barIndex: number) => this._getSeriesValues(api, barIndex),
+      onToggleVisible: () => {
+        const newVis = !api.isVisible();
+        api.applyOptions({ visible: newVis } as never);
+        return newVis;
+      },
+      onRemove: () => { this.removeSeries(api); },
+      getSettingsFields: () => this._getSeriesSettingsFields(type, api.options() as unknown as Record<string, unknown>),
+      onSettingsApply: (values) => { api.applyOptions(values as never); },
+    });
+  }
+
+  private _registerIndicatorHudRow(indicator: IndicatorApi, options: IndicatorOptions): void {
+    const hud = this._huds.get(indicator.paneId());
+    if (!hud) return;
+
+    hud.addRow({
+      id: `indicator-${indicator.id}`,
+      label: indicator.label(),
+      color: options.color ?? '#2962ff',
+      getValues: (barIndex: number) => this._getIndicatorValues(indicator, barIndex),
+      onToggleVisible: () => {
+        const newVis = !indicator.isVisible();
+        indicator.applyOptions({ visible: newVis });
+        // Toggle visibility of all internal series
+        for (const s of indicator.internalSeries) {
+          s.applyOptions({ visible: newVis } as never);
+        }
+        return newVis;
+      },
+      onRemove: () => { this.removeIndicator(indicator); },
+      getSettingsFields: () => this._getIndicatorSettingsFields(indicator),
+      onSettingsApply: (values) => {
+        // Separate color from params
+        const { color, ...paramValues } = values;
+        if (color !== undefined) {
+          indicator.applyOptions({ color: color as string });
+        }
+        if (Object.keys(paramValues).length > 0) {
+          // Recompute with new params
+          const numParams: Record<string, number> = {};
+          for (const [k, v] of Object.entries(paramValues)) {
+            numParams[k] = v as number;
+          }
+          indicator.applyOptions({ params: numParams });
+        }
+      },
+    });
   }
 
   // ── Left Price axis per-pane ────────────────────────────────────────────
@@ -2078,6 +2212,7 @@ class ChartApi implements IChartApi {
   private _addSeries<T extends SeriesType>(
     type: T,
     options: DeepPartial<SeriesOptionsMap[T]>,
+    _internal: boolean = false,
   ): ISeriesApi<T> {
     const dataLayer = new DataLayer();
     const resolvedOptions = (options ?? {}) as SeriesOptionsMap[T];
@@ -2095,6 +2230,17 @@ class ChartApi implements IChartApi {
     );
 
     this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId });
+
+    // Register HUD row for user-visible (non-internal) series
+    if (!_internal) {
+      this._registerSeriesHudRow(
+        api as SeriesApi<SeriesType>,
+        type,
+        resolvedOptions as unknown as Record<string, unknown>,
+        paneId,
+        this._series.length - 1,
+      );
+    }
 
     // Set up crosshair handler on first series added
     if (this._series.length === 1 && this._crosshairHandler === null) {
