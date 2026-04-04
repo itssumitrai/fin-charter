@@ -545,4 +545,68 @@ describe('createChart', () => {
     series.setData(makeBars(5));
     expect(() => flushRAF()).not.toThrow();
   });
+
+  // ── addDrawing timestamp conversion ────────────────────────────────────
+
+  it('addDrawing converts timestamps to bar indices', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    const bars = makeBars(10, 1000); // times: 1000, 1060, 1120, ...
+    series.setData(bars);
+
+    const drawing = chart.addDrawing(
+      'trendline',
+      [
+        { time: bars[2].time, price: bars[2].close },
+        { time: bars[7].time, price: bars[7].close },
+      ],
+      { color: '#ff0000' },
+    );
+
+    const pts = drawing.points();
+    expect(pts[0].time).toBe(2); // bar index, not timestamp
+    expect(pts[1].time).toBe(7);
+    // Prices should be unchanged
+    expect(pts[0].price).toBe(bars[2].close);
+    expect(pts[1].price).toBe(bars[7].close);
+  });
+
+  it('serializeDrawings preserves bar indices after addDrawing', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    const bars = makeBars(20, 1000);
+    series.setData(bars);
+
+    chart.addDrawing(
+      'horizontal-line',
+      [{ time: bars[10].time, price: 150 }],
+      { color: '#00ff00' },
+    );
+
+    const serialized = chart.serializeDrawings();
+    expect(serialized).toHaveLength(1);
+    expect(serialized[0].points[0].time).toBe(10);
+  });
+
+  it('_addDrawingByIndex does not re-convert bar indices', () => {
+    chart = createChart(container, { width: 600, height: 300 });
+    const series = chart.addCandlestickSeries();
+    const bars = makeBars(10, 1000);
+    series.setData(bars);
+
+    // Simulate internal path (like duplicateDrawing) using index-based points
+    const drawing = (chart as unknown as { _addDrawingByIndex: typeof chart.addDrawing })
+      ._addDrawingByIndex(
+        'trendline',
+        [
+          { time: 3, price: 100 },
+          { time: 8, price: 200 },
+        ],
+        { color: '#0000ff' },
+      );
+
+    const pts = drawing.points();
+    expect(pts[0].time).toBe(3); // stays as bar index
+    expect(pts[1].time).toBe(8);
+  });
 });
