@@ -31,7 +31,7 @@ export interface SerializedDrawing {
 
 export interface DrawingHitTestResult {
   drawingId: string;
-  part: 'body' | 'handle1' | 'handle2' | 'edge';
+  part: 'body' | 'handle1' | 'handle2' | 'handle3' | 'edge';
   cursorStyle: string;
 }
 
