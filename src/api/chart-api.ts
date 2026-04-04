@@ -94,6 +94,9 @@ export interface IChartApi {
   // ── Feature 3: Infinite History Loading ──────────────────────────────────
   subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
   unsubscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void;
+  // ── Feature 4: Fit Content & Screenshot ──────────────────────────────────
+  fitContent(): void;
+  takeScreenshot(): HTMLCanvasElement;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -633,6 +636,67 @@ class ChartApi implements IChartApi {
     this.requestRepaint(InvalidationLevel.Full);
   }
 
+  // ── Feature 4: Fit Content & Screenshot ───────────────────────────────
+
+  fitContent(): void {
+    this._timeScale.fitContent();
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  takeScreenshot(): HTMLCanvasElement {
+    // Force a synchronous paint so canvases are up to date
+    this._paint();
+
+    const pixelRatio = window.devicePixelRatio || 1;
+    const totalW = Math.round(this._width * pixelRatio);
+    const totalH = Math.round(this._height * pixelRatio);
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = totalW;
+    offscreen.height = totalH;
+    const ctx = offscreen.getContext('2d')!;
+
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const chartW = this._chartWidth;
+
+    let yOffset = 0;
+
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      const paneH = Math.round(pane.height * pixelRatio);
+      const cvs = pane.canvases;
+
+      // Left price axis
+      if (this._options.leftPriceScale.visible) {
+        ctx.drawImage(cvs.leftPriceAxisCanvas, 0, yOffset);
+      }
+
+      // Chart canvas
+      ctx.drawImage(cvs.chartCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+      // Overlay canvas (same position, layered on top)
+      ctx.drawImage(cvs.overlayCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+      // Right price axis
+      if (this._options.rightPriceScale.visible) {
+        ctx.drawImage(cvs.rightPriceAxisCanvas, Math.round((leftScaleW + chartW) * pixelRatio), yOffset);
+      }
+
+      yOffset += paneH;
+
+      // Account for divider between panes (4px logical = DIVIDER_HEIGHT)
+      if (paneId !== this._paneOrder[this._paneOrder.length - 1]) {
+        yOffset += Math.round(DIVIDER_HEIGHT * pixelRatio);
+      }
+    }
+
+    // Draw time axis at the bottom
+    ctx.drawImage(this._timeAxisCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
+
+    return offscreen;
+  }
+
   // ── Feature 3: Visible Range Change Subscription ──────────────────────
 
   subscribeVisibleRangeChange(callback: VisibleRangeChangeCallback): void {
@@ -1158,6 +1222,17 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
+  // ── Tick type helper ─────────────────────────────────────────────────
+
+  private _getTickType(store: ColumnStore): 'year' | 'month' | 'day' | 'time' {
+    if (store.length < 2) return 'day';
+    const interval = store.time[1] - store.time[0];
+    if (interval < 86400) return 'time';
+    if (interval < 86400 * 28) return 'day';
+    if (interval < 86400 * 365) return 'month';
+    return 'year';
+  }
+
   // ── Time axis (on its own canvas) ─────────────────────────────────────
 
   private _paintTimeAxis(): void {
@@ -1201,7 +1276,11 @@ class ChartApi implements IChartApi {
       const date = new Date(timestamp * 1000);
 
       let label: string;
-      if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
+      const formatter = this._options.timeScale.tickMarkFormatter;
+      if (formatter) {
+        const tickType = this._getTickType(primaryStore);
+        label = formatter(timestamp, tickType);
+      } else if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
         const hh = date.getUTCHours().toString().padStart(2, '0');
         const mm = date.getUTCMinutes().toString().padStart(2, '0');
         label = `${hh}:${mm}`;
@@ -1229,7 +1308,11 @@ class ChartApi implements IChartApi {
         const date = new Date(timestamp * 1000);
 
         let timeLabel: string;
-        if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
+        const crosshairFormatter = this._options.timeScale.tickMarkFormatter;
+        if (crosshairFormatter) {
+          const tickType = this._getTickType(store);
+          timeLabel = crosshairFormatter(timestamp, tickType);
+        } else if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
           const hh = date.getUTCHours().toString().padStart(2, '0');
           const mm = date.getUTCMinutes().toString().padStart(2, '0');
           timeLabel = `${hh}:${mm}`;

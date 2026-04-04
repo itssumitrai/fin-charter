@@ -23,6 +23,7 @@ export interface TimeScaleApiOptions {
   rightOffset: number;
   minBarSpacing: number;
   maxBarSpacing: number;
+  tickMarkFormatter?: (time: number, tickType: 'year' | 'month' | 'day' | 'time') => string;
 }
 
 // ─── Crosshair ──────────────────────────────────────────────────────────────
