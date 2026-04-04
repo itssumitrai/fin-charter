@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS: TimeScaleOptions = {
 };
 
 /**
- * TimeScale following TradingView lightweight-charts' model.
+ * TimeScale managing horizontal bar layout and coordinate mapping.
  *
  * - `_rightOffset` = bars of empty space to the right of the last bar.
  *   Default 0 means the last bar sits at the right edge.

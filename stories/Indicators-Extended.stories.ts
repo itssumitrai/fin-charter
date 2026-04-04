@@ -53,11 +53,11 @@ export const VWAPOverlay: Story = {
 import { computeVWAP } from 'fin-charter/indicators';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 const vwap = computeVWAP(high, low, close, volume, bars.length);
-chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
+chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
       },
     },
   },
@@ -65,7 +65,7 @@ chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     // Access the underlying ColumnStore via the DataLayer
@@ -74,7 +74,7 @@ chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
 
     const vwapValues = computeVWAP(store.high, store.low, store.close, store.volume, len);
 
-    const vwapSeries = chart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+    const vwapSeries = chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 });
     vwapSeries.setData(indicatorToLineBars(store.time, vwapValues, len));
 
     return withDocs(container, {
@@ -83,7 +83,7 @@ chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
       code: `import { computeVWAP } from 'fin-charter/indicators';
 
 const vwap = computeVWAP(high, low, close, volume, bars.length);
-chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
+chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
     });
   },
 };
@@ -109,7 +109,7 @@ export const StochasticOscillator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     chart.addIndicator('stochastic', {
@@ -153,7 +153,7 @@ export const ATRIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     chart.addIndicator('atr', {
@@ -197,7 +197,7 @@ export const ADXIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     chart.addIndicator('adx', {
@@ -240,7 +240,7 @@ export const OBVIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     chart.addIndicator('obv', {
@@ -282,7 +282,7 @@ export const WilliamsRIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     chart.addIndicator('williams-r', {

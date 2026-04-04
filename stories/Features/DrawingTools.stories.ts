@@ -39,7 +39,7 @@ export const InteractiveDrawing: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Activate a drawing tool (user clicks chart to place it)
@@ -63,7 +63,7 @@ chart.setActiveDrawingTool(null);`,
 
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const tools: Array<{ label: string; type: string | null }> = [
@@ -97,7 +97,7 @@ chart.setActiveDrawingTool(null);`,
 
     const description = '<strong>Drawing tools</strong> allow users to annotate charts interactively. Call <code>chart.setActiveDrawingTool(type)</code> to activate a tool, then click on the chart to place the drawing. Pass <code>null</code> to deactivate. Supported types: <code>horizontal-line</code>, <code>trendline</code>, <code>fibonacci</code>, <code>rectangle</code>, and more.';
     const code = `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Activate a drawing tool (user clicks chart to place it)
@@ -129,7 +129,7 @@ chart.addDrawing('trendline',
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     // Add a horizontal line at the approximate midpoint price

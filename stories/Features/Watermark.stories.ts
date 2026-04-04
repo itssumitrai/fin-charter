@@ -54,7 +54,7 @@ const chart = createChart(container, {
         vertAlign: 'center',
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'A <strong>watermark</strong> is a semi-transparent text label rendered behind the chart data. Use it to display the ticker symbol, data source, or branding. Configure with <code>watermark: { visible, text, fontSize, color, horzAlign, vertAlign }</code>.';
@@ -107,7 +107,7 @@ export const LargeText: Story = {
         vertAlign: 'center',
       },
     });
-    const series = chart.addAreaSeries({
+    const series = chart.addSeries({ type: 'area',
       lineColor: '#00e5ff',
       topColor: 'rgba(0, 229, 255, 0.3)',
       bottomColor: 'rgba(0, 229, 255, 0.0)',
@@ -160,7 +160,7 @@ export const CornerWatermark: Story = {
         vertAlign: 'bottom',
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'Position the watermark in any corner using <code>horzAlign</code> (<code>left</code>, <code>center</code>, <code>right</code>) and <code>vertAlign</code> (<code>top</code>, <code>center</code>, <code>bottom</code>). A smaller <code>fontSize</code> works well for corner placements.';

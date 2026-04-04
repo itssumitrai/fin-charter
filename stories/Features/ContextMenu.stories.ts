@@ -61,7 +61,7 @@ chart.addIndicator('rsi', {
     container.style.height = '650px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const data = generateOHLCV(120);
     series.setData(data);
 
@@ -110,7 +110,7 @@ chart.addIndicator('rsi', {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Add a drawing — right-click it to see the context menu

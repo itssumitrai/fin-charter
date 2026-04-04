@@ -55,7 +55,7 @@ export const IntervalSwitcher: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(dailyData);
 
 // Switch to 5-minute bars
@@ -76,7 +76,7 @@ chart.fitContent();`,
 
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#22AB94',
       downColor: '#F7525F',
       borderUpColor: '#22AB94',
@@ -143,7 +143,7 @@ chart.fitContent();`,
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(dailyData);
 
 // Switch to 5-minute bars

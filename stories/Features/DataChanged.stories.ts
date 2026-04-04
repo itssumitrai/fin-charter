@@ -8,6 +8,7 @@ import { withDocs } from '../doc-renderer';
 const meta: Meta = {
   title: 'Features/Data Changed',
   parameters: {
+    chromatic: { disableSnapshot: true },
     docs: {
       description: {
         component:
@@ -29,7 +30,7 @@ export const DataChangedCounter: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.subscribeDataChanged(() => {
@@ -55,7 +56,7 @@ series.update({ time, open, high, low, close, volume });`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     let changeCount = 0;
@@ -103,7 +104,7 @@ series.update({ time, open, high, low, close, volume });`,
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.subscribeDataChanged(() => {

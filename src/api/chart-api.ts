@@ -37,6 +37,18 @@ import { BarOHLCRenderer } from '../renderers/bar-ohlc';
 import { BaselineRenderer } from '../renderers/baseline';
 import { HollowCandleRenderer } from '../renderers/hollow-candle';
 import { HistogramRenderer } from '../renderers/histogram';
+import { StepLineRenderer } from '../renderers/step-line';
+import { ColoredLineRenderer } from '../renderers/colored-line';
+import { ColoredMountainRenderer } from '../renderers/colored-mountain';
+import { HLCAreaRenderer } from '../renderers/hlc-area';
+import { HighLowRenderer } from '../renderers/high-low';
+import { ColumnRenderer } from '../renderers/column';
+import { VolumeCandleRenderer } from '../renderers/volume-candle';
+import { BaselineDeltaMountainRenderer } from '../renderers/baseline-delta-mountain';
+import { RenkoRenderer } from '../renderers/renko';
+import { KagiRenderer } from '../renderers/kagi';
+import { LineBreakRenderer } from '../renderers/line-break';
+import { PointFigureRenderer } from '../renderers/point-figure';
 
 import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
@@ -113,10 +125,30 @@ const TIME_AXIS_HEIGHT = 28;
 
 export type CrosshairMoveCallback = (state: CrosshairState | null) => void;
 export type ClickCallback = (state: { x: number; y: number; time: number; price: number }) => void;
+export type DblClickCallback = (state: { x: number; y: number; time: number; price: number }) => void;
 
 // ─── IChartApi ──────────────────────────────────────────────────────────────
 
 export type VisibleRangeChangeCallback = (range: { from: number; to: number } | null) => void;
+
+// ─── Event callback types ─────────────────────────────────────────────────
+
+export type DrawingEventType = 'created' | 'modified' | 'removed';
+export type DrawingEventCallback = (event: { type: DrawingEventType; drawingId: string; drawingType: string }) => void;
+
+export type IndicatorEventType = 'added' | 'removed';
+export type IndicatorEventCallback = (event: { type: IndicatorEventType; indicatorId: string; indicatorType: string; paneId: string }) => void;
+
+export type ResizeCallback = (size: { width: number; height: number }) => void;
+
+export type SymbolChangeCallback = (symbol: { previous: string; current: string }) => void;
+
+export type ChartTypeChangeCallback = (chartType: { seriesType: SeriesType }) => void;
+
+export type PreferencesChangeCallback = (options: DeepPartial<ChartOptions>) => void;
+
+export type LayoutChangeAction = 'pane-added' | 'pane-removed';
+export type LayoutChangeCallback = (event: { action: LayoutChangeAction; paneId: string }) => void;
 
 // ─── IDrawingApi ──────────────────────────────────────────────────────────────
 
@@ -132,20 +164,6 @@ export interface IDrawingApi {
 export interface IChartApi {
   /** Add a series using a unified options object with a `type` discriminator. */
   addSeries(options: SeriesOptions): ISeriesApi<SeriesType>;
-  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
-  addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>;
-  /** @deprecated Use addSeries({ type: 'line' }) instead. */
-  addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>;
-  /** @deprecated Use addSeries({ type: 'area' }) instead. */
-  addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'>;
-  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
-  addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'>;
-  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
-  addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'>;
-  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
-  addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'>;
-  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
-  addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'>;
   removeSeries(series: ISeriesApi<SeriesType>): void;
   addPane(options?: PaneOptions): IPaneApi;
   removePane(pane: IPaneApi): void;
@@ -193,14 +211,28 @@ export interface IChartApi {
   exportState(): ChartState;
   /** Restore a previously exported chart state, loading bar data via the provided loader. */
   importState(state: ChartState, dataLoader: (seriesId: string) => Promise<Bar[]>): Promise<void>;
-  // ── Feature 11a: Heikin-Ashi ──────────────────────────────────────────────
-  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
-  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>;
   // ── Feature 11b: Periodicity ──────────────────────────────────────────────
   setPeriodicity(periodicity: Periodicity): void;
   getPeriodicity(): Periodicity;
   subscribePeriodicityChange(handler: (p: Periodicity) => void): void;
   unsubscribePeriodicityChange(handler: (p: Periodicity) => void): void;
+  // ── Event Subscriptions ──────────────────────────────────────────────────
+  subscribeDblClick(callback: DblClickCallback): void;
+  unsubscribeDblClick(callback: DblClickCallback): void;
+  subscribeDrawingEvent(callback: DrawingEventCallback): void;
+  unsubscribeDrawingEvent(callback: DrawingEventCallback): void;
+  subscribeIndicatorEvent(callback: IndicatorEventCallback): void;
+  unsubscribeIndicatorEvent(callback: IndicatorEventCallback): void;
+  subscribeResize(callback: ResizeCallback): void;
+  unsubscribeResize(callback: ResizeCallback): void;
+  subscribeSymbolChange(callback: SymbolChangeCallback): void;
+  unsubscribeSymbolChange(callback: SymbolChangeCallback): void;
+  subscribeChartTypeChange(callback: ChartTypeChangeCallback): void;
+  unsubscribeChartTypeChange(callback: ChartTypeChangeCallback): void;
+  subscribePreferencesChange(callback: PreferencesChangeCallback): void;
+  unsubscribePreferencesChange(callback: PreferencesChangeCallback): void;
+  subscribeLayoutChange(callback: LayoutChangeCallback): void;
+  unsubscribeLayoutChange(callback: LayoutChangeCallback): void;
   // ── Feature 11c: Market Sessions ──────────────────────────────────────────
   setMarketSessions(sessions: MarketSession[]): void;
   getMarketSessions(): MarketSession[];
@@ -240,7 +272,19 @@ interface SeriesEntry {
     | BarOHLCRenderer
     | BaselineRenderer
     | HollowCandleRenderer
-    | HistogramRenderer;
+    | HistogramRenderer
+    | StepLineRenderer
+    | ColoredLineRenderer
+    | ColoredMountainRenderer
+    | HLCAreaRenderer
+    | HighLowRenderer
+    | ColumnRenderer
+    | VolumeCandleRenderer
+    | BaselineDeltaMountainRenderer
+    | RenkoRenderer
+    | KagiRenderer
+    | LineBreakRenderer
+    | PointFigureRenderer;
   type: SeriesType;
   paneId: string;
   /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
@@ -298,7 +342,15 @@ class ChartApi implements IChartApi {
 
   private _crosshairMoveCallbacks: CrosshairMoveCallback[] = [];
   private _clickCallbacks: ClickCallback[] = [];
+  private _dblClickCallbacks: DblClickCallback[] = [];
   private _visibleRangeChangeCallbacks: VisibleRangeChangeCallback[] = [];
+  private _drawingEventCallbacks: DrawingEventCallback[] = [];
+  private _indicatorEventCallbacks: IndicatorEventCallback[] = [];
+  private _resizeCallbacks: ResizeCallback[] = [];
+  private _symbolChangeCallbacks: SymbolChangeCallback[] = [];
+  private _chartTypeChangeCallbacks: ChartTypeChangeCallback[] = [];
+  private _preferencesChangeCallbacks: PreferencesChangeCallback[] = [];
+  private _layoutChangeCallbacks: LayoutChangeCallback[] = [];
   private _lastVisibleRangeFrom: number | null = null;
   private _lastVisibleRangeTo: number | null = null;
 
@@ -560,6 +612,7 @@ class ChartApi implements IChartApi {
 
     // ── Click detection via overlay canvas ─────────────────────────────────
     mainPane.canvases.overlayCanvas.addEventListener('click', this._handleClick);
+    mainPane.canvases.overlayCanvas.addEventListener('dblclick', this._handleDblClick);
 
     // ── AutoSize ───────────────────────────────────────────────────────────
     if (options.autoSize) {
@@ -603,46 +656,6 @@ class ChartApi implements IChartApi {
   addSeries(options: SeriesOptions): ISeriesApi<SeriesType> {
     const { type, ...rest } = options;
     return this._addSeries(type, rest as DeepPartial<SeriesOptionsMap[typeof type]>);
-  }
-
-  /** @deprecated Use addSeries({ type: 'candlestick' }) instead. */
-  addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'> {
-    return this._addSeries('candlestick', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'line' }) instead. */
-  addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'> {
-    return this._addSeries('line', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'area' }) instead. */
-  addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'> {
-    return this._addSeries('area', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'bar' }) instead. */
-  addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'> {
-    return this._addSeries('bar', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'baseline' }) instead. */
-  addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'> {
-    return this._addSeries('baseline', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'hollow-candle' }) instead. */
-  addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'> {
-    return this._addSeries('hollow-candle', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'histogram' }) instead. */
-  addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'> {
-    return this._addSeries('histogram', options ?? {});
-  }
-
-  /** @deprecated Use addSeries({ type: 'heikin-ashi' }) instead. */
-  addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'> {
-    return this._addSeries('heikin-ashi', options ?? {});
   }
 
   removeSeries(series: ISeriesApi<SeriesType>): void {
@@ -725,6 +738,8 @@ class ChartApi implements IChartApi {
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
 
+    for (const cb of this._layoutChangeCallbacks) cb({ action: 'pane-added', paneId: id });
+
     return paneApi;
   }
 
@@ -781,6 +796,8 @@ class ChartApi implements IChartApi {
 
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
+
+    for (const cb of this._layoutChangeCallbacks) cb({ action: 'pane-removed', paneId });
   }
 
   /**
@@ -840,8 +857,14 @@ class ChartApi implements IChartApi {
   // ── Options ─────────────────────────────────────────────────────────────
 
   applyOptions(options: DeepPartial<ChartOptions>): void {
+    const prevSymbol = this._options.symbol;
     this._options = mergeOptions(this._options, options);
     this._initFormatters();
+
+    // Emit symbol change if symbol was updated
+    if (options.symbol !== undefined && options.symbol !== prevSymbol) {
+      for (const cb of this._symbolChangeCallbacks) cb({ previous: prevSymbol ?? '', current: options.symbol ?? '' });
+    }
 
     if (options.layout?.backgroundColor) {
       this._wrapper.style.backgroundColor = this._options.layout.backgroundColor;
@@ -858,6 +881,8 @@ class ChartApi implements IChartApi {
     } else {
       this.requestRepaint(InvalidationLevel.Full);
     }
+
+    for (const cb of this._preferencesChangeCallbacks) cb(options);
   }
 
   options(): ChartOptions {
@@ -882,6 +907,8 @@ class ChartApi implements IChartApi {
 
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
+
+    for (const cb of this._resizeCallbacks) cb({ width, height });
   }
 
   remove(): void {
@@ -897,6 +924,11 @@ class ChartApi implements IChartApi {
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
     this._mainPane.canvases.overlayCanvas.removeEventListener('click', this._handleClick);
+    this._mainPane.canvases.overlayCanvas.removeEventListener('dblclick', this._handleDblClick);
+
+    // Clean up all indicator pane pointer listeners
+    for (const cleanup of this._panePointerCleanup.values()) cleanup();
+    this._panePointerCleanup.clear();
 
     // Clean up all indicator pane pointer listeners
     for (const cleanup of this._panePointerCleanup.values()) cleanup();
@@ -913,6 +945,14 @@ class ChartApi implements IChartApi {
     this._visibleRangeChangeCallbacks.length = 0;
     this._crosshairMoveCallbacks.length = 0;
     this._clickCallbacks.length = 0;
+    this._dblClickCallbacks.length = 0;
+    this._drawingEventCallbacks.length = 0;
+    this._indicatorEventCallbacks.length = 0;
+    this._resizeCallbacks.length = 0;
+    this._symbolChangeCallbacks.length = 0;
+    this._chartTypeChangeCallbacks.length = 0;
+    this._preferencesChangeCallbacks.length = 0;
+    this._layoutChangeCallbacks.length = 0;
 
     this._wrapper.remove();
   }
@@ -935,6 +975,78 @@ class ChartApi implements IChartApi {
   unsubscribeClick(callback: ClickCallback): void {
     const idx = this._clickCallbacks.indexOf(callback);
     if (idx !== -1) this._clickCallbacks.splice(idx, 1);
+  }
+
+  subscribeDblClick(callback: DblClickCallback): void {
+    this._dblClickCallbacks.push(callback);
+  }
+
+  unsubscribeDblClick(callback: DblClickCallback): void {
+    const idx = this._dblClickCallbacks.indexOf(callback);
+    if (idx !== -1) this._dblClickCallbacks.splice(idx, 1);
+  }
+
+  subscribeDrawingEvent(callback: DrawingEventCallback): void {
+    this._drawingEventCallbacks.push(callback);
+  }
+
+  unsubscribeDrawingEvent(callback: DrawingEventCallback): void {
+    const idx = this._drawingEventCallbacks.indexOf(callback);
+    if (idx !== -1) this._drawingEventCallbacks.splice(idx, 1);
+  }
+
+  subscribeIndicatorEvent(callback: IndicatorEventCallback): void {
+    this._indicatorEventCallbacks.push(callback);
+  }
+
+  unsubscribeIndicatorEvent(callback: IndicatorEventCallback): void {
+    const idx = this._indicatorEventCallbacks.indexOf(callback);
+    if (idx !== -1) this._indicatorEventCallbacks.splice(idx, 1);
+  }
+
+  subscribeResize(callback: ResizeCallback): void {
+    this._resizeCallbacks.push(callback);
+  }
+
+  unsubscribeResize(callback: ResizeCallback): void {
+    const idx = this._resizeCallbacks.indexOf(callback);
+    if (idx !== -1) this._resizeCallbacks.splice(idx, 1);
+  }
+
+  subscribeSymbolChange(callback: SymbolChangeCallback): void {
+    this._symbolChangeCallbacks.push(callback);
+  }
+
+  unsubscribeSymbolChange(callback: SymbolChangeCallback): void {
+    const idx = this._symbolChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._symbolChangeCallbacks.splice(idx, 1);
+  }
+
+  subscribeChartTypeChange(callback: ChartTypeChangeCallback): void {
+    this._chartTypeChangeCallbacks.push(callback);
+  }
+
+  unsubscribeChartTypeChange(callback: ChartTypeChangeCallback): void {
+    const idx = this._chartTypeChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._chartTypeChangeCallbacks.splice(idx, 1);
+  }
+
+  subscribePreferencesChange(callback: PreferencesChangeCallback): void {
+    this._preferencesChangeCallbacks.push(callback);
+  }
+
+  unsubscribePreferencesChange(callback: PreferencesChangeCallback): void {
+    const idx = this._preferencesChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._preferencesChangeCallbacks.splice(idx, 1);
+  }
+
+  subscribeLayoutChange(callback: LayoutChangeCallback): void {
+    this._layoutChangeCallbacks.push(callback);
+  }
+
+  unsubscribeLayoutChange(callback: LayoutChangeCallback): void {
+    const idx = this._layoutChangeCallbacks.indexOf(callback);
+    if (idx !== -1) this._layoutChangeCallbacks.splice(idx, 1);
   }
 
   // ── Feature 1: Range Switcher ─────────────────────────────────────────
@@ -1112,6 +1224,8 @@ class ChartApi implements IChartApi {
     // Register HUD row for this indicator
     this._registerIndicatorHudRow(indicator, options);
 
+    for (const cb of this._indicatorEventCallbacks) cb({ type: 'added', indicatorId: id, indicatorType: type, paneId });
+
     return indicator;
   }
 
@@ -1154,7 +1268,11 @@ class ChartApi implements IChartApi {
     }
 
     // 4. Remove from _indicators array
+    const removedType = impl.indicatorType();
+    const removedPaneId = impl.paneId();
     this._indicators.splice(idx, 1);
+
+    for (const cb of this._indicatorEventCallbacks) cb({ type: 'removed', indicatorId: impl.id, indicatorType: removedType, paneId: removedPaneId });
   }
 
   private _computeIndicator(
@@ -1391,6 +1509,9 @@ class ChartApi implements IChartApi {
     const api = new DrawingApiImpl(id, drawing, this);
     this._drawingApis.set(id, api);
     this.requestRepaint(InvalidationLevel.Full);
+
+    for (const cb of this._drawingEventCallbacks) cb({ type: 'created', drawingId: id, drawingType: type });
+
     return api;
   }
 
@@ -1400,9 +1521,12 @@ class ChartApi implements IChartApi {
       return false;
     });
     if (idx !== -1) {
+      const drawingType = drawingApi.drawingType();
       this._drawings.splice(idx, 1);
       this._drawingApis.delete(drawingApi.id);
       this.requestRepaint(InvalidationLevel.Full);
+
+      for (const cb of this._drawingEventCallbacks) cb({ type: 'removed', drawingId: drawingApi.id, drawingType });
     }
   }
 
@@ -1528,20 +1652,7 @@ class ChartApi implements IChartApi {
     // Re-create series (without data)
     const createdSeries: Map<string, ISeriesApi<SeriesType>> = new Map();
     for (const sEntry of state.series) {
-      const type = sEntry.type;
-      let api: ISeriesApi<SeriesType>;
-      const opts = sEntry.options as DeepPartial<SeriesOptionsMap[SeriesType]>;
-      switch (type) {
-        case 'candlestick': api = this.addCandlestickSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
-        case 'line': api = this.addLineSeries(opts as DeepPartial<LineSeriesOptions>); break;
-        case 'area': api = this.addAreaSeries(opts as DeepPartial<AreaSeriesOptions>); break;
-        case 'bar': api = this.addBarSeries(opts as DeepPartial<BarSeriesOptions>); break;
-        case 'baseline': api = this.addBaselineSeries(opts as DeepPartial<BaselineSeriesOptions>); break;
-        case 'hollow-candle': api = this.addHollowCandleSeries(opts as DeepPartial<HollowCandleSeriesOptions>); break;
-        case 'histogram': api = this.addHistogramSeries(opts as DeepPartial<HistogramSeriesOptions>); break;
-        case 'heikin-ashi': api = this.addHeikinAshiSeries(opts as DeepPartial<CandlestickSeriesOptions>); break;
-        default: continue;
-      }
+      const api = this.addSeries({ type: sEntry.type, ...sEntry.options } as SeriesOptions);
       createdSeries.set(sEntry.id, api);
     }
 
@@ -1649,8 +1760,11 @@ class ChartApi implements IChartApi {
         self._drawingApis.set(id, api);
         self.requestRepaint(InvalidationLevel.Full);
       },
-      onDrawingUpdated() {
+      onDrawingUpdated(drawing) {
         self.requestRepaint(InvalidationLevel.Full);
+        if (drawing && drawing instanceof BaseDrawing) {
+          for (const cb of self._drawingEventCallbacks) cb({ type: 'modified', drawingId: drawing.id, drawingType: drawing.drawingType });
+        }
       },
       xToTime(x: number): number {
         return self._timeScale.xToIndex(x);
@@ -2120,6 +2234,42 @@ class ChartApi implements IChartApi {
         break;
       case 'histogram':
         (entry.renderer as HistogramRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'step-line':
+        (entry.renderer as StepLineRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'colored-line':
+        (entry.renderer as ColoredLineRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'colored-mountain':
+        (entry.renderer as ColoredMountainRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'hlc-area':
+        (entry.renderer as HLCAreaRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'high-low':
+        (entry.renderer as HighLowRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'column':
+        (entry.renderer as ColumnRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'volume-candle':
+        (entry.renderer as VolumeCandleRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'baseline-delta-mountain':
+        (entry.renderer as BaselineDeltaMountainRenderer).draw(target, store, range, indexToX, priceToY);
+        break;
+      case 'renko':
+        (entry.renderer as RenkoRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'kagi':
+        (entry.renderer as KagiRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'line-break':
+        (entry.renderer as LineBreakRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
+        break;
+      case 'point-figure':
+        (entry.renderer as PointFigureRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
         break;
     }
 
@@ -3193,6 +3343,11 @@ class ChartApi implements IChartApi {
     }
 
     this.requestRepaint(InvalidationLevel.Full);
+
+    if (!_internal) {
+      for (const cb of this._chartTypeChangeCallbacks) cb({ seriesType: type });
+    }
+
     return api;
   }
 
@@ -3250,19 +3405,77 @@ class ChartApi implements IChartApi {
         if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
         return r;
       }
+      case 'step-line': {
+        const r = new StepLineRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'colored-line': {
+        const r = new ColoredLineRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'colored-mountain': {
+        const r = new ColoredMountainRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'hlc-area': {
+        const r = new HLCAreaRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'high-low': {
+        const r = new HighLowRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'column': {
+        const r = new ColumnRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'volume-candle': {
+        const r = new VolumeCandleRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'baseline-delta-mountain': {
+        const r = new BaselineDeltaMountainRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'renko': {
+        const r = new RenkoRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'kagi': {
+        const r = new KagiRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'line-break': {
+        const r = new LineBreakRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
+      case 'point-figure': {
+        const r = new PointFigureRenderer();
+        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
+        return r;
+      }
       default:
         throw new Error(`Unknown series type: ${type}`);
     }
   }
 
-  private _handleClick = (e: MouseEvent): void => {
-    if (this._clickCallbacks.length === 0) return;
+  private _getClickState(e: MouseEvent): { x: number; y: number; time: number; price: number } {
     const rect = this._mainPane.canvases.overlayCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const price = this._mainPane.priceScale.yToPrice(y);
 
-    // Get time from nearest bar
     let time = 0;
     if (this._series.length > 0) {
       const store = this._series[0].api.getDataLayer().store;
@@ -3271,10 +3484,19 @@ class ChartApi implements IChartApi {
         time = store.time[idx];
       }
     }
+    return { x, y, time, price };
+  }
 
-    for (const cb of this._clickCallbacks) {
-      cb({ x, y, time, price });
-    }
+  private _handleClick = (e: MouseEvent): void => {
+    if (this._clickCallbacks.length === 0) return;
+    const state = this._getClickState(e);
+    for (const cb of this._clickCallbacks) cb(state);
+  };
+
+  private _handleDblClick = (e: MouseEvent): void => {
+    if (this._dblClickCallbacks.length === 0) return;
+    const state = this._getClickState(e);
+    for (const cb of this._dblClickCallbacks) cb(state);
   };
 }
 

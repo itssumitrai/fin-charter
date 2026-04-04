@@ -27,7 +27,7 @@ export const Default: Story = {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addLineSeries();
+const series = chart.addSeries({ type: 'line' });
 series.setData(data);
 `.trim(),
       },
@@ -36,7 +36,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addLineSeries();
+    const series = chart.addSeries({ type: 'line' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -50,7 +50,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addLineSeries();
+const series = chart.addSeries({ type: 'line' });
 series.setData(data); // Uses the 'close' field from each bar
       `,
     });
@@ -63,7 +63,8 @@ export const CustomStyle: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addLineSeries({
+const series = chart.addSeries({
+  type: 'line',
   color: '#00e5ff',
   lineWidth: 2,
 });
@@ -75,7 +76,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addLineSeries({
+    const series = chart.addSeries({ type: 'line',
       color: '#00e5ff',
       lineWidth: 2,
     });
@@ -85,7 +86,8 @@ series.setData(data);
         'Customize the line appearance with <code>color</code> and <code>lineWidth</code>. ' +
         'Any valid CSS color value is accepted.',
       code: `
-const series = chart.addLineSeries({
+const series = chart.addSeries({
+  type: 'line',
   color: '#00e5ff',   // Cyan line
   lineWidth: 2,       // 2px width
 });
@@ -101,7 +103,7 @@ export const HighVolatility: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addLineSeries({ color: '#ff6b6b' });
+const series = chart.addSeries({ type: 'line', color: '#ff6b6b' });
 series.setData(data);
 `.trim(),
       },
@@ -110,14 +112,14 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addLineSeries({ color: '#ff6b6b' });
+    const series = chart.addSeries({ type: 'line', color: '#ff6b6b' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
         'Line charts are effective for visualizing volatile price action. ' +
         'The red line color here is commonly used to indicate bearish or high-risk instruments.',
       code: `
-const series = chart.addLineSeries({ color: '#ff6b6b' });
+const series = chart.addSeries({ type: 'line', color: '#ff6b6b' });
 series.setData(data);
       `,
     });

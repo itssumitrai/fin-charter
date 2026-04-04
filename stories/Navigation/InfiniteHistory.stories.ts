@@ -49,7 +49,7 @@ export const Default: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 chart.subscribeVisibleRangeChange(async (range) => {
@@ -76,7 +76,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
 
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
 
     let allBars: Bar[] = [...AAPL_DAILY];
     series.setData(allBars);
@@ -114,7 +114,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 chart.subscribeVisibleRangeChange(async (range) => {

@@ -28,7 +28,7 @@ export const Default: Story = {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addBaselineSeries();
+const series = chart.addSeries({ type: 'baseline' });
 series.setData(data);
 `.trim(),
       },
@@ -37,7 +37,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addBaselineSeries();
+    const series = chart.addSeries({ type: 'baseline' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -51,7 +51,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addBaselineSeries();
+const series = chart.addSeries({ type: 'baseline' });
 series.setData(data);
       `,
     });
@@ -64,7 +64,8 @@ export const CustomBaseline: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addBaselineSeries({
+const series = chart.addSeries({
+  type: 'baseline',
   basePrice: 110,
   topLineColor: '#00e5ff',
   bottomLineColor: '#ff6b6b',
@@ -79,7 +80,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addBaselineSeries({
+    const series = chart.addSeries({ type: 'baseline',
       basePrice: 110,
       topLineColor: '#00e5ff',
       bottomLineColor: '#ff6b6b',
@@ -92,7 +93,8 @@ series.setData(data);
         'Set a custom <code>basePrice</code> to define the split point. Configure the colors for each zone independently: ' +
         '<code>topLineColor</code> / <code>topFillColor</code> for above the baseline, and <code>bottomLineColor</code> / <code>bottomFillColor</code> for below.',
       code: `
-const series = chart.addBaselineSeries({
+const series = chart.addSeries({
+  type: 'baseline',
   basePrice: 110,                                   // Split at $110
   topLineColor: '#00e5ff',                          // Line above baseline
   bottomLineColor: '#ff6b6b',                       // Line below baseline

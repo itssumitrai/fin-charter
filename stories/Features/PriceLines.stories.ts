@@ -28,7 +28,7 @@ export const SupportResistance: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.createPriceLine({
@@ -43,7 +43,7 @@ series.createPriceLine({
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     series.createPriceLine({
@@ -109,7 +109,7 @@ series.createPriceLine({
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addLineSeries({ color: '#aaaaaa', lineWidth: 1 });
+    const series = chart.addSeries({ type: 'line', color: '#aaaaaa', lineWidth: 1 });
     series.setData(AAPL_DAILY);
 
     // Entry

@@ -29,7 +29,7 @@ export const Default: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(bars);
 
 // Jump to a 3-month window
@@ -55,7 +55,7 @@ chart.scrollToRealTime();`,
     const container = createChartContainer();
 
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const lastBar = AAPL_DAILY[AAPL_DAILY.length - 1];

@@ -28,7 +28,7 @@ export const FullHUD: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries({ label: 'AAPL' });
+const series = chart.addSeries({ type: 'candlestick', label: 'AAPL' });
 series.setData(data);
 
 chart.addIndicator('sma', {
@@ -45,7 +45,7 @@ chart.addIndicator('rsi', {
     container.style.height = '700px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries({ label: 'AAPL' });
+    const candleSeries = chart.addSeries({ type: 'candlestick', label: 'AAPL' });
     candleSeries.setData(AAPL_DAILY);
 
     // SMA 20 overlay
@@ -84,7 +84,7 @@ chart.addIndicator('rsi', {
 
     const description = 'The <strong>HUD (Heads-Up Display)</strong> shows real-time OHLC values, series labels, and indicator values as the crosshair moves over the chart. Each indicator (overlay or separate pane) automatically adds a row to the HUD. Hover over the chart to see live values update.';
     const code = `const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const candleSeries = chart.addCandlestickSeries({ label: 'AAPL' });
+const candleSeries = chart.addSeries({ type: 'candlestick', label: 'AAPL' });
 candleSeries.setData(data);
 
 // SMA 20 overlay

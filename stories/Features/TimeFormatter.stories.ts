@@ -62,7 +62,7 @@ const chart = createChart(container, {
       },
     });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     return withDocs(container, {

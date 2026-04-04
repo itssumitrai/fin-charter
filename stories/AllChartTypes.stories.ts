@@ -59,27 +59,27 @@ import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 
-// Candlestick
-chart.addCandlestickSeries().setData(data);
+// Classic types
+chart.addSeries({ type: 'candlestick' }).setData(data);
+chart.addSeries({ type: 'hollow-candle' }).setData(data);
+chart.addSeries({ type: 'bar' }).setData(data);
+chart.addSeries({ type: 'line', color: '#9c27b0' }).setData(data);
+chart.addSeries({ type: 'area', lineColor: '#ff9800' }).setData(data);
+chart.addSeries({ type: 'baseline' }).setData(data);
 
-// Hollow Candle
-chart.addHollowCandleSeries().setData(data);
-
-// OHLC Bar
-chart.addBarSeries().setData(data);
-
-// Line
-chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 }).setData(data);
-
-// Area
-chart.addAreaSeries({
-  lineColor: '#ff9800',
-  topColor: 'rgba(255, 152, 0, 0.4)',
-  bottomColor: 'rgba(255, 152, 0, 0.0)',
-}).setData(data);
-
-// Baseline
-chart.addBaselineSeries().setData(data);
+// New chart types
+chart.addSeries({ type: 'step-line', color: '#00e5ff' }).setData(data);
+chart.addSeries({ type: 'colored-line', upColor: '#22AB94', downColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'colored-mountain' }).setData(data);
+chart.addSeries({ type: 'hlc-area' }).setData(data);
+chart.addSeries({ type: 'high-low', color: '#2962ff' }).setData(data);
+chart.addSeries({ type: 'column', upColor: '#22AB94', downColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'volume-candle' }).setData(data);
+chart.addSeries({ type: 'baseline-delta-mountain', basePrice: 110 }).setData(data);
+chart.addSeries({ type: 'renko', boxSize: 2 }).setData(data);
+chart.addSeries({ type: 'kagi', reversalAmount: 2 }).setData(data);
+chart.addSeries({ type: 'line-break', breakCount: 3 }).setData(data);
+chart.addSeries({ type: 'point-figure', boxSize: 2, reversalBoxes: 3 }).setData(data);
 `.trim(),
       },
     },
@@ -87,7 +87,7 @@ chart.addBaselineSeries().setData(data);
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'grid';
-    root.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    root.style.gridTemplateColumns = 'repeat(3, 1fr)';
     root.style.gap = '16px';
     root.style.padding = '16px';
     root.style.background = '#0d0d1a';
@@ -101,7 +101,7 @@ chart.addBaselineSeries().setData(data);
         color: '#22AB94',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addCandlestickSeries().setData(bars);
+          chart.addSeries({ type: 'candlestick' }).setData(bars);
         },
       },
       {
@@ -109,7 +109,7 @@ chart.addBaselineSeries().setData(data);
         color: '#00e5ff',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addHollowCandleSeries().setData(bars);
+          chart.addSeries({ type: 'hollow-candle' }).setData(bars);
         },
       },
       {
@@ -117,7 +117,7 @@ chart.addBaselineSeries().setData(data);
         color: '#f4c430',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addBarSeries().setData(bars);
+          chart.addSeries({ type: 'bar' }).setData(bars);
         },
       },
       {
@@ -125,7 +125,7 @@ chart.addBaselineSeries().setData(data);
         color: '#9c27b0',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 }).setData(bars);
+          chart.addSeries({ type: 'line', color: '#9c27b0', lineWidth: 2 }).setData(bars);
         },
       },
       {
@@ -133,7 +133,7 @@ chart.addBaselineSeries().setData(data);
         color: '#ff9800',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addAreaSeries({
+          chart.addSeries({ type: 'area',
             lineColor: '#ff9800',
             topColor: 'rgba(255, 152, 0, 0.4)',
             bottomColor: 'rgba(255, 152, 0, 0.0)',
@@ -145,7 +145,103 @@ chart.addBaselineSeries().setData(data);
         color: '#e91e63',
         create: (el) => {
           const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
-          chart.addBaselineSeries().setData(bars);
+          chart.addSeries({ type: 'baseline' }).setData(bars);
+        },
+      },
+      {
+        title: 'Step Line',
+        color: '#00e5ff',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'step-line', color: '#00e5ff' }).setData(bars);
+        },
+      },
+      {
+        title: 'Colored Line',
+        color: '#22AB94',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'colored-line', upColor: '#22AB94', downColor: '#F7525F' }).setData(bars);
+        },
+      },
+      {
+        title: 'Colored Mountain',
+        color: '#22AB94',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'colored-mountain', upColor: '#22AB94', downColor: '#F7525F', upFillColor: 'rgba(34,171,148,0.3)', downFillColor: 'rgba(247,82,95,0.3)' }).setData(bars);
+        },
+      },
+      {
+        title: 'HLC Area',
+        color: '#2962ff',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'hlc-area', highLineColor: '#22AB94', lowLineColor: '#F7525F', fillColor: 'rgba(41,98,255,0.15)' }).setData(bars);
+        },
+      },
+      {
+        title: 'High-Low',
+        color: '#2962ff',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'high-low', color: '#2962ff' }).setData(bars);
+        },
+      },
+      {
+        title: 'Column',
+        color: '#22AB94',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'column', upColor: '#22AB94', downColor: '#F7525F' }).setData(bars);
+        },
+      },
+      {
+        title: 'Volume Candle',
+        color: '#f4c430',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'volume-candle' }).setData(bars);
+        },
+      },
+      {
+        title: 'Baseline Delta Mountain',
+        color: '#00e5ff',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'baseline-delta-mountain', basePrice: 110, topFillColor: 'rgba(0,229,255,0.3)', bottomFillColor: 'rgba(255,107,107,0.3)' }).setData(bars);
+        },
+      },
+      {
+        title: 'Renko',
+        color: '#ff9800',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'renko', boxSize: 2 }).setData(bars);
+        },
+      },
+      {
+        title: 'Kagi',
+        color: '#9c27b0',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'kagi', reversalAmount: 2 }).setData(bars);
+        },
+      },
+      {
+        title: 'Line Break',
+        color: '#e91e63',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'line-break', breakCount: 3 }).setData(bars);
+        },
+      },
+      {
+        title: 'Point & Figure',
+        color: '#f4c430',
+        create: (el) => {
+          const chart = createChart(el, { autoSize: true, symbol: 'AAPL' });
+          chart.addSeries({ type: 'point-figure', boxSize: 2, reversalBoxes: 3 }).setData(bars);
         },
       },
     ];
@@ -156,22 +252,36 @@ chart.addBaselineSeries().setData(data);
 
     return withDocs(root, {
       description:
-        'fin-charter supports <strong>6 chart types</strong> out of the box. Each type uses the same OHLCV data format ' +
-        'but renders it differently. Use <code>addCandlestickSeries()</code>, <code>addHollowCandleSeries()</code>, ' +
-        '<code>addBarSeries()</code>, <code>addLineSeries()</code>, <code>addAreaSeries()</code>, or <code>addBaselineSeries()</code> ' +
-        'to create the type you need.',
+        'fin-charter supports <strong>20 chart types</strong> out of the box. Each type uses the same OHLCV data format ' +
+        'but renders it differently. Classic types include candlestick, hollow candle, OHLC bar, line, area, baseline, histogram, and heikin-ashi. ' +
+        'Additional types include step-line, colored-line, colored-mountain, hlc-area, high-low, column, volume-candle, ' +
+        'baseline-delta-mountain, renko, kagi, line-break, and point-figure.',
       code: `
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-// Pick the series type that fits your use case:
-chart.addCandlestickSeries().setData(data);   // Classic OHLC candles
-chart.addHollowCandleSeries().setData(data);  // Hollow bullish / filled bearish
-chart.addBarSeries().setData(data);            // Traditional OHLC bars
-chart.addLineSeries().setData(data);           // Close-price polyline
-chart.addAreaSeries().setData(data);           // Line with gradient fill
-chart.addBaselineSeries().setData(data);       // Split above/below reference price
+// Classic types
+chart.addSeries({ type: 'candlestick' }).setData(data);
+chart.addSeries({ type: 'hollow-candle' }).setData(data);
+chart.addSeries({ type: 'bar' }).setData(data);
+chart.addSeries({ type: 'line' }).setData(data);
+chart.addSeries({ type: 'area' }).setData(data);
+chart.addSeries({ type: 'baseline' }).setData(data);
+
+// New chart types
+chart.addSeries({ type: 'step-line', color: '#00e5ff' }).setData(data);
+chart.addSeries({ type: 'colored-line', upColor: '#22AB94', downColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'colored-mountain', upColor: '#22AB94', downColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'hlc-area', highLineColor: '#22AB94', lowLineColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'high-low', color: '#2962ff' }).setData(data);
+chart.addSeries({ type: 'column', upColor: '#22AB94', downColor: '#F7525F' }).setData(data);
+chart.addSeries({ type: 'volume-candle' }).setData(data);
+chart.addSeries({ type: 'baseline-delta-mountain', basePrice: 110 }).setData(data);
+chart.addSeries({ type: 'renko', boxSize: 2 }).setData(data);
+chart.addSeries({ type: 'kagi', reversalAmount: 2 }).setData(data);
+chart.addSeries({ type: 'line-break', breakCount: 3 }).setData(data);
+chart.addSeries({ type: 'point-figure', boxSize: 2, reversalBoxes: 3 }).setData(data);
       `,
     });
   },

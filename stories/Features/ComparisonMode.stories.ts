@@ -29,13 +29,13 @@ export const CompareSymbols: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const mainSeries = chart.addCandlestickSeries();
+const mainSeries = chart.addSeries({ type: 'candlestick' });
 mainSeries.setData(aaplData);
 
 // Enable comparison mode (Y-axis shows % change)
 chart.setComparisonMode(true);
 
-const compSeries = chart.addLineSeries({ color: '#2196F3' });
+const compSeries = chart.addSeries({ type: 'line', color: '#2196F3' });
 compSeries.setData(msftData);`,
       },
     },
@@ -73,7 +73,7 @@ compSeries.setData(msftData);`,
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const mainSeries = chart.addCandlestickSeries({
+    const mainSeries = chart.addSeries({ type: 'candlestick',
       upColor: '#22AB94',
       downColor: '#F7525F',
       borderUpColor: '#22AB94',
@@ -98,12 +98,12 @@ compSeries.setData(msftData);`,
 
         // Add two comparison series with different price seeds
         const comp1Data = generateOHLCV(AAPL_DAILY.length, 150, AAPL_DAILY[0].time);
-        compSeries1 = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
+        compSeries1 = chart.addSeries({ type: 'line', color: '#2196F3', lineWidth: 2 });
         compSeries1.setData(comp1Data);
         legendEl.appendChild(makeLegendItem('MSFT', '#2196F3'));
 
         const comp2Data = generateOHLCV(AAPL_DAILY.length, 80, AAPL_DAILY[0].time);
-        compSeries2 = chart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+        compSeries2 = chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 });
         compSeries2.setData(comp2Data);
         legendEl.appendChild(makeLegendItem('GOOGL', '#ff9800'));
       } else {
@@ -127,18 +127,18 @@ compSeries.setData(msftData);`,
       description:
         'Compare <strong>multiple symbols</strong> on the same chart with a <strong>percentage change</strong> Y-axis. ' +
         'Enable comparison mode with <code>chart.setComparisonMode(true)</code>, then add comparison series ' +
-        'using <code>chart.addLineSeries()</code>. The Y-axis automatically switches to show relative performance.',
+        'using <code>chart.addSeries({ type: &quot;line&quot; })</code>. The Y-axis automatically switches to show relative performance.',
       code: `
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const mainSeries = chart.addCandlestickSeries();
+const mainSeries = chart.addSeries({ type: 'candlestick' });
 mainSeries.setData(aaplData);
 
 // Enable comparison mode (Y-axis shows % change)
 chart.setComparisonMode(true);
 
-const compSeries = chart.addLineSeries({ color: '#2196F3' });
+const compSeries = chart.addSeries({ type: 'line', color: '#2196F3' });
 compSeries.setData(msftData);
       `,
     });

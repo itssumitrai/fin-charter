@@ -27,7 +27,7 @@ export const Default: Story = {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addBarSeries();
+const series = chart.addSeries({ type: 'bar' });
 series.setData(data);
 `.trim(),
       },
@@ -36,7 +36,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addBarSeries();
+    const series = chart.addSeries({ type: 'bar' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -49,7 +49,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addBarSeries();
+const series = chart.addSeries({ type: 'bar' });
 series.setData(data);
       `,
     });
@@ -62,7 +62,8 @@ export const CustomColors: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addBarSeries({
+const series = chart.addSeries({
+  type: 'bar',
   upColor: '#22AB94',
   downColor: '#F7525F',
 });
@@ -74,7 +75,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addBarSeries({
+    const series = chart.addSeries({ type: 'bar',
       upColor: '#22AB94',
       downColor: '#F7525F',
     });
@@ -84,7 +85,8 @@ series.setData(data);
         'Customize the up/down bar colors with <code>upColor</code> and <code>downColor</code>. ' +
         'Bullish bars (close &gt; open) use <code>upColor</code> and bearish bars use <code>downColor</code>.',
       code: `
-const series = chart.addBarSeries({
+const series = chart.addSeries({
+  type: 'bar',
   upColor: '#22AB94',   // Bullish bars
   downColor: '#F7525F', // Bearish bars
 });

@@ -22,7 +22,7 @@ const chart = createChart(document.getElementById('chart')!, {
   height: 400,
 });
 
-const series = chart.addLineSeries({ color: '#2196F3', lineWidth: 2 });
+const series = chart.addSeries({ type: 'line', color: '#2196F3', lineWidth: 2 });
 
 series.setData([
   { time: 1700000000, open: 100, high: 110, low: 95,  close: 107 },
@@ -38,7 +38,7 @@ The `time` field is a Unix timestamp (seconds). All other fields are numbers.
 ### Candlestick
 
 ```ts
-const series = chart.addCandlestickSeries({
+const series = chart.addSeries({ type: 'candlestick',
   upColor:        '#26a69a',
   downColor:      '#ef5350',
   wickUpColor:    '#26a69a',
@@ -53,7 +53,7 @@ OHLC candles with a filled body and wick. Up candles (close >= open) use `upColo
 ### Line
 
 ```ts
-const series = chart.addLineSeries({
+const series = chart.addSeries({ type: 'line',
   color:     '#2196F3',
   lineWidth: 2,
 });
@@ -64,7 +64,7 @@ Plots the close price as a continuous polyline.
 ### Area
 
 ```ts
-const series = chart.addAreaSeries({
+const series = chart.addSeries({ type: 'area',
   lineColor:   '#2196F3',
   lineWidth:   2,
   topColor:    'rgba(33, 150, 243, 0.4)',
@@ -77,7 +77,7 @@ Close-price line with a vertical gradient fill beneath it.
 ### Bar (OHLC)
 
 ```ts
-const series = chart.addBarSeries({
+const series = chart.addSeries({ type: 'bar',
   upColor:   '#26a69a',
   downColor: '#ef5350',
   lineWidth: 1,
@@ -89,7 +89,7 @@ Traditional OHLC bar chart: vertical high/low line with left open tick and right
 ### Baseline
 
 ```ts
-const series = chart.addBaselineSeries({
+const series = chart.addSeries({ type: 'baseline',
   basePrice:       150,
   topLineColor:    '#26a69a',
   topFillColor:    'rgba(38, 166, 154, 0.28)',
@@ -104,7 +104,7 @@ Splits the price line at `basePrice`. Prices above are coloured in green, prices
 ### Hollow Candle
 
 ```ts
-const series = chart.addHollowCandleSeries({
+const series = chart.addSeries({ type: 'hollow-candle',
   upColor:   '#26a69a',
   downColor: '#ef5350',
   wickColor: '#737375',
@@ -116,7 +116,7 @@ Up candles are hollow (outline only); down candles are filled solid.
 ### Histogram
 
 ```ts
-const series = chart.addHistogramSeries({
+const series = chart.addSeries({ type: 'histogram',
   upColor:   'rgba(38, 166, 154, 0.5)',
   downColor: 'rgba(239, 83, 80, 0.5)',
 });
@@ -248,7 +248,7 @@ Import only the chart types you need to minimise bundle size:
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container);
-const series = chart.addLineSeries();
+const series = chart.addSeries({ type: 'line' });
 ```
 
 Because unused renderers are never referenced the bundler excludes them. The package sets `"sideEffects": false` so this works out of the box with Vite, Rollup, and webpack.
