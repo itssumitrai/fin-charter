@@ -5,6 +5,8 @@ import type { SeriesMarker } from '../core/series-markers';
 import { PriceLine, type PriceLineOptions } from '../core/price-line';
 import type { SeriesOptionsMap } from './options';
 
+export type DataChangedCallback = () => void;
+
 // ─── ISeriesApi ─────────────────────────────────────────────────────────────
 
 export interface ISeriesApi<T extends SeriesType> {
@@ -36,6 +38,10 @@ export interface ISeriesApi<T extends SeriesType> {
   removePriceLine(line: PriceLine): void;
   /** Get all price lines. */
   getPriceLines(): readonly PriceLine[];
+  /** Subscribe to data changes (setData / update). */
+  subscribeDataChanged(callback: DataChangedCallback): void;
+  /** Unsubscribe from data changes. */
+  unsubscribeDataChanged(callback: DataChangedCallback): void;
 }
 
 // ─── SeriesApi ──────────────────────────────────────────────────────────────
@@ -50,6 +56,7 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
   private _priceLines: PriceLine[] = [];
   private _requestRepaint: () => void;
   private _visible: boolean = true;
+  private _dataChangedCallbacks: Set<DataChangedCallback> = new Set();
 
   constructor(
     type: T,
@@ -75,12 +82,14 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     this._dataLayer.setData(data);
     this._notifyPrimitives('full');
     this._requestRepaint();
+    this._emitDataChanged();
   }
 
   update(bar: Bar): void {
     this._dataLayer.update(bar);
     this._notifyPrimitives('update');
     this._requestRepaint();
+    this._emitDataChanged();
   }
 
   attachPrimitive(primitive: ISeriesPrimitive): void {
@@ -154,6 +163,14 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     return [...this._priceLines];
   }
 
+  subscribeDataChanged(callback: DataChangedCallback): void {
+    this._dataChangedCallbacks.add(callback);
+  }
+
+  unsubscribeDataChanged(callback: DataChangedCallback): void {
+    this._dataChangedCallbacks.delete(callback);
+  }
+
   // ── Internal accessors ────────────────────────────────────────────────────
 
   getDataLayer(): DataLayer {
@@ -175,5 +192,9 @@ export class SeriesApi<T extends SeriesType> implements ISeriesApi<T> {
     for (const p of this._primitives) {
       p.updateAllViews?.();
     }
+  }
+
+  private _emitDataChanged(): void {
+    for (const cb of this._dataChangedCallbacks) cb();
   }
 }

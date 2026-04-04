@@ -3,7 +3,7 @@ export const VERSION = '0.1.0';
 // ─── API layer ──────────────────────────────────────────────────────────────
 export { createChart } from './api/chart-api';
 export type { IChartApi, CrosshairMoveCallback, ClickCallback } from './api/chart-api';
-export type { ISeriesApi } from './api/series-api';
+export type { ISeriesApi, DataChangedCallback } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
 
 export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
