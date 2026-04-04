@@ -254,7 +254,9 @@ export type SeriesOptions =
 
 export type IndicatorType = 'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger'
   | 'vwap' | 'stochastic' | 'atr' | 'adx' | 'obv' | 'williams-r'
-  | 'ichimoku' | 'parabolic-sar' | 'keltner' | 'donchian' | 'cci' | 'pivot-points';
+  | 'ichimoku' | 'parabolic-sar' | 'keltner' | 'donchian' | 'cci' | 'pivot-points'
+  | 'aroon' | 'awesome-oscillator' | 'chaikin-mf' | 'coppock' | 'elder-force'
+  | 'trix' | 'supertrend' | 'vwma' | 'choppiness' | 'mfi' | 'roc' | 'linear-regression';
 
 export interface IndicatorOptions {
   source: import('./series-api').ISeriesApi<import('../core/types').SeriesType>;
@@ -269,6 +271,7 @@ export interface IndicatorOptions {
 export const OVERLAY_INDICATORS: Set<IndicatorType> = new Set([
   'sma', 'ema', 'bollinger', 'vwap',
   'ichimoku', 'parabolic-sar', 'keltner', 'donchian',
+  'supertrend', 'vwma', 'linear-regression',
 ]);
 
 export const DEFAULT_INDICATOR_PARAMS: Record<IndicatorType, Record<string, number>> = {
@@ -289,6 +292,18 @@ export const DEFAULT_INDICATOR_PARAMS: Record<IndicatorType, Record<string, numb
   donchian: { period: 20 },
   cci: { period: 20 },
   'pivot-points': {},
+  aroon: { period: 25 },
+  'awesome-oscillator': { fastPeriod: 5, slowPeriod: 34 },
+  'chaikin-mf': { period: 20 },
+  coppock: { wmaPeriod: 10, longROC: 14, shortROC: 11 },
+  'elder-force': { period: 13 },
+  trix: { period: 15, signalPeriod: 9 },
+  supertrend: { period: 10, multiplier: 3 },
+  vwma: { period: 20 },
+  choppiness: { period: 14 },
+  mfi: { period: 14 },
+  roc: { period: 12 },
+  'linear-regression': { period: 20 },
 };
 
 // ─── Utility ────────────────────────────────────────────────────────────────
