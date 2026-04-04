@@ -1,0 +1,53 @@
+import type { Meta, StoryObj } from '@storybook/html';
+import { createChart } from 'fin-charter';
+import { createChartContainer } from '../helpers';
+import { AAPL_DAILY } from '../sample-data';
+
+const meta: Meta = {
+  title: 'Features/Fit Content',
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Demonstrates chart.fitContent(). The chart starts zoomed out (barSpacing: 2). ' +
+          'Click "Fit Content" to auto-scale so all bars fill the visible area.',
+      },
+    },
+  },
+};
+export default meta;
+
+type Story = StoryObj;
+
+export const FitContentDemo: Story = {
+  name: 'Fit Content Demo',
+  render: () => {
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.gap = '12px';
+
+    const button = document.createElement('button');
+    button.textContent = 'Fit Content';
+    button.style.cssText =
+      'padding: 8px 16px; cursor: pointer; background: #4caf50; color: white; border: none; border-radius: 4px; font-size: 14px; width: fit-content;';
+
+    const container = createChartContainer();
+    const chart = createChart(container, {
+      autoSize: true,
+      timeScale: { barSpacing: 2 },
+    });
+
+    const series = chart.addCandlestickSeries();
+    series.setData(AAPL_DAILY);
+
+    button.addEventListener('click', () => {
+      chart.fitContent();
+    });
+
+    wrapper.appendChild(button);
+    wrapper.appendChild(container);
+
+    return wrapper;
+  },
+};
