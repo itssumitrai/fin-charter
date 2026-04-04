@@ -22,6 +22,30 @@ type Story = StoryObj;
 
 export const CorporateEvents: Story = {
   name: 'Corporate Events',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.setEvents([
+  {
+    time: dividendDate, position: 'belowBar', shape: 'arrowUp',
+    color: '#4caf50', text: 'D', eventType: 'dividend',
+    title: 'Quarterly Dividend', value: '$0.24/share',
+  },
+  {
+    time: earningsDate, position: 'aboveBar', shape: 'arrowDown',
+    color: '#ef5350', text: 'E', eventType: 'earnings',
+    title: 'Q1 Earnings', value: 'Beat estimates',
+  },
+]);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });

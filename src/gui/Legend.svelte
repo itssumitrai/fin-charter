@@ -15,8 +15,8 @@
 
   let { seriesName, ohlcv = null, isUp = true }: Props = $props();
 
-  const upColor = '#26a69a';
-  const downColor = '#ef5350';
+  const upColor = '#22AB94';
+  const downColor = '#F7525F';
 
   let valueColor = $derived(isUp ? upColor : downColor);
 

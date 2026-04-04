@@ -48,6 +48,22 @@ function generateIntradayData(intervalSeconds: number, barCount: number): Bar[] 
 
 export const IntervalSwitcher: Story = {
   name: 'Interval Switcher',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(dailyData);
+
+// Switch to 5-minute bars
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+series.setData(fiveMinData);
+chart.fitContent();`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';

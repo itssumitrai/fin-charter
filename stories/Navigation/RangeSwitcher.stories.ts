@@ -22,6 +22,24 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Range Switcher',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+// Jump to a 3-month window
+const DAY = 86400;
+chart.setVisibleRange(lastTime - 90 * DAY, lastTime);
+
+// Snap back to the latest bar
+chart.scrollToRealTime();`,
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'flex';

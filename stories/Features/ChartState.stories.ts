@@ -23,6 +23,26 @@ type Story = StoryObj;
 
 export const SaveRestore: Story = {
   name: 'Save & Restore State',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Save state
+const state = chart.exportState();
+const json = JSON.stringify(state);
+
+// Restore state (dataLoader fetches bar data for each series)
+await chart.importState(JSON.parse(json), async (seriesId) => {
+  return await fetchData(seriesId);
+});`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';

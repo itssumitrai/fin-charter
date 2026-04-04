@@ -19,6 +19,17 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Default',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data); // Array of { time, open, high, low, close, volume }`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -30,6 +41,19 @@ export const Default: Story = {
 
 export const CustomColors: Story = {
   name: 'Custom Colors',
+  parameters: {
+    docs: {
+      source: {
+        code: `const series = chart.addCandlestickSeries({
+  upColor: '#00e5ff',
+  downColor: '#ff4081',
+  wickUpColor: '#00e5ff',
+  wickDownColor: '#ff4081',
+});
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -46,6 +70,14 @@ export const CustomColors: Story = {
 
 export const FewBars: Story = {
   name: 'Few Bars (20)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const series = chart.addCandlestickSeries();
+series.setData(data.slice(0, 20)); // Only 20 bars`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -57,6 +89,18 @@ export const FewBars: Story = {
 
 export const WithoutLastPriceLine: Story = {
   name: 'Without Last Price Line',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  lastPriceLine: { visible: false },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, lastPriceLine: { visible: false } });

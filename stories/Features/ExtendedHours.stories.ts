@@ -56,6 +56,23 @@ function generateIntradayBars(days: number, intervalSeconds: number): Bar[] {
 
 export const MarketSessions: Story = {
   name: 'Market Sessions',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+chart.setMarketSessions(US_EQUITY_SESSIONS);
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+
+const series = chart.addCandlestickSeries();
+series.setData(intradayData);
+
+// Filter to regular hours only
+chart.setSessionFilter('regular');`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';

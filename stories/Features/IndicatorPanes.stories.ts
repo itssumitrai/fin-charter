@@ -20,6 +20,26 @@ type Story = StoryObj;
 
 export const RSIAndMACD: Story = {
   name: 'RSI + MACD Panes',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+chart.addIndicator('rsi', {
+  source: series, params: { period: 14 }, color: '#00e5ff', label: 'RSI 14',
+});
+chart.addIndicator('macd', {
+  source: series,
+  params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  color: '#ff6b6b', label: 'MACD',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -58,6 +78,21 @@ export const RSIAndMACD: Story = {
 
 export const AllIndicators: Story = {
   name: 'All Indicators',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('vwap', { source: series, color: '#ff9800', label: 'VWAP' });
+chart.addIndicator('bollinger', {
+  source: series, params: { period: 20, stdDev: 2 }, label: 'BB 20,2',
+});
+chart.addIndicator('stochastic', {
+  source: series, params: { kPeriod: 14, dPeriod: 3 }, label: 'Stoch',
+});
+chart.addIndicator('atr', { source: series, params: { period: 14 }, label: 'ATR' });
+chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX' });`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '800px';

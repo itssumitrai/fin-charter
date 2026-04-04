@@ -21,6 +21,23 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'AAPL Watermark',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  watermark: {
+    visible: true,
+    text: 'AAPL',
+    fontSize: 48,
+    color: 'rgba(255,255,255,0.08)',
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -42,6 +59,21 @@ export const Default: Story = {
 
 export const LargeText: Story = {
   name: 'Large Watermark',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  watermark: {
+    visible: true,
+    text: 'FIN-CHARTER',
+    fontSize: 64,
+    color: 'rgba(0, 229, 255, 0.06)',
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -67,6 +99,19 @@ export const LargeText: Story = {
 
 export const CornerWatermark: Story = {
   name: 'Corner Watermark',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  watermark: {
+    visible: true, text: 'DEMO', fontSize: 32,
+    horzAlign: 'right', vertAlign: 'bottom',
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

@@ -21,6 +21,21 @@ type Story = StoryObj;
 
 export const Monospace: Story = {
   name: 'Monospace Font',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  layout: {
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: 11,
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -38,6 +53,19 @@ export const Monospace: Story = {
 
 export const SystemSansSerif: Story = {
   name: 'System Sans-Serif',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  layout: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: 12,
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -55,6 +83,16 @@ export const SystemSansSerif: Story = {
 
 export const LargeFontSize: Story = {
   name: 'Large Font Size (14px)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  layout: { fontSize: 14 },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

@@ -22,6 +22,24 @@ type Story = StoryObj;
 
 export const DataChangedCounter: Story = {
   name: 'Data Changed Counter',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.subscribeDataChanged(() => {
+  console.log('Data updated');
+});
+
+// Trigger an update
+series.update({ time, open, high, low, close, volume });`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';

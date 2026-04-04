@@ -45,6 +45,21 @@ function indicatorToLineBars(times: Float64Array, values: Float64Array, length: 
 
 export const VWAPOverlay: Story = {
   name: 'VWAP Overlay',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+import { computeVWAP } from 'fin-charter/indicators';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+const vwap = computeVWAP(high, low, close, volume, bars.length);
+chart.addLineSeries({ color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -69,6 +84,18 @@ export const VWAPOverlay: Story = {
 
 export const StochasticOscillator: Story = {
   name: 'Stochastic Oscillator',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('stochastic', {
+  source: candleSeries,
+  params: { kPeriod: 14, dPeriod: 3 },
+  color: '#26a69a',
+  label: 'Stoch 14,3',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
@@ -92,6 +119,18 @@ export const StochasticOscillator: Story = {
 
 export const ATRIndicator: Story = {
   name: 'ATR Indicator',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('atr', {
+  source: candleSeries,
+  params: { period: 14 },
+  color: '#ef5350',
+  label: 'ATR 14',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
@@ -115,6 +154,18 @@ export const ATRIndicator: Story = {
 
 export const ADXIndicator: Story = {
   name: 'ADX Indicator',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('adx', {
+  source: candleSeries,
+  params: { period: 14 },
+  color: '#ffd54f',
+  label: 'ADX 14',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
@@ -138,6 +189,17 @@ export const ADXIndicator: Story = {
 
 export const OBVIndicator: Story = {
   name: 'OBV Indicator',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('obv', {
+  source: candleSeries,
+  color: '#7c4dff',
+  label: 'OBV',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';
@@ -160,6 +222,18 @@ export const OBVIndicator: Story = {
 
 export const WilliamsRIndicator: Story = {
   name: 'Williams %R Indicator',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addIndicator('williams-r', {
+  source: candleSeries,
+  params: { period: 14 },
+  color: '#00e5ff',
+  label: 'W%R 14',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '600px';

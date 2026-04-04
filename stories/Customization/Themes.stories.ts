@@ -21,6 +21,16 @@ type Story = StoryObj;
 
 export const Dark: Story = {
   name: 'Dark Theme',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart, DARK_THEME } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, theme: 'dark' });
+chart.applyOptions(DARK_THEME);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, theme: 'dark' });
@@ -33,6 +43,18 @@ export const Dark: Story = {
 
 export const Light: Story = {
   name: 'Light Theme',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, { autoSize: true, theme: 'light' });
+chart.applyOptions(LIGHT_THEME);
+chart.addCandlestickSeries({
+  upColor: '#26a69a', downColor: '#ef5350',
+  wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, theme: 'light' });
@@ -50,6 +72,18 @@ export const Light: Story = {
 
 export const Colorful: Story = {
   name: 'Colorful Theme',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, { autoSize: true, theme: 'colorful' });
+chart.applyOptions(COLORFUL_THEME);
+chart.addCandlestickSeries({
+  upColor: '#00c176', downColor: '#ff4a68',
+  wickUpColor: '#00c176', wickDownColor: '#ff4a68',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, theme: 'colorful' });

@@ -10,7 +10,7 @@ export interface TimeScaleOptions {
 const DEFAULT_OPTIONS: TimeScaleOptions = {
   barSpacing: 6,
   rightOffset: 0,
-  minBarSpacing: 2,
+  minBarSpacing: 4,
   maxBarSpacing: 50,
 };
 

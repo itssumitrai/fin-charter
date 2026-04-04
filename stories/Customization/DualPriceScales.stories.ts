@@ -34,6 +34,22 @@ function indicatorToLineBars(bars: Bar[], values: Float64Array): Bar[] {
 
 export const Default: Story = {
   name: 'Left & Right Price Scales',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  rightPriceScale: { visible: true },
+  leftPriceScale: { visible: true },
+});
+
+chart.addCandlestickSeries(); // right scale (default)
+chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -58,6 +74,17 @@ export const Default: Story = {
 
 export const RightOnly: Story = {
   name: 'Right Scale Only (Default)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  rightPriceScale: { visible: true },
+  leftPriceScale: { visible: false },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -73,6 +100,17 @@ export const RightOnly: Story = {
 
 export const LeftOnly: Story = {
   name: 'Left Scale Only',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  rightPriceScale: { visible: false },
+  leftPriceScale: { visible: true },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

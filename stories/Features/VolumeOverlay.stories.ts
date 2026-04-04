@@ -21,6 +21,20 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Volume Enabled',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  volume: { visible: true },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -35,6 +49,20 @@ export const Default: Story = {
 
 export const CustomVolumeColors: Story = {
   name: 'Custom Volume Colors',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  volume: {
+    visible: true,
+    upColor: 'rgba(0, 229, 255, 0.5)',
+    downColor: 'rgba(255, 64, 129, 0.5)',
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

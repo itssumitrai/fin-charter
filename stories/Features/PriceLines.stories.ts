@@ -21,6 +21,24 @@ type Story = StoryObj;
 
 export const SupportResistance: Story = {
   name: 'Support & Resistance',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.createPriceLine({
+  price: 185, color: '#26a69a', lineStyle: 'dashed', title: 'Support',
+});
+series.createPriceLine({
+  price: 195, color: '#ef5350', lineStyle: 'dashed', title: 'Resistance',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -51,6 +69,23 @@ export const SupportResistance: Story = {
 
 export const TradeLevels: Story = {
   name: 'Trade Levels',
+  parameters: {
+    docs: {
+      source: {
+        code: `series.createPriceLine({
+  price: 190, color: '#2196F3', lineStyle: 'solid', title: 'Entry',
+});
+series.createPriceLine({
+  price: 182, color: '#ef5350', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#ef5350',
+});
+series.createPriceLine({
+  price: 210, color: '#26a69a', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#26a69a',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });

@@ -20,6 +20,19 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Default',
+  parameters: {
+    docs: {
+      source: {
+        code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const series = chart.addBaselineSeries();
+series.setData(data);
+`.trim(),
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -31,6 +44,22 @@ export const Default: Story = {
 
 export const CustomBaseline: Story = {
   name: 'Custom Baseline Value',
+  parameters: {
+    docs: {
+      source: {
+        code: `
+const series = chart.addBaselineSeries({
+  basePrice: 110,
+  topLineColor: '#00e5ff',
+  bottomLineColor: '#ff6b6b',
+  topFillColor: 'rgba(0, 229, 255, 0.28)',
+  bottomFillColor: 'rgba(255, 107, 107, 0.28)',
+});
+series.setData(data);
+`.trim(),
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });

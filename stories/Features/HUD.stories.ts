@@ -21,6 +21,24 @@ type Story = StoryObj;
 
 export const FullHUD: Story = {
   name: 'Full HUD',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries({ label: 'AAPL' });
+series.setData(data);
+
+chart.addIndicator('sma', {
+  source: series, params: { period: 20 }, color: '#f4c430', label: 'SMA 20',
+});
+chart.addIndicator('rsi', {
+  source: series, params: { period: 14 }, color: '#ab47bc', label: 'RSI',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     container.style.height = '700px';

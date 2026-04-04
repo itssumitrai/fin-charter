@@ -21,6 +21,22 @@ type Story = StoryObj;
 
 export const BuySellSignals: Story = {
   name: 'Buy / Sell Signals',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.setMarkers([
+  { time: buyTime, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy' },
+  { time: sellTime, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell' },
+]);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -57,6 +73,17 @@ export const BuySellSignals: Story = {
 
 export const MultipleMarkers: Story = {
   name: 'Multiple Markers',
+  parameters: {
+    docs: {
+      source: {
+        code: `series.setMarkers([
+  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#26a69a', text: 'Buy 1' },
+  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#ef5350', text: 'Sell 1' },
+  { time: t3, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
+]);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });

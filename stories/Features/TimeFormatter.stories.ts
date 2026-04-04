@@ -21,6 +21,26 @@ type Story = StoryObj;
 
 export const CustomTimeFormatter: Story = {
   name: 'Custom MM/DD Formatter',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  timeScale: {
+    tickMarkFormatter: (time, tickType) => {
+      if (tickType === 'day') {
+        const d = new Date(time * 1000);
+        return \`\${d.getUTCMonth() + 1}/\${d.getUTCDate()}\`;
+      }
+      return '';
+    },
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

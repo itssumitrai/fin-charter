@@ -21,6 +21,20 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Go to Realtime',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+// Snap the viewport to the most recent bar
+chart.scrollToRealTime();`,
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'flex';

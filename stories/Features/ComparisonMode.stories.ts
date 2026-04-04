@@ -22,6 +22,23 @@ type Story = StoryObj;
 
 export const CompareSymbols: Story = {
   name: 'Compare Symbols',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const mainSeries = chart.addCandlestickSeries();
+mainSeries.setData(aaplData);
+
+// Enable comparison mode (Y-axis shows % change)
+chart.setComparisonMode(true);
+
+const compSeries = chart.addLineSeries({ color: '#2196F3' });
+compSeries.setData(msftData);`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';

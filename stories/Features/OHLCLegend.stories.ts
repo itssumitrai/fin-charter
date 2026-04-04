@@ -22,6 +22,20 @@ type Story = StoryObj;
 
 export const LegendAndTooltip: Story = {
   name: 'OHLC Legend & Tooltip',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  tooltip: { enabled: true },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -36,6 +50,16 @@ export const LegendAndTooltip: Story = {
 
 export const TooltipDisabled: Story = {
   name: 'Legend Only (No Tooltip)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  tooltip: { enabled: false },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -50,6 +74,17 @@ export const TooltipDisabled: Story = {
 
 export const WithVolume: Story = {
   name: 'Legend + Volume Overlay',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  tooltip: { enabled: true },
+  volume: { visible: true },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

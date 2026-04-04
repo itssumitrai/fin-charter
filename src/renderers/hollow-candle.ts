@@ -7,8 +7,8 @@ export interface HollowCandleRendererOptions {
 }
 
 const DEFAULT_OPTIONS: HollowCandleRendererOptions = {
-  upColor: '#26a69a',
-  downColor: '#ef5350',
+  upColor: '#22AB94',
+  downColor: '#F7525F',
   wickColor: '#737375',
 };
 

@@ -19,6 +19,19 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Default',
+  parameters: {
+    docs: {
+      source: {
+        code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), { autoSize: true });
+const series = chart.addBarSeries();
+series.setData(data);
+`.trim(),
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -30,6 +43,19 @@ export const Default: Story = {
 
 export const CustomColors: Story = {
   name: 'Custom Colors',
+  parameters: {
+    docs: {
+      source: {
+        code: `
+const series = chart.addBarSeries({
+  upColor: '#26a69a',
+  downColor: '#ef5350',
+});
+series.setData(data);
+`.trim(),
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
