@@ -271,7 +271,8 @@ export const DEFAULT_INDICATOR_PARAMS: Record<IndicatorType, Record<string, numb
 // ─── Utility ────────────────────────────────────────────────────────────────
 
 /** Deep merge `overrides` into a copy of `defaults`. */
-export function mergeOptions<T extends Record<string, unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mergeOptions<T extends object>(
   defaults: T,
   overrides: DeepPartial<T>,
 ): T {

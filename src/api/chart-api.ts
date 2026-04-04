@@ -2224,7 +2224,7 @@ class ChartApi implements IChartApi {
       throw new Error(`Pane "${paneId}" not found. Create it first with addPane().`);
     }
 
-    const renderer = this._createRenderer(type, resolvedOptions);
+    const renderer = this._createRenderer(type, resolvedOptions as unknown as Record<string, unknown>);
     const api = new SeriesApi<T>(type, dataLayer, pane.priceScale, resolvedOptions, () =>
       this.requestRepaint(InvalidationLevel.Full),
     );
