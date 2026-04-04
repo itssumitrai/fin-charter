@@ -16,6 +16,16 @@ Drawings are series primitives that map `(time, price)` anchor points to canvas 
 | Fibonacci retracement | `'fibonacci'` | 2 | Trendline with 0 %, 23.6 %, 38.2 %, 50 %, 61.8 %, 100 % retracement levels |
 | Rectangle | `'rectangle'` | 2 | Axis-aligned rectangle between two corners |
 | Text annotation | `'text-annotation'` | 1 | Label anchored to a time/price coordinate |
+| Ray | `'ray'` | 2 | One-directional line extending to the right from the first anchor |
+| Arrow | `'arrow'` | 2 | Directed line segment with an arrowhead at the second anchor |
+| Channel | `'channel'` | 3 | Parallel-channel defined by two trendline points and an offset point |
+| Ellipse | `'ellipse'` | 2 | Ellipse fitted within the bounding box of two corner anchors |
+| Pitchfork | `'pitchfork'` | 3 | Andrews' pitchfork with median and two parallel prong lines |
+| Fib Projection | `'fib-projection'` | 3 | Three-point Fibonacci extension with 61.8 %, 100 %, 161.8 %, 261.8 % levels |
+| Fib Arc | `'fib-arc'` | 2 | Fibonacci arcs (38.2 %, 50 %, 61.8 %) centred on the first anchor |
+| Fib Fan | `'fib-fan'` | 2 | Fibonacci fan lines (38.2 %, 50 %, 61.8 %) radiating from the first anchor |
+| Crossline | `'crossline'` | 1 | Combined horizontal + vertical crosshair locked to a time/price point |
+| Measurement | `'measurement'` | 2 | Price and time delta label shown between two anchors |
 
 ## Adding Drawings Programmatically
 

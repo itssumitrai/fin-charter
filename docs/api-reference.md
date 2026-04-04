@@ -26,7 +26,23 @@ Creates a new chart instance and mounts it inside `container`. Two `<canvas>` el
 
 ### Series management
 
-#### `addCandlestickSeries(options?)`
+#### `addSeries(options)`
+
+```ts
+addSeries<T extends SeriesType>(options: { type: T } & DeepPartial<SeriesOptionsMap[T]>): ISeriesApi<T>
+```
+
+Unified series factory. Pass `type` alongside any series-specific options. This is the preferred API — the individual `addCandlestickSeries()`, `addLineSeries()` etc. methods still work but are deprecated.
+
+```ts
+// Preferred
+const candles = chart.addSeries({ type: 'candlestick' });
+const line    = chart.addSeries({ type: 'line', color: '#2196F3' });
+const area    = chart.addSeries({ type: 'area' });
+const ha      = chart.addSeries({ type: 'heikin-ashi' });
+```
+
+#### `addCandlestickSeries(options?)` _(deprecated)_
 
 ```ts
 addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'candlestick'>
@@ -34,61 +50,61 @@ addCandlestickSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesAp
 
 Adds a candlestick series and returns its API handle.
 
-#### `addLineSeries(options?)`
+#### `addLineSeries(options?)` _(deprecated)_
 
 ```ts
 addLineSeries(options?: DeepPartial<LineSeriesOptions>): ISeriesApi<'line'>
 ```
 
-Adds a line series (close-price polyline).
+Adds a line series. Prefer `addSeries({ type: 'line', ...options })`.
 
-#### `addAreaSeries(options?)`
+#### `addAreaSeries(options?)` _(deprecated)_
 
 ```ts
 addAreaSeries(options?: DeepPartial<AreaSeriesOptions>): ISeriesApi<'area'>
 ```
 
-Adds an area series (line + gradient fill).
+Adds an area series. Prefer `addSeries({ type: 'area', ...options })`.
 
-#### `addBarSeries(options?)`
+#### `addBarSeries(options?)` _(deprecated)_
 
 ```ts
 addBarSeries(options?: DeepPartial<BarSeriesOptions>): ISeriesApi<'bar'>
 ```
 
-Adds a traditional OHLC bar series.
+Adds a traditional OHLC bar series. Prefer `addSeries({ type: 'bar', ...options })`.
 
-#### `addBaselineSeries(options?)`
+#### `addBaselineSeries(options?)` _(deprecated)_
 
 ```ts
 addBaselineSeries(options?: DeepPartial<BaselineSeriesOptions>): ISeriesApi<'baseline'>
 ```
 
-Adds a baseline series coloured above/below a reference price.
+Adds a baseline series. Prefer `addSeries({ type: 'baseline', ...options })`.
 
-#### `addHollowCandleSeries(options?)`
+#### `addHollowCandleSeries(options?)` _(deprecated)_
 
 ```ts
 addHollowCandleSeries(options?: DeepPartial<HollowCandleSeriesOptions>): ISeriesApi<'hollow-candle'>
 ```
 
-Adds a hollow-candle series (up candles outline-only, down candles filled).
+Adds a hollow-candle series. Prefer `addSeries({ type: 'hollow-candle', ...options })`.
 
-#### `addHistogramSeries(options?)`
+#### `addHistogramSeries(options?)` _(deprecated)_
 
 ```ts
 addHistogramSeries(options?: DeepPartial<HistogramSeriesOptions>): ISeriesApi<'histogram'>
 ```
 
-Adds a histogram series (vertical bars from the pane bottom).
+Adds a histogram series. Prefer `addSeries({ type: 'histogram', ...options })`.
 
-#### `addHeikinAshiSeries(options?)`
+#### `addHeikinAshiSeries(options?)` _(deprecated)_
 
 ```ts
 addHeikinAshiSeries(options?: DeepPartial<CandlestickSeriesOptions>): ISeriesApi<'heikin-ashi'>
 ```
 
-Adds a Heikin-Ashi candlestick series. Bar data supplied via `setData` is automatically transformed to Heikin-Ashi values before rendering. Accepts the same options as `addCandlestickSeries`.
+Adds a Heikin-Ashi series. Bar data is automatically transformed to Heikin-Ashi values before rendering. Prefer `addSeries({ type: 'heikin-ashi', ...options })`.
 
 #### `removeSeries(series)`
 
