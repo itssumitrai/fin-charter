@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appStore, CHART_TYPE_TO_SERIES } from '../../data/store.svelte.ts';
+  import { appStore } from '../../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../../data/store.svelte.ts';
 
   let open = $state(false);
@@ -41,7 +41,7 @@
 </script>
 
 <div class="chart-type-selector" bind:this={containerEl}>
-  <button class="trigger" onclick={() => (open = !open)}>
+  <button class="trigger" aria-label="Chart type" onclick={() => (open = !open)}>
     {currentIcon}
   </button>
 

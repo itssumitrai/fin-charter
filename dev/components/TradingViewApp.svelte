@@ -1,10 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { createChart } from 'fin-charter';
-  import type { IChartApi, ISeriesApi, SeriesType, Bar, IndicatorType } from 'fin-charter';
-  import { getMarketForExchange } from 'fin-charter/market';
+  import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from 'fin-charter';
   import { fetchBars } from '../data/yahoo-finance';
-  import { getSymbolInfo } from '../data/symbols';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
   import Toolbar from './Toolbar/Toolbar.svelte';
@@ -47,9 +45,6 @@
       if (reqId !== loadRequestId) return;
       appStore.meta = meta;
 
-      // Apply timezone from exchange
-      const info = getSymbolInfo(appStore.symbol);
-      const market = info ? getMarketForExchange(info.exchange) : undefined;
       chart.applyOptions({
         timezone: appStore.resolvedTimezone,
         currency: meta.currency,
@@ -73,14 +68,17 @@
 
   async function loadComparison(sym: string) {
     if (!chart || comparisonSeries.has(sym)) return;
+    const reqId = loadRequestId;
     try {
       const { bars } = await fetchBars(sym, appStore.periodicity);
+      // Guard: skip if symbol changed, or comparison was removed, or duplicate arrived
+      if (reqId !== loadRequestId || !appStore.comparisonSymbols.includes(sym) || comparisonSeries.has(sym)) return;
       const colors = ['#2196F3', '#ff9800', '#e91e63', '#4caf50', '#9c27b0'];
       const colorIdx = comparisonSeries.size % colors.length;
-      const s = chart.addLineSeries({ color: colors[colorIdx], lineWidth: 2 });
+      const s = chart!.addLineSeries({ color: colors[colorIdx], lineWidth: 2 });
       s.setData(bars);
       comparisonSeries.set(sym, s);
-      chart.setComparisonMode(true);
+      chart!.setComparisonMode(true);
     } catch (err) {
       console.error(`Failed to load comparison ${sym}:`, err);
     }

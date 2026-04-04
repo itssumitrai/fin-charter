@@ -63,11 +63,19 @@ export async function fetchBars(
     // Proxy unavailable (e.g. static Storybook build) — return generated fallback data
     return generateFallbackData(symbol);
   }
-  if (!resp.ok) throw new Error(`Yahoo Finance error: ${resp.status}`);
+  if (!resp.ok) {
+    // Proxy endpoint unavailable (e.g. static Storybook build) — fallback
+    return generateFallbackData(symbol);
+  }
 
-  const json = await resp.json();
-  const result = json.chart?.result?.[0];
-  if (!result) throw new Error('No data returned');
+  let result: (YahooQuote & { meta?: YahooMeta }) | undefined;
+  try {
+    const json = await resp.json();
+    result = json.chart?.result?.[0];
+  } catch {
+    return generateFallbackData(symbol);
+  }
+  if (!result) return generateFallbackData(symbol);
 
   const quote: YahooQuote = result;
   const yahooMeta: YahooMeta = result.meta ?? {};

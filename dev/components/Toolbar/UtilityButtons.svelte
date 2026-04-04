@@ -9,13 +9,13 @@
 </script>
 
 <div class="utility-buttons">
-  <button class="util-btn" title="Fullscreen" onclick={onfullscreen}>
+  <button class="util-btn" title="Fullscreen" aria-label="Fullscreen" onclick={onfullscreen}>
     &#x26F6;
   </button>
-  <button class="util-btn" title="Screenshot" onclick={onscreenshot}>
+  <button class="util-btn" title="Screenshot" aria-label="Screenshot" onclick={onscreenshot}>
     &#x1F4F7;
   </button>
-  <button class="util-btn" title="Settings" onclick={onsettings}>
+  <button class="util-btn" title="Settings" aria-label="Settings" onclick={onsettings}>
     &#x2699;
   </button>
 </div>
