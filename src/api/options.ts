@@ -98,6 +98,9 @@ export interface ChartOptions {
   timeGaps: TimeGapsOptions;
   priceFormatter?: (price: number) => string;
   theme?: 'dark' | 'light' | 'colorful';
+  locale?: string;       // BCP 47 locale tag, e.g. 'en-US', 'de-DE'
+  timezone?: string;     // IANA timezone, e.g. 'America/New_York', 'UTC'
+  currency?: string;     // ISO 4217 currency code, e.g. 'USD', 'EUR'
 }
 
 export const DARK_THEME: DeepPartial<ChartOptions> = {

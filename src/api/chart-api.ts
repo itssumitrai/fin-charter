@@ -100,6 +100,10 @@ import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
 import type { MarketSession } from '../core/market-session';
 
+import { createPriceFormatter } from '../formatting/price-formatter';
+import { createTimeFormatter } from '../formatting/time-formatter';
+import { formatVolume } from '../formatting/volume-formatter';
+
 // ─── Axis constants ────────────────────────────────────────────────────────
 
 const PRICE_AXIS_WIDTH = 60;
@@ -303,7 +307,8 @@ class ChartApi implements IChartApi {
   private _lastTooltipBarIdx: number = -1;
   private _tooltipWidth: number = 140;
   private _tooltipHeight: number = 80;
-  private _volumeFormatter = new Intl.NumberFormat();
+  private _priceFormat!: (price: number) => string;
+  private _timeFormat!: (ts: number, tick: 'year' | 'month' | 'day' | 'time', crosshair?: boolean) => string;
 
   // Pre-created tooltip child elements
   private _tooltipDateEl!: HTMLDivElement;
@@ -361,6 +366,7 @@ class ChartApi implements IChartApi {
     this._container = container;
     this._width = options.width;
     this._height = options.height;
+    this._initFormatters();
 
     // ── DOM setup ──────────────────────────────────────────────────────────
     this._wrapper = document.createElement('div');
@@ -566,13 +572,27 @@ class ChartApi implements IChartApi {
     }
   }
 
-  // ── Price formatter ─────────────────────────────────────────────────────
+  // ── Formatters ──────────────────────────────────────────────────────────
+
+  private _initFormatters(): void {
+    this._priceFormat = this._options.priceFormatter
+      ?? createPriceFormatter({
+        locale: this._options.locale,
+        decimals: 2,
+        currency: this._options.currency,
+      });
+
+    const customTickFormatter = this._options.timeScale.tickMarkFormatter;
+    this._timeFormat = customTickFormatter
+      ? (ts: number, tick: 'year' | 'month' | 'day' | 'time', _crosshair?: boolean) => customTickFormatter(ts, tick)
+      : createTimeFormatter({
+        timezone: this._options.timezone,
+        locale: this._options.locale,
+      });
+  }
 
   private _formatPrice(price: number): string {
-    if (this._options.priceFormatter) {
-      return this._options.priceFormatter(price);
-    }
-    return price.toFixed(2);
+    return this._priceFormat(price);
   }
 
   // ── Series management ───────────────────────────────────────────────────
@@ -761,6 +781,7 @@ class ChartApi implements IChartApi {
 
   applyOptions(options: DeepPartial<ChartOptions>): void {
     this._options = mergeOptions(this._options, options);
+    this._initFormatters();
 
     if (options.layout?.backgroundColor) {
       this._wrapper.style.backgroundColor = this._options.layout.backgroundColor;
@@ -2350,7 +2371,7 @@ class ChartApi implements IChartApi {
 
     const textY = Math.round(8 * pixelRatio);
 
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const tickType = this._getTickType(primaryStore);
 
     for (let i = range.fromIdx; i <= range.toIdx; i += barStep) {
       if (i >= primaryStore.length) break;
@@ -2358,20 +2379,7 @@ class ChartApi implements IChartApi {
       if (x < 0 || x > Math.round(chartW * pixelRatio)) continue;
 
       const timestamp = primaryStore.time[i];
-      const date = new Date(timestamp * 1000);
-
-      let label: string;
-      const formatter = this._options.timeScale.tickMarkFormatter;
-      if (formatter) {
-        const tickType = this._getTickType(primaryStore);
-        label = formatter(timestamp, tickType);
-      } else if (primaryStore.length >= 2 && (primaryStore.time[1] - primaryStore.time[0]) < 86400) {
-        const hh = date.getUTCHours().toString().padStart(2, '0');
-        const mm = date.getUTCMinutes().toString().padStart(2, '0');
-        label = `${hh}:${mm}`;
-      } else {
-        label = `${months[date.getUTCMonth()]} ${date.getUTCDate().toString().padStart(2, '0')}`;
-      }
+      const label = this._timeFormat(timestamp, tickType);
 
       ctx.fillText(label, x, textY);
     }
@@ -2390,20 +2398,9 @@ class ChartApi implements IChartApi {
       if (store.length > 0 && this._crosshair.barIndex >= 0 && this._crosshair.barIndex < store.length) {
         const vx = Math.round(this._crosshair.snappedX * pixelRatio);
         const timestamp = store.time[this._crosshair.barIndex];
-        const date = new Date(timestamp * 1000);
 
-        let timeLabel: string;
-        const crosshairFormatter = this._options.timeScale.tickMarkFormatter;
-        if (crosshairFormatter) {
-          const tickType = this._getTickType(store);
-          timeLabel = crosshairFormatter(timestamp, tickType);
-        } else if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
-          const hh = date.getUTCHours().toString().padStart(2, '0');
-          const mm = date.getUTCMinutes().toString().padStart(2, '0');
-          timeLabel = `${hh}:${mm}`;
-        } else {
-          timeLabel = `${months[date.getUTCMonth()]} ${date.getUTCDate().toString().padStart(2, '0')}`;
-        }
+        const crosshairTickType = this._getTickType(store);
+        const timeLabel = this._timeFormat(timestamp, crosshairTickType, true);
 
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
         const tw = Math.round(50 * pixelRatio);
@@ -2728,17 +2725,8 @@ class ChartApi implements IChartApi {
       const c = store.close[idx];
       const v = rawStore.volume ? rawStore.volume[idx] : 0;
       const timestamp = store.time[idx];
-      const date = new Date(timestamp * 1000);
-
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      let dateStr: string;
-      if (store.length >= 2 && (store.time[1] - store.time[0]) < 86400) {
-        const hh = date.getUTCHours().toString().padStart(2, '0');
-        const mm = date.getUTCMinutes().toString().padStart(2, '0');
-        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()} ${hh}:${mm}`;
-      } else {
-        dateStr = `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
-      }
+      const tooltipTickType = this._getTickType(store);
+      const dateStr = this._timeFormat(timestamp, tooltipTickType, true);
 
       const isUp = c >= o;
       const color = isUp ? '#22AB94' : '#F7525F';
@@ -2748,7 +2736,7 @@ class ChartApi implements IChartApi {
       this._tooltipOHEl.style.color = color;
       this._tooltipLCEl.textContent = `L ${this._formatPrice(l)} C ${this._formatPrice(c)}`;
       this._tooltipLCEl.style.color = color;
-      this._tooltipVEl.textContent = `V ${this._volumeFormatter.format(v)}`;
+      this._tooltipVEl.textContent = `V ${formatVolume(v, this._options.locale)}`;
       this._tooltipVEl.style.color = '#999';
 
       // Re-measure cached dimensions only when content changes
@@ -2855,7 +2843,7 @@ class ChartApi implements IChartApi {
       const l = store.low[barIndex];
       const c = store.close[barIndex];
       const v = rawStore.volume ? rawStore.volume[barIndex] : 0;
-      return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${this._volumeFormatter.format(v)}`;
+      return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${formatVolume(v, this._options.locale)}`;
     }
 
     const c = rawStore.close[barIndex];
