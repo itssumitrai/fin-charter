@@ -65,4 +65,26 @@ describe('Crosshair', () => {
     ch.update({ x: 70, y: 80, barIndex: 2, price: 20, time: 200 });
     expect(ch.visible).toBe(true);
   });
+
+  it('sourcePaneId defaults to empty string', () => {
+    expect(ch.sourcePaneId).toBe('');
+  });
+
+  it('update sets sourcePaneId when provided', () => {
+    ch.update({ x: 100, y: 200, barIndex: 5, price: 10, time: 0, sourcePaneId: 'pane-1' });
+    expect(ch.sourcePaneId).toBe('pane-1');
+  });
+
+  it('update preserves sourcePaneId when not provided', () => {
+    ch.update({ x: 100, y: 200, barIndex: 5, price: 10, time: 0, sourcePaneId: 'pane-1' });
+    ch.update({ x: 150, y: 250, barIndex: 6, price: 20, time: 1 });
+    expect(ch.sourcePaneId).toBe('pane-1');
+  });
+
+  it('sourcePaneId updates when switching panes', () => {
+    ch.update({ x: 100, y: 200, barIndex: 5, price: 10, time: 0, sourcePaneId: 'main' });
+    expect(ch.sourcePaneId).toBe('main');
+    ch.update({ x: 100, y: 50, barIndex: 5, price: 80, time: 0, sourcePaneId: 'pane-1' });
+    expect(ch.sourcePaneId).toBe('pane-1');
+  });
 });

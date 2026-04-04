@@ -282,6 +282,8 @@ class ChartApi implements IChartApi {
   private _paneOrder: string[] = []; // ordered list of pane ids (main first)
   private _paneApis: Map<string, PaneApi> = new Map();
   private _dividers: PaneDivider[] = [];
+  /** Cleanup functions for pointer listeners attached to indicator pane overlays. */
+  private _panePointerCleanup: Map<string, () => void> = new Map();
 
   private _eventRouter: EventRouter;
   private _panZoomHandler: PanZoomHandler;
@@ -538,6 +540,7 @@ class ChartApi implements IChartApi {
             this._crosshair, this._series[0].api.getDataLayer(),
             this._timeScale, this._mainPane.priceScale,
             () => this.requestRepaint(InvalidationLevel.Cursor),
+            this._mainPaneId,
           );
           this._eventRouter.addHandler(this._crosshairHandler);
         }
@@ -672,6 +675,7 @@ class ChartApi implements IChartApi {
             this._timeScale,
             this._mainPane.priceScale,
             () => this.requestRepaint(InvalidationLevel.Cursor),
+            this._mainPaneId,
           );
           this._eventRouter.addHandler(this._crosshairHandler);
         }
@@ -714,6 +718,9 @@ class ChartApi implements IChartApi {
     );
     this._paneApis.set(id, paneApi);
 
+    // Attach pointer listeners so the crosshair works on indicator panes
+    this._attachPanePointerListeners(id, pane);
+
     // Recalculate main pane height to accommodate new pane
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
@@ -746,6 +753,22 @@ class ChartApi implements IChartApi {
     this._paneApis.delete(paneId);
     this._mask.removePane(paneId);
 
+    // Clean up pointer listeners for this pane
+    const cleanup = this._panePointerCleanup.get(paneId);
+    if (cleanup) {
+      cleanup();
+      this._panePointerCleanup.delete(paneId);
+    }
+
+    // If the crosshair is currently pointing at the removed pane, reset it
+    if (this._crosshair.sourcePaneId === paneId) {
+      this._crosshair.hide();
+      if (this._crosshairHandler) {
+        this._crosshairHandler.setSourcePaneId(this._mainPaneId);
+        this._crosshairHandler.setPriceScale(this._mainPane.priceScale);
+      }
+    }
+
     // Destroy HUD for this pane
     const hud = this._huds.get(paneId);
     if (hud) {
@@ -758,6 +781,43 @@ class ChartApi implements IChartApi {
 
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  /**
+   * Attach lightweight pointer listeners to an indicator pane's overlay canvas
+   * so the crosshair works when hovering over non-main panes.
+   */
+  private _attachPanePointerListeners(paneId: string, pane: Pane): void {
+    const overlay = pane.canvases.overlayCanvas;
+    overlay.style.touchAction = 'none';
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!this._crosshairHandler || this._series.length === 0) return;
+      const rect = overlay.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Update crosshair handler to use this pane's price scale and pane ID
+      this._crosshairHandler.setSourcePaneId(paneId);
+      this._crosshairHandler.setPriceScale(pane.priceScale);
+      this._crosshairHandler.onPointerMove(x, y, e.pointerId);
+    };
+
+    const onPointerLeave = () => {
+      if (!this._crosshairHandler) return;
+      // Restore main pane context and hide crosshair
+      this._crosshairHandler.setSourcePaneId(this._mainPaneId);
+      this._crosshairHandler.setPriceScale(this._mainPane.priceScale);
+      this._crosshairHandler.onPointerUp(0);
+    };
+
+    overlay.addEventListener('pointermove', onPointerMove);
+    overlay.addEventListener('pointerleave', onPointerLeave);
+
+    this._panePointerCleanup.set(paneId, () => {
+      overlay.removeEventListener('pointermove', onPointerMove);
+      overlay.removeEventListener('pointerleave', onPointerLeave);
+    });
   }
 
   // ── Scale access ────────────────────────────────────────────────────────
@@ -837,6 +897,10 @@ class ChartApi implements IChartApi {
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
     this._mainPane.canvases.overlayCanvas.removeEventListener('click', this._handleClick);
+
+    // Clean up all indicator pane pointer listeners
+    for (const cleanup of this._panePointerCleanup.values()) cleanup();
+    this._panePointerCleanup.clear();
 
     // Clean up HUDs
     for (const hud of this._huds.values()) hud.destroy();
@@ -2121,8 +2185,8 @@ class ChartApi implements IChartApi {
     ctx.stroke();
     ctx.restore();
 
-    // Horizontal crosshair line only on the main pane (where the mouse events are)
-    if (isMain) {
+    // Horizontal crosshair line on the pane where the pointer is
+    if (pane.id === this._crosshair.sourcePaneId) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       ctx.save();
       ctx.strokeStyle = opts.horzLineColor;
@@ -2307,8 +2371,8 @@ class ChartApi implements IChartApi {
       }
     }
 
-    // Crosshair price label (main pane only for now)
-    if (isMain && this._crosshair.visible) {
+    // Crosshair price label on the pane the pointer is over
+    if (pane.id === this._crosshair.sourcePaneId && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       // In comparison mode, crosshair.price is still a raw price; convert to pct for display
       let priceText: string;
@@ -3043,8 +3107,8 @@ class ChartApi implements IChartApi {
     ctx.lineTo(Math.round(axisW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
     ctx.stroke();
 
-    // Crosshair price label on left axis (main pane only for now)
-    if (isMain && this._crosshair.visible) {
+    // Crosshair price label on left axis for the pane the pointer is over
+    if (pane.id === this._crosshair.sourcePaneId && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
@@ -3123,6 +3187,7 @@ class ChartApi implements IChartApi {
         this._timeScale,
         this._mainPane.priceScale,
         () => this.requestRepaint(InvalidationLevel.Cursor),
+        this._mainPaneId,
       );
       this._eventRouter.addHandler(this._crosshairHandler);
     }

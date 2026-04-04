@@ -6,6 +6,8 @@ export interface CrosshairState {
   time: number;
   /** X coordinate snapped to the bar centre (optional — falls back to x). */
   snappedX?: number;
+  /** The pane that generated this crosshair event. */
+  sourcePaneId?: string;
 }
 
 export class Crosshair {
@@ -15,6 +17,8 @@ export class Crosshair {
   public barIndex: number = -1;
   public price: number = 0;
   public time: number = 0;
+  /** The ID of the pane the pointer is currently over. */
+  public sourcePaneId: string = '';
   private _snappedX: number | undefined = undefined;
 
   /** X coordinate snapped to the bar centre; falls back to x if not provided. */
@@ -31,6 +35,9 @@ export class Crosshair {
     this.price = state.price;
     this.time = state.time;
     this._snappedX = state.snappedX;
+    if (state.sourcePaneId !== undefined) {
+      this.sourcePaneId = state.sourcePaneId;
+    }
   }
 
   /** Hide the crosshair. */
