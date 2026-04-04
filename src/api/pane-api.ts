@@ -1,4 +1,5 @@
 import type { IPanePrimitive, AttachedParams } from '../core/types';
+import type { Pane } from '../core/pane';
 
 // ─── IPaneApi ───────────────────────────────────────────────────────────────
 
@@ -7,6 +8,8 @@ export interface IPaneApi {
   readonly id: string;
   /** Set the pane height in CSS pixels. */
   setHeight(height: number): void;
+  /** Get the pane height in CSS pixels. */
+  getHeight(): number;
   /** Attach a pane primitive (plugin). */
   attachPrimitive(primitive: IPanePrimitive): void;
   /** Detach a pane primitive. */
@@ -17,23 +20,28 @@ export interface IPaneApi {
 
 export class PaneApi implements IPaneApi {
   public readonly id: string;
-  private _height: number;
+  private _pane: Pane;
   private _primitives: IPanePrimitive[] = [];
   private _requestRepaint: () => void;
 
-  constructor(id: string, height: number, requestRepaint: () => void) {
+  constructor(id: string, pane: Pane, requestRepaint: () => void) {
     this.id = id;
-    this._height = height;
+    this._pane = pane;
     this._requestRepaint = requestRepaint;
   }
 
   setHeight(height: number): void {
-    this._height = height;
+    this._pane.height = height;
     this._requestRepaint();
   }
 
   getHeight(): number {
-    return this._height;
+    return this._pane.height;
+  }
+
+  /** Get the internal Pane instance. */
+  getPane(): Pane {
+    return this._pane;
   }
 
   attachPrimitive(primitive: IPanePrimitive): void {

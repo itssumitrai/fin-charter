@@ -210,6 +210,8 @@ export interface BaseSeriesOptions {
   data?: Bar[] | ColumnData;
   priceScaleId?: string;
   visible?: boolean;
+  paneId?: string;
+  label?: string;
 }
 
 export type CandlestickSeriesOptions = BaseSeriesOptions & Partial<CandlestickRendererOptions>;

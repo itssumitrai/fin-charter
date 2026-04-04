@@ -12,6 +12,8 @@ import { Crosshair, type CrosshairState } from '../core/crosshair';
 import { InvalidateMask } from '../core/invalidation';
 import { DataLayer } from '../core/data-layer';
 import type { SeriesMarker } from '../core/series-markers';
+import { Pane } from '../core/pane';
+import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
@@ -107,6 +109,7 @@ interface SeriesEntry {
     | HollowCandleRenderer
     | HistogramRenderer;
   type: SeriesType;
+  paneId: string;
 }
 
 // ─── niceStep utility ───────────────────────────────────────────────────────
@@ -130,31 +133,27 @@ class ChartApi implements IChartApi {
   private _options: ChartOptions;
   private _container: HTMLElement;
   private _wrapper: HTMLDivElement;
-  private _chartCanvas: HTMLCanvasElement;
-  private _overlayCanvas: HTMLCanvasElement;
-  private _priceAxisCanvas: HTMLCanvasElement;
-  private _leftPriceAxisCanvas: HTMLCanvasElement;
+  private _paneContainer: HTMLDivElement;
   private _timeAxisCanvas: HTMLCanvasElement;
-  private _chartCtx: CanvasRenderingContext2D;
-  private _overlayCtx: CanvasRenderingContext2D;
-  private _priceAxisCtx: CanvasRenderingContext2D;
-  private _leftPriceAxisCtx: CanvasRenderingContext2D;
   private _timeAxisCtx: CanvasRenderingContext2D;
   private _legendEl: HTMLDivElement;
   private _tooltipEl: HTMLDivElement;
 
   private _timeScale: TimeScale;
-  private _priceScale: PriceScale;
-  private _leftPriceScale: PriceScale;
   private _crosshair: Crosshair;
   private _mask: InvalidateMask;
+
+  // Per-pane system
+  private _paneMap: Map<string, Pane> = new Map();
+  private _paneOrder: string[] = []; // ordered list of pane ids (main first)
+  private _paneApis: Map<string, PaneApi> = new Map();
+  private _dividers: PaneDivider[] = [];
 
   private _eventRouter: EventRouter;
   private _panZoomHandler: PanZoomHandler;
   private _crosshairHandler: CrosshairHandler | null = null;
 
   private _series: SeriesEntry[] = [];
-  private _panes: PaneApi[] = [];
 
   private _rafId: number | null = null;
   private _resizeObserver: ResizeObserver | null = null;
@@ -206,6 +205,11 @@ class ChartApi implements IChartApi {
     return this._width - leftScaleW - rightScaleW;
   }
 
+  /** Get the main Pane instance. */
+  private get _mainPane(): Pane {
+    return this._paneMap.get(this._mainPaneId)!;
+  }
+
   constructor(container: HTMLElement, options: ChartOptions) {
     this._options = options;
     this._container = container;
@@ -220,49 +224,32 @@ class ChartApi implements IChartApi {
     this._wrapper.style.height = `${this._height}px`;
     this._wrapper.style.backgroundColor = options.layout.backgroundColor;
 
-    // Chart canvas (series + grid) — top-left
-    this._chartCanvas = document.createElement('canvas');
-    this._chartCanvas.style.position = 'absolute';
-    this._chartCanvas.style.left = '0';
-    this._chartCanvas.style.top = '0';
-    this._chartCanvas.style.zIndex = '1';
+    // Pane container (flex column holds all pane rows + dividers)
+    this._paneContainer = document.createElement('div');
+    this._paneContainer.style.display = 'flex';
+    this._paneContainer.style.flexDirection = 'column';
+    this._paneContainer.style.width = '100%';
 
-    // Overlay canvas (crosshair only) — same position as chart canvas, z+1
-    this._overlayCanvas = document.createElement('canvas');
-    this._overlayCanvas.style.position = 'absolute';
-    this._overlayCanvas.style.left = '0';
-    this._overlayCanvas.style.top = '0';
-    this._overlayCanvas.style.zIndex = '2';
+    // Create main pane
+    const mainPaneHeight = this._height - TIME_AXIS_HEIGHT;
+    const mainPane = new Pane(this._mainPaneId, mainPaneHeight);
+    this._paneMap.set(this._mainPaneId, mainPane);
+    this._paneOrder.push(this._mainPaneId);
+    this._paneContainer.appendChild(mainPane.row);
 
-    // Price axis canvas — top-right
-    this._priceAxisCanvas = document.createElement('canvas');
-    this._priceAxisCanvas.style.position = 'absolute';
-    this._priceAxisCanvas.style.top = '0';
-    this._priceAxisCanvas.style.zIndex = '1';
+    this._wrapper.appendChild(this._paneContainer);
 
-    // Left price axis canvas — top-left (visible only when leftPriceScale.visible)
-    this._leftPriceAxisCanvas = document.createElement('canvas');
-    this._leftPriceAxisCanvas.style.position = 'absolute';
-    this._leftPriceAxisCanvas.style.top = '0';
-    this._leftPriceAxisCanvas.style.left = '0';
-    this._leftPriceAxisCanvas.style.zIndex = '1';
-
-    // Time axis canvas — bottom-left
+    // Time axis canvas — below all panes
     this._timeAxisCanvas = document.createElement('canvas');
     this._timeAxisCanvas.style.position = 'absolute';
     this._timeAxisCanvas.style.left = '0';
     this._timeAxisCanvas.style.zIndex = '1';
-
-    this._wrapper.appendChild(this._chartCanvas);
-    this._wrapper.appendChild(this._overlayCanvas);
-    this._wrapper.appendChild(this._priceAxisCanvas);
-    this._wrapper.appendChild(this._leftPriceAxisCanvas);
     this._wrapper.appendChild(this._timeAxisCanvas);
 
-    // Legend overlay (DOM-based)
+    // Legend overlay (DOM-based) — appended to main pane's row for positioning
     this._legendEl = document.createElement('div');
     this._legendEl.style.cssText = `position:absolute;top:4px;left:8px;z-index:10;font-size:11px;font-family:${options.layout.fontFamily};display:flex;gap:8px;pointer-events:none;color:${options.layout.textColor}`;
-    this._wrapper.appendChild(this._legendEl);
+    mainPane.row.appendChild(this._legendEl);
 
     // Tooltip overlay (DOM-based)
     this._tooltipEl = document.createElement('div');
@@ -308,26 +295,17 @@ class ChartApi implements IChartApi {
 
     container.appendChild(this._wrapper);
 
-    const pixelRatio = window.devicePixelRatio || 1;
-    this._setCanvasSize(this._width, this._height, pixelRatio);
-
-    this._chartCtx = this._chartCanvas.getContext('2d')!;
-    this._overlayCtx = this._overlayCanvas.getContext('2d')!;
-    this._priceAxisCtx = this._priceAxisCanvas.getContext('2d')!;
-    this._leftPriceAxisCtx = this._leftPriceAxisCanvas.getContext('2d')!;
+    // Get contexts
     this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
+
+    // Layout panes and canvases
+    this._layoutPanes();
 
     // ── Core model ─────────────────────────────────────────────────────────
     this._timeScale = new TimeScale(options.timeScale);
     const leftScaleW = options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     this._timeScale.setWidth(this._width - leftScaleW - rightScaleW);
-
-    this._priceScale = new PriceScale('right');
-    this._priceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
-
-    this._leftPriceScale = new PriceScale('left');
-    this._leftPriceScale.setHeight(this._height - TIME_AXIS_HEIGHT);
 
     this._crosshair = new Crosshair();
 
@@ -340,10 +318,10 @@ class ChartApi implements IChartApi {
       this.requestRepaint(InvalidationLevel.Full),
     );
     this._eventRouter.addHandler(this._panZoomHandler);
-    this._eventRouter.attach(this._overlayCanvas);
+    this._eventRouter.attach(mainPane.canvases.overlayCanvas);
 
     // ── Click detection via overlay canvas ─────────────────────────────────
-    this._overlayCanvas.addEventListener('click', this._handleClick);
+    mainPane.canvases.overlayCanvas.addEventListener('click', this._handleClick);
 
     // ── AutoSize ───────────────────────────────────────────────────────────
     if (options.autoSize) {
@@ -416,7 +394,7 @@ class ChartApi implements IChartApi {
             this._crosshair,
             this._series[0].api.getDataLayer(),
             this._timeScale,
-            this._priceScale,
+            this._mainPane.priceScale,
             () => this.requestRepaint(InvalidationLevel.Cursor),
           );
           this._eventRouter.addHandler(this._crosshairHandler);
@@ -431,21 +409,71 @@ class ChartApi implements IChartApi {
 
   addPane(options?: PaneOptions): IPaneApi {
     const id = `pane-${this._nextPaneId++}`;
-    const pane = new PaneApi(id, options?.height ?? 100, () =>
+    const defaultHeight = options?.height ?? 150;
+    const pane = new Pane(id, defaultHeight);
+    this._paneMap.set(id, pane);
+    this._paneOrder.push(id);
+
+    // Create divider between the previous last pane and this new one
+    const prevPaneId = this._paneOrder[this._paneOrder.length - 2];
+    const prevPane = this._paneMap.get(prevPaneId)!;
+    const divider = new PaneDivider(
+      () => prevPane.height,
+      (h) => { prevPane.height = h; },
+      () => pane.height,
+      (h) => { pane.height = h; },
+      () => this._layoutPanes(),
+    );
+    this._dividers.push(divider);
+
+    // Append divider and pane row to container
+    this._paneContainer.appendChild(divider.el);
+    this._paneContainer.appendChild(pane.row);
+
+    this._mask.addPane(id);
+
+    const paneApi = new PaneApi(id, pane, () =>
       this.requestRepaint(InvalidationLevel.Full),
     );
-    this._panes.push(pane);
-    this._mask.addPane(id);
-    return pane;
+    this._paneApis.set(id, paneApi);
+
+    // Recalculate main pane height to accommodate new pane
+    this._layoutPanes();
+    this.requestRepaint(InvalidationLevel.Full);
+
+    return paneApi;
   }
 
   removePane(pane: IPaneApi): void {
-    const idx = this._panes.findIndex((p) => p.id === pane.id);
-    if (idx !== -1) {
-      this._panes.splice(idx, 1);
-      this._mask.removePane(pane.id);
-      this.requestRepaint(InvalidationLevel.Full);
+    const paneId = pane.id;
+    if (paneId === this._mainPaneId) return; // Can't remove main pane
+
+    const orderIdx = this._paneOrder.indexOf(paneId);
+    if (orderIdx === -1) return;
+
+    // Remove the pane and its preceding divider
+    const internalPane = this._paneMap.get(paneId)!;
+    internalPane.row.remove();
+
+    // The divider before this pane (divider index = orderIdx - 1 since main has no preceding divider)
+    const dividerIdx = orderIdx - 1;
+    if (dividerIdx >= 0 && dividerIdx < this._dividers.length) {
+      const divider = this._dividers[dividerIdx];
+      divider.el.remove();
+      divider.destroy();
+      this._dividers.splice(dividerIdx, 1);
     }
+
+    this._paneMap.delete(paneId);
+    this._paneOrder.splice(orderIdx, 1);
+    this._paneApis.delete(paneId);
+    this._mask.removePane(paneId);
+
+    // Remove series assigned to this pane
+    this._series = this._series.filter((s) => s.paneId !== paneId);
+
+    this._layoutPanes();
+    this.requestRepaint(InvalidationLevel.Full);
   }
 
   // ── Scale access ────────────────────────────────────────────────────────
@@ -454,9 +482,15 @@ class ChartApi implements IChartApi {
     return this._timeScale;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  priceScale(_id?: string): PriceScale {
-    return this._priceScale;
+  priceScale(id?: string): PriceScale {
+    if (id) {
+      // Check if it's a pane id
+      const pane = this._paneMap.get(id);
+      if (pane) return pane.priceScale;
+      // Check if it's 'left' for the main pane
+      if (id === 'left') return this._mainPane.leftPriceScale;
+    }
+    return this._mainPane.priceScale;
   }
 
   // ── Options ─────────────────────────────────────────────────────────────
@@ -491,21 +525,17 @@ class ChartApi implements IChartApi {
     this._width = width;
     this._height = height;
 
-    const pixelRatio = window.devicePixelRatio || 1;
-    this._setCanvasSize(width, height, pixelRatio);
-
     this._wrapper.style.width = `${width}px`;
     this._wrapper.style.height = `${height}px`;
 
     const leftScaleWidthR = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleWidthR = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     this._timeScale.setWidth(width - leftScaleWidthR - rightScaleWidthR);
-    this._priceScale.setHeight(height - TIME_AXIS_HEIGHT);
-    this._leftPriceScale.setHeight(height - TIME_AXIS_HEIGHT);
 
     this._options.width = width;
     this._options.height = height;
 
+    this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
   }
 
@@ -521,7 +551,11 @@ class ChartApi implements IChartApi {
     this._resizeObserver?.disconnect();
     this._eventRouter.detach();
     this._panZoomHandler.destroy();
-    this._overlayCanvas.removeEventListener('click', this._handleClick);
+    this._mainPane.canvases.overlayCanvas.removeEventListener('click', this._handleClick);
+
+    // Clean up dividers
+    for (const d of this._dividers) d.destroy();
+    this._dividers.length = 0;
 
     this._visibleRangeChangeCallbacks.length = 0;
     this._crosshairMoveCallbacks.length = 0;
@@ -582,7 +616,7 @@ class ChartApi implements IChartApi {
     this._timeScale.setOptions({ barSpacing: newBarSpacing });
 
     // Compute rightOffset so that `to` sits at the right edge.
-    // rightBorder = baseIndex + rightOffset = to  →  rightOffset = to - baseIndex
+    // rightBorder = baseIndex + rightOffset = to  ->  rightOffset = to - baseIndex
     const baseIndex = this._timeScale.dataLength > 0
       ? this._timeScale.dataLength - 1
       : 0;
@@ -622,27 +656,93 @@ class ChartApi implements IChartApi {
     }
   }
 
+  // ── Layout panes ─────────────────────────────────────────────────────
+
+  private _layoutPanes(): void {
+    const pixelRatio = window.devicePixelRatio || 1;
+    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
+    const rightScaleVisible = this._options.rightPriceScale.visible;
+    const leftScaleVisible = this._options.leftPriceScale.visible;
+    const chartW = this._chartWidth;
+
+    // Calculate total available height for panes
+    const totalDividerHeight = this._dividers.length * DIVIDER_HEIGHT;
+    const totalAvailable = this._height - TIME_AXIS_HEIGHT - totalDividerHeight;
+
+    // Sum of indicator pane heights (all except main)
+    let indicatorPanesHeight = 0;
+    for (const paneId of this._paneOrder) {
+      if (paneId === this._mainPaneId) continue;
+      indicatorPanesHeight += this._paneMap.get(paneId)!.height;
+    }
+
+    // Main pane gets the remainder
+    const mainPaneHeight = Math.max(50, totalAvailable - indicatorPanesHeight);
+    this._mainPane.height = mainPaneHeight;
+
+    // Layout each pane
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      pane.layout(chartW, leftScaleW, PRICE_AXIS_WIDTH, rightScaleVisible, leftScaleVisible, pixelRatio);
+    }
+
+    // Position time axis below all panes
+    const timeAxisTop = this._height - TIME_AXIS_HEIGHT;
+    this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
+    this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
+    this._timeAxisCanvas.style.width = `${chartW}px`;
+    this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
+    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
+    this._timeAxisCanvas.style.top = `${timeAxisTop}px`;
+  }
+
   // ── Paint ─────────────────────────────────────────────────────────────
 
   private _paint(): void {
     if (this._removed) return;
 
-    const level = this._mask.level(this._mainPaneId);
-    if (level >= InvalidationLevel.Light) {
-      this._paintMain();
-      this._paintPriceAxis();
-      this._paintLeftPriceAxis();
-      this._paintTimeAxis();
-    }
-    if (level >= InvalidationLevel.Cursor) {
-      this._paintOverlay();
-      // Redraw axes on cursor move too (for crosshair labels) — axes are tiny, very cheap
-      this._paintPriceAxis();
-      this._paintLeftPriceAxis();
-      this._paintTimeAxis();
+    // Sync dataLength from primary series
+    if (this._series.length > 0) {
+      const primaryStore = this._series[0].api.getDataLayer().store;
+      this._timeScale.setDataLength(primaryStore.length);
     }
 
+    for (const paneId of this._paneOrder) {
+      const pane = this._paneMap.get(paneId)!;
+      const level = this._mask.level(paneId);
+      const seriesForPane = this._series.filter(s => s.paneId === paneId);
+
+      if (level >= InvalidationLevel.Light) {
+        this._paintPane(pane, seriesForPane);
+        this._paintPanePriceAxis(pane, seriesForPane);
+        this._paintPaneLeftPriceAxis(pane, seriesForPane);
+      }
+      if (level >= InvalidationLevel.Cursor) {
+        this._paintPaneOverlay(pane);
+        // Redraw axes on cursor move too (for crosshair labels) -- axes are tiny, very cheap
+        this._paintPanePriceAxis(pane, seriesForPane);
+        this._paintPaneLeftPriceAxis(pane, seriesForPane);
+      }
+    }
+
+    // Shared time axis
+    this._paintTimeAxis();
+
     // Emit crosshair callbacks
+    this._emitCrosshairCallbacks();
+
+    this._updateLegend();
+    this._updateTooltip();
+
+    // Emit visible range change callbacks (Feature 3)
+    if (this._visibleRangeChangeCallbacks.length > 0) {
+      this._emitVisibleRangeChange();
+    }
+
+    this._mask.reset();
+  }
+
+  private _emitCrosshairCallbacks(): void {
     if (this._crosshair.visible) {
       const state: CrosshairState = {
         x: this._crosshair.x,
@@ -656,16 +756,6 @@ class ChartApi implements IChartApi {
     } else {
       for (const cb of this._crosshairMoveCallbacks) cb(null);
     }
-
-    this._updateLegend();
-    this._updateTooltip();
-
-    // Emit visible range change callbacks (Feature 3)
-    if (this._visibleRangeChangeCallbacks.length > 0) {
-      this._emitVisibleRangeChange();
-    }
-
-    this._mask.reset();
   }
 
   private _emitVisibleRangeChange(): void {
@@ -700,34 +790,44 @@ class ChartApi implements IChartApi {
     }
   }
 
-  private _paintMain(): void {
+  private _paintPane(pane: Pane, seriesForPane: SeriesEntry[]): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._chartCtx;
+    const ctx = pane.canvases.chartCtx;
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = pane.height;
+    const isMain = pane.id === this._mainPaneId;
 
     // Clear chart canvas
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
 
-    if (this._series.length === 0) return;
+    if (seriesForPane.length === 0 && !isMain) return;
 
-    // Find the primary series (first one) for data length & visible range
-    const primaryEntry = this._series[0];
-    const primaryStore = primaryEntry.api.getDataLayer().store;
+    // For the main pane (or any pane with series), find the primary series for data length & visible range
+    const primaryEntry = this._series.length > 0 ? this._series[0] : null;
+    const primaryStore = primaryEntry ? primaryEntry.api.getDataLayer().store : null;
 
-    this._timeScale.setDataLength(primaryStore.length);
+    if (primaryStore) {
+      this._timeScale.setDataLength(primaryStore.length);
+    }
+
     const range = this._timeScale.visibleRange();
 
-    if (range.fromIdx > range.toIdx || primaryStore.length === 0) return;
+    if (!primaryStore || range.fromIdx > range.toIdx || primaryStore.length === 0) {
+      if (seriesForPane.length === 0) return;
+    }
 
-    // Auto-scale price from visible data (scan all series)
-    this._updateDataRange(range);
+    // Auto-scale price from visible data (only series assigned to this pane)
+    this._updatePaneDataRange(pane, seriesForPane, range);
 
-    // Draw watermark BEFORE grid/series so it appears behind everything
-    this._drawWatermark(ctx, chartW, chartH, pixelRatio);
+    if (isMain) {
+      // Draw watermark BEFORE grid/series so it appears behind everything
+      this._drawWatermark(ctx, chartW, chartH, pixelRatio);
+    }
 
-    // Draw grid (within chart area only)
-    this._drawGrid(ctx, chartW, chartH, range, primaryStore, pixelRatio);
+    if (isMain && primaryStore) {
+      // Draw grid (within chart area only)
+      this._drawGrid(ctx, chartW, chartH, range, primaryStore, pane.priceScale, pixelRatio);
+    }
 
     // Clip series rendering to chart area
     ctx.save();
@@ -736,48 +836,47 @@ class ChartApi implements IChartApi {
     ctx.clip();
 
     // Draw each series
-    const target = this._createRenderTarget(this._chartCanvas, ctx, pixelRatio);
+    const target = this._createRenderTarget(pane.canvases.chartCanvas, ctx, chartW, chartH, pixelRatio);
     const indexToX = (i: number) => this._timeScale.indexToX(i);
-    const priceToY = (p: number) => this._priceScale.priceToY(p);
+    const priceToY = (p: number) => pane.priceScale.priceToY(p);
 
-    for (const entry of this._series) {
+    for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
       const store = entry.api.getDataLayer().store;
-      // Re-set data length for secondary series
-      if (entry !== primaryEntry) {
-        // For now use the same time scale range
-      }
-
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
     }
 
-    // Draw volume overlay
-    if (this._options.volume.visible) {
+    // Volume overlay (main pane only)
+    if (isMain && this._options.volume.visible) {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
-    // Draw markers for each series
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      const markers = entry.api.getMarkers();
-      if (markers.length > 0) {
-        const dataLayer = entry.api.getDataLayer();
-        this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
+    // Markers (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        const markers = entry.api.getMarkers();
+        if (markers.length > 0) {
+          const dataLayer = entry.api.getDataLayer();
+          this._drawMarkers(ctx, markers, dataLayer, range, indexToX, priceToY, pixelRatio);
+        }
       }
     }
 
-    // Draw price lines for each series
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      const priceLines = entry.api.getPriceLines();
-      if (priceLines.length > 0) {
-        this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+    // Price lines (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        const priceLines = entry.api.getPriceLines();
+        if (priceLines.length > 0) {
+          this._drawPriceLines(ctx, priceLines, chartW, priceToY, pixelRatio);
+        }
       }
     }
 
-    // Draw last close price line
-    if (this._options.lastPriceLine.visible && primaryStore.length > 0) {
+    // Last close price line (main pane only)
+    if (isMain && this._options.lastPriceLine.visible && primaryStore && primaryStore.length > 0) {
       const lastClose = primaryStore.close[primaryStore.length - 1];
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
@@ -849,11 +948,12 @@ class ChartApi implements IChartApi {
     }
   }
 
-  private _paintOverlay(): void {
+  private _paintPaneOverlay(pane: Pane): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._overlayCtx;
+    const ctx = pane.canvases.overlayCtx;
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = pane.height;
+    const isMain = pane.id === this._mainPaneId;
 
     // Overlay canvas is sized to chart area only
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
@@ -862,7 +962,7 @@ class ChartApi implements IChartApi {
 
     const opts = this._options.crosshair;
 
-    // Vertical line (snapped to bar center) — clipped to chart area
+    // Vertical crosshair line draws on ALL panes (shared X)
     const vx = Math.round(this._crosshair.snappedX * pixelRatio);
     ctx.save();
     ctx.strokeStyle = opts.vertLineColor;
@@ -874,17 +974,19 @@ class ChartApi implements IChartApi {
     ctx.stroke();
     ctx.restore();
 
-    // Horizontal line — clipped to chart area
-    const hy = Math.round(this._crosshair.y * pixelRatio);
-    ctx.save();
-    ctx.strokeStyle = opts.horzLineColor;
-    ctx.lineWidth = opts.horzLineWidth * pixelRatio;
-    ctx.setLineDash(opts.horzLineDash.map((d) => d * pixelRatio));
-    ctx.beginPath();
-    ctx.moveTo(0, hy);
-    ctx.lineTo(Math.round(chartW * pixelRatio), hy);
-    ctx.stroke();
-    ctx.restore();
+    // Horizontal crosshair line only on the main pane (where the mouse events are)
+    if (isMain) {
+      const hy = Math.round(this._crosshair.y * pixelRatio);
+      ctx.save();
+      ctx.strokeStyle = opts.horzLineColor;
+      ctx.lineWidth = opts.horzLineWidth * pixelRatio;
+      ctx.setLineDash(opts.horzLineDash.map((d) => d * pixelRatio));
+      ctx.beginPath();
+      ctx.moveTo(0, hy);
+      ctx.lineTo(Math.round(chartW * pixelRatio), hy);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // ── Grid ──────────────────────────────────────────────────────────────
@@ -895,6 +997,7 @@ class ChartApi implements IChartApi {
     h: number,
     range: VisibleRange,
     store: ColumnStore,
+    priceScale: PriceScale,
     pixelRatio: number,
   ): void {
     const gridOpts = this._options.grid;
@@ -905,14 +1008,14 @@ class ChartApi implements IChartApi {
     // Horizontal price grid lines
     if (gridOpts.horzLinesVisible) {
       ctx.strokeStyle = gridOpts.horzLinesColor;
-      const priceRange = this._priceScale.priceRange;
+      const priceRange = priceScale.priceRange;
       const pRange = priceRange.max - priceRange.min;
       const targetHorzSteps = Math.max(2, Math.floor(h / 60));
       const step = niceStep(pRange, targetHorzSteps);
 
       const firstPrice = Math.ceil(priceRange.min / step) * step;
       for (let price = firstPrice; price <= priceRange.max; price += step) {
-        const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
+        const y = Math.round(priceScale.priceToY(price) * pixelRatio);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(Math.round(w * pixelRatio), y);
@@ -939,18 +1042,19 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
-  // ── Price axis (on its own canvas) ─────────────────────────────────────
+  // ── Price axis per-pane ───────────────────────────────────────────────
 
-  private _paintPriceAxis(): void {
+  private _paintPanePriceAxis(pane: Pane, seriesForPane: SeriesEntry[]): void {
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._priceAxisCtx;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const ctx = pane.canvases.rightPriceAxisCtx;
+    const chartH = pane.height;
     const axisW = PRICE_AXIS_WIDTH;
+    const isMain = pane.id === this._mainPaneId;
 
     ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
 
     const layout = this._options.layout;
-    const priceRange = this._priceScale.priceRange;
+    const priceRange = pane.priceScale.priceRange;
     const pRange = priceRange.max - priceRange.min;
     const targetSteps = Math.max(2, Math.floor(chartH / 60));
     const step = niceStep(pRange, targetSteps);
@@ -966,7 +1070,7 @@ class ChartApi implements IChartApi {
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
     for (let price = firstPrice; price <= priceRange.max; price += step) {
-      const y = Math.round(this._priceScale.priceToY(price) * pixelRatio);
+      const y = Math.round(pane.priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
       const text = this._formatPrice(price);
@@ -988,15 +1092,15 @@ class ChartApi implements IChartApi {
     ctx.lineTo(0, Math.round(chartH * pixelRatio));
     ctx.stroke();
 
-    // Current price label (last close)
-    if (this._options.lastPriceLine.visible && this._series.length > 0) {
+    // Current price label (last close) — main pane only
+    if (isMain && this._options.lastPriceLine.visible && this._series.length > 0) {
       const store = this._series[0].api.getDataLayer().store;
       if (store.length > 0) {
         const lastClose = store.close[store.length - 1];
         const lastOpen = store.open[store.length - 1];
         const isUp = lastClose >= lastOpen;
         const bgColor = isUp ? '#26a69a' : '#ef5350';
-        const y = Math.round(this._priceScale.priceToY(lastClose) * pixelRatio);
+        const y = Math.round(pane.priceScale.priceToY(lastClose) * pixelRatio);
         const priceText = this._formatPrice(lastClose);
         const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
@@ -1013,29 +1117,31 @@ class ChartApi implements IChartApi {
       }
     }
 
-    // Price line labels on axis
-    for (const entry of this._series) {
-      if (!entry.api.isVisible()) continue;
-      for (const pl of entry.api.getPriceLines()) {
-        if (!pl.options.axisLabelVisible) continue;
-        const plY = Math.round(this._priceScale.priceToY(pl.options.price) * pixelRatio);
-        if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
-        const plText = this._formatPrice(pl.options.price);
-        const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
+    // Price line labels on axis (main pane only)
+    if (isMain) {
+      for (const entry of seriesForPane) {
+        if (!entry.api.isVisible()) continue;
+        for (const pl of entry.api.getPriceLines()) {
+          if (!pl.options.axisLabelVisible) continue;
+          const plY = Math.round(pane.priceScale.priceToY(pl.options.price) * pixelRatio);
+          if (plY < labelHeight / 2 || plY > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
+          const plText = this._formatPrice(pl.options.price);
+          const plLh = Math.round(layout.fontSize * 1.8 * pixelRatio);
 
-        ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
-        ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
+          ctx.fillStyle = pl.options.axisLabelColor ?? pl.options.color;
+          ctx.fillRect(0, plY - plLh / 2, axisRight, plLh);
 
-        ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
-        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(plText, axisRight - padding, plY);
+          ctx.fillStyle = pl.options.axisLabelTextColor ?? '#ffffff';
+          ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(plText, axisRight - padding, plY);
+        }
       }
     }
 
-    // Crosshair price label
-    if (this._crosshair.visible) {
+    // Crosshair price label (main pane only for now)
+    if (isMain && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
@@ -1147,15 +1253,15 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
-  // ── Auto-scale price range ────────────────────────────────────────────
+  // ── Auto-scale price range (per-pane) ─────────────────────────────────
 
-  private _updateDataRange(range: VisibleRange): void {
+  private _updatePaneDataRange(pane: Pane, seriesForPane: SeriesEntry[], range: VisibleRange): void {
     let rightMin = Infinity;
     let rightMax = -Infinity;
     let leftMin = Infinity;
     let leftMax = -Infinity;
 
-    for (const entry of this._series) {
+    for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
       const store = entry.api.getDataLayer().store;
       const to = Math.min(range.toIdx, store.length - 1);
@@ -1176,10 +1282,10 @@ class ChartApi implements IChartApi {
     }
 
     if (rightMin < Infinity && rightMax > -Infinity) {
-      this._priceScale.autoScale(rightMin, rightMax);
+      pane.priceScale.autoScale(rightMin, rightMax);
     }
     if (leftMin < Infinity && leftMax > -Infinity) {
-      this._leftPriceScale.autoScale(leftMin, leftMax);
+      pane.leftPriceScale.autoScale(leftMin, leftMax);
     }
   }
 
@@ -1465,7 +1571,7 @@ class ChartApi implements IChartApi {
 
     // Position tooltip near cursor, ensuring it doesn't overflow
     const chartW = this._chartWidth;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const chartH = this._mainPane.height;
     const cursorX = this._crosshair.snappedX;
     const cursorY = this._crosshair.y;
     const tooltipW = this._tooltipWidth;
@@ -1550,83 +1656,28 @@ class ChartApi implements IChartApi {
     this._legendEl.style.display = 'flex';
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────
+  // ── Left Price axis per-pane ────────────────────────────────────────────
 
-  private _createRenderTarget(
-    canvas: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D,
-    pixelRatio: number,
-  ): IRenderTarget {
-    return {
-      canvas,
-      context: ctx,
-      width: this._chartWidth,
-      height: this._height - TIME_AXIS_HEIGHT,
-      pixelRatio,
-    };
-  }
-
-  private _setCanvasSize(width: number, height: number, pixelRatio: number): void {
-    const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
-    const chartW = width - leftScaleW - rightScaleW;
-    const chartH = height - TIME_AXIS_HEIGHT;
-
-    // Chart + overlay canvases: chart area only
-    for (const canvas of [this._chartCanvas, this._overlayCanvas]) {
-      canvas.width = Math.round(chartW * pixelRatio);
-      canvas.height = Math.round(chartH * pixelRatio);
-      canvas.style.width = `${chartW}px`;
-      canvas.style.height = `${chartH}px`;
-      canvas.style.left = `${leftScaleW}px`;
-    }
-
-    // Right price axis canvas — positioned top-right
-    this._priceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
-    this._priceAxisCanvas.height = Math.round(chartH * pixelRatio);
-    this._priceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
-    this._priceAxisCanvas.style.height = `${chartH}px`;
-    this._priceAxisCanvas.style.left = `${leftScaleW + chartW}px`;
-    this._priceAxisCanvas.style.display = this._options.rightPriceScale.visible ? '' : 'none';
-
-    // Left price axis canvas — positioned top-left
-    this._leftPriceAxisCanvas.width = Math.round(PRICE_AXIS_WIDTH * pixelRatio);
-    this._leftPriceAxisCanvas.height = Math.round(chartH * pixelRatio);
-    this._leftPriceAxisCanvas.style.width = `${PRICE_AXIS_WIDTH}px`;
-    this._leftPriceAxisCanvas.style.height = `${chartH}px`;
-    this._leftPriceAxisCanvas.style.left = '0px';
-    this._leftPriceAxisCanvas.style.display = this._options.leftPriceScale.visible ? '' : 'none';
-
-    // Time axis canvas — positioned bottom-left (offset by left scale width)
-    this._timeAxisCanvas.width = Math.round(chartW * pixelRatio);
-    this._timeAxisCanvas.height = Math.round(TIME_AXIS_HEIGHT * pixelRatio);
-    this._timeAxisCanvas.style.width = `${chartW}px`;
-    this._timeAxisCanvas.style.height = `${TIME_AXIS_HEIGHT}px`;
-    this._timeAxisCanvas.style.left = `${leftScaleW}px`;
-    this._timeAxisCanvas.style.top = `${chartH}px`;
-  }
-
-  // ── Left Price axis (on its own canvas) ─────────────────────────────────
-
-  private _paintLeftPriceAxis(): void {
+  private _paintPaneLeftPriceAxis(pane: Pane, seriesForPane: SeriesEntry[]): void {
     if (!this._options.leftPriceScale.visible) return;
 
     const pixelRatio = window.devicePixelRatio || 1;
-    const ctx = this._leftPriceAxisCtx;
-    const chartH = this._height - TIME_AXIS_HEIGHT;
+    const ctx = pane.canvases.leftPriceAxisCtx;
+    const chartH = pane.height;
     const axisW = PRICE_AXIS_WIDTH;
+    const isMain = pane.id === this._mainPaneId;
 
     ctx.clearRect(0, 0, Math.round(axisW * pixelRatio), Math.round(chartH * pixelRatio));
 
-    // Left scale auto-scales independently in _updateDataRange() based on series with priceScaleId: 'left'.
+    // Left scale auto-scales independently in _updatePaneDataRange() based on series with priceScaleId: 'left'.
     // Fall back to right scale range if no series are assigned to the left scale.
-    const leftRange = this._leftPriceScale.priceRange;
+    const leftRange = pane.leftPriceScale.priceRange;
     if (leftRange.min === leftRange.max) {
-      this._leftPriceScale.autoScale(this._priceScale.priceRange.min, this._priceScale.priceRange.max);
+      pane.leftPriceScale.autoScale(pane.priceScale.priceRange.min, pane.priceScale.priceRange.max);
     }
 
     const layout = this._options.layout;
-    const priceRange = this._leftPriceScale.priceRange;
+    const priceRange = pane.leftPriceScale.priceRange;
     const pRange = priceRange.max - priceRange.min;
     const targetSteps = Math.max(2, Math.floor(chartH / 60));
     const step = niceStep(pRange, targetSteps);
@@ -1641,7 +1692,7 @@ class ChartApi implements IChartApi {
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
     for (let price = firstPrice; price <= priceRange.max; price += step) {
-      const y = Math.round(this._leftPriceScale.priceToY(price) * pixelRatio);
+      const y = Math.round(pane.leftPriceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
       const text = this._formatPrice(price);
@@ -1661,8 +1712,8 @@ class ChartApi implements IChartApi {
     ctx.lineTo(Math.round(axisW * pixelRatio) - 1, Math.round(chartH * pixelRatio));
     ctx.stroke();
 
-    // Crosshair price label on left axis
-    if (this._crosshair.visible) {
+    // Crosshair price label on left axis (main pane only for now)
+    if (isMain && this._crosshair.visible) {
       const hy = Math.round(this._crosshair.y * pixelRatio);
       const priceText = this._formatPrice(this._crosshair.price);
       const lh = Math.round(layout.fontSize * 1.8 * pixelRatio);
@@ -1676,7 +1727,28 @@ class ChartApi implements IChartApi {
       ctx.fillText(priceText, padding, hy);
     }
 
+    // Suppress unused variable warning
+    void seriesForPane;
+
     ctx.restore();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+
+  private _createRenderTarget(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    pixelRatio: number,
+  ): IRenderTarget {
+    return {
+      canvas,
+      context: ctx,
+      width,
+      height,
+      pixelRatio,
+    };
   }
 
   private _addSeries<T extends SeriesType>(
@@ -1686,12 +1758,19 @@ class ChartApi implements IChartApi {
     const dataLayer = new DataLayer();
     const resolvedOptions = (options ?? {}) as SeriesOptionsMap[T];
 
+    // Determine which pane this series belongs to
+    const paneId = (resolvedOptions as { paneId?: string }).paneId ?? this._mainPaneId;
+    const pane = this._paneMap.get(paneId);
+    if (!pane) {
+      throw new Error(`Pane "${paneId}" not found. Create it first with addPane().`);
+    }
+
     const renderer = this._createRenderer(type, resolvedOptions);
-    const api = new SeriesApi<T>(type, dataLayer, this._priceScale, resolvedOptions, () =>
+    const api = new SeriesApi<T>(type, dataLayer, pane.priceScale, resolvedOptions, () =>
       this.requestRepaint(InvalidationLevel.Full),
     );
 
-    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type });
+    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId });
 
     // Set up crosshair handler on first series added
     if (this._series.length === 1 && this._crosshairHandler === null) {
@@ -1699,7 +1778,7 @@ class ChartApi implements IChartApi {
         this._crosshair,
         dataLayer,
         this._timeScale,
-        this._priceScale,
+        this._mainPane.priceScale,
         () => this.requestRepaint(InvalidationLevel.Cursor),
       );
       this._eventRouter.addHandler(this._crosshairHandler);
@@ -1715,7 +1794,7 @@ class ChartApi implements IChartApi {
   ): SeriesEntry['renderer'] {
     // Extract renderer-relevant options (exclude BaseSeriesOptions fields)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: _d, priceScaleId: _p, visible: _v, ...rendererOpts } = options;
+    const { data: _d, priceScaleId: _p, visible: _v, paneId: _pi, label: _l, ...rendererOpts } = options;
 
     switch (type) {
       case 'candlestick': {
@@ -1760,10 +1839,10 @@ class ChartApi implements IChartApi {
 
   private _handleClick = (e: MouseEvent): void => {
     if (this._clickCallbacks.length === 0) return;
-    const rect = this._overlayCanvas.getBoundingClientRect();
+    const rect = this._mainPane.canvases.overlayCanvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const price = this._priceScale.yToPrice(y);
+    const price = this._mainPane.priceScale.yToPrice(y);
 
     // Get time from nearest bar
     let time = 0;
