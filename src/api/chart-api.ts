@@ -2596,7 +2596,7 @@ class ChartApi implements IChartApi {
     const hudRowId = `series-${type}-${seriesIndex}`;
     hud.addRow({
       id: hudRowId,
-      label: (resolvedOptions.label as string) || 'Symbol',
+      label: (resolvedOptions.label as string) || this._options.symbol || 'Symbol',
       color: this._getSeriesColor(type, resolvedOptions),
       getValues: (barIndex: number) => this._getSeriesValues(api, barIndex),
       onToggleVisible: () => {
