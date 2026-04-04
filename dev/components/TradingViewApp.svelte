@@ -21,6 +21,7 @@
   let prevSymbol = '';
   let prevPeriodicity = '';
   let prevChartType: ChartTypeLabel = 'Candlestick';
+  let loadRequestId = 0;
 
   function createSeries(c: IChartApi, type: ChartTypeLabel): ISeriesApi<SeriesType> {
     const seriesType = CHART_TYPE_TO_SERIES[type];
@@ -38,9 +39,12 @@
 
   async function loadData() {
     if (!chart || !mainSeries) return;
+    const reqId = ++loadRequestId;
     appStore.loading = true;
     try {
       const { bars, meta } = await fetchBars(appStore.symbol, appStore.periodicity);
+      // Guard against stale responses from concurrent requests
+      if (reqId !== loadRequestId) return;
       appStore.meta = meta;
 
       // Apply timezone from exchange
@@ -60,9 +64,10 @@
         await loadComparison(sym);
       }
     } catch (err) {
+      if (reqId !== loadRequestId) return;
       console.error('Failed to load data:', err);
     } finally {
-      appStore.loading = false;
+      if (reqId === loadRequestId) appStore.loading = false;
     }
   }
 
@@ -161,13 +166,15 @@
     const sym = appStore.symbol;
     if (sym !== prevSymbol && chart) {
       prevSymbol = sym;
-      // Clear comparisons on symbol change
-      for (const [s, api] of comparisonSeries) {
+      // Clear comparisons on symbol change (both local map and store)
+      for (const [, api] of comparisonSeries) {
         chart.removeSeries(api);
       }
       comparisonSeries.clear();
-      if (comparisonSeries.size === 0 && appStore.comparisonMode) {
-        chart.setComparisonMode(false);
+      appStore.comparisonMode = false;
+      // Clear store comparison symbols
+      for (const s of [...appStore.comparisonSymbols]) {
+        appStore.removeComparison(s);
       }
       loadData();
     }

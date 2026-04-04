@@ -56,7 +56,13 @@ export async function fetchBars(
   const config = INTERVAL_MAP[key] ?? INTERVAL_MAP['1D'];
 
   const url = `/api/yahoo/${encodeURIComponent(symbol)}?interval=${config.interval}&range=${config.range}`;
-  const resp = await fetch(url);
+  let resp: Response;
+  try {
+    resp = await fetch(url);
+  } catch {
+    // Proxy unavailable (e.g. static Storybook build) — return generated fallback data
+    return generateFallbackData(symbol);
+  }
   if (!resp.ok) throw new Error(`Yahoo Finance error: ${resp.status}`);
 
   const json = await resp.json();
@@ -102,6 +108,35 @@ export async function fetchBars(
   };
 
   return { bars: finalBars, meta };
+}
+
+// Fallback data for static builds (no proxy available)
+const FALLBACK_PRICES: Record<string, number> = {
+  'AAPL': 190, 'MSFT': 420, 'GOOGL': 178, 'AMZN': 185, 'TSLA': 245,
+  'META': 510, 'NVDA': 880, 'JPM': 195, 'V': 280, 'JNJ': 155,
+};
+
+function generateFallbackData(symbol: string): { bars: Bar[]; meta: QuoteMeta } {
+  const startPrice = FALLBACK_PRICES[symbol] ?? 100;
+  const bars: Bar[] = [];
+  let price = startPrice;
+  const now = Math.floor(Date.now() / 1000);
+  const start = now - 365 * 86400;
+  for (let i = 0; i < 365; i++) {
+    const time = start + i * 86400;
+    const change = price * (Math.random() * 0.04 - 0.02);
+    const open = price;
+    const close = Math.max(0.01, price + change);
+    const high = Math.max(open, close) + Math.random() * price * 0.015;
+    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+    const volume = Math.round(1e6 + Math.random() * 9e6);
+    bars.push({ time, open, high, low, close, volume });
+    price = close;
+  }
+  return {
+    bars,
+    meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York' },
+  };
 }
 
 function aggregate4h(bars: Bar[]): Bar[] {

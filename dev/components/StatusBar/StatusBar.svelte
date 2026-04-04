@@ -9,7 +9,7 @@
 
 <div class="status-bar">
   <span class="status-item">
-    <span class="dot" class:open={true}></span>
+    <span class="dot"></span>
     {market?.name ?? appStore.meta?.exchange ?? '—'}
   </span>
   <span class="sep">·</span>

@@ -28,10 +28,34 @@ export const Default: Story = {
     container.style.height = '100vh';
     container.style.overflow = 'hidden';
 
-    // Mount Svelte component — use requestAnimationFrame to ensure container is in DOM
-    requestAnimationFrame(() => {
-      mount(TradingViewApp, { target: container });
+    let app: ReturnType<typeof mount> | undefined;
+    let cleanedUp = false;
+
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      observer.disconnect();
+      if (app) {
+        unmount(app);
+        app = undefined;
+      }
+    };
+
+    const observer = new MutationObserver(() => {
+      if (!container.isConnected) {
+        cleanup();
+      }
     });
+
+    requestAnimationFrame(() => {
+      if (cleanedUp || !container.isConnected) {
+        cleanup();
+        return;
+      }
+      app = mount(TradingViewApp, { target: container });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return container;
   },

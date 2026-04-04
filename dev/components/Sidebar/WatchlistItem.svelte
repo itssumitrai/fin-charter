@@ -15,7 +15,10 @@
   role="button"
   tabindex="0"
   {onclick}
-  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') onclick(); }}
+  onkeydown={(e) => {
+    if (e.key === ' ') { e.preventDefault(); onclick(); }
+    else if (e.key === 'Enter') { onclick(); }
+  }}
 >
   <div class="left">
     <span class="symbol">{symbol}</span>
