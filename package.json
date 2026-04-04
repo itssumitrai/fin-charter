@@ -70,7 +70,7 @@
     "size": "node -e \"const{execSync:e}=require('child_process');const f=s=>(parseInt(e('gzip -c '+s+' | wc -c').toString().trim())/1024).toFixed(1);const big=e('ls -S dist/*.js').toString().trim().split('\\n')[0].trim();console.log('Core ('+big.split('/').pop()+'):', f(big), 'KB gzip');console.log('Full bundle:', (parseInt(e('cat dist/*.js | gzip | wc -c').toString().trim())/1024).toFixed(1), 'KB gzip')\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
-    "chromatic": "chromatic --project-token=chpt_ddb9cd3d73e77c4"
+    "chromatic": "chromatic"
   },
   "keywords": [
     "chart",

@@ -60,8 +60,10 @@ function generateYahooResponse(symbol: string, interval: string, count: number) 
     return seed / 0x7fffffff;
   };
 
-  const now = Math.floor(Date.now() / 1000);
-  const startTime = now - count * step;
+  // Use a fixed reference timestamp so mock data is deterministic across runs.
+  // 2024-01-02T14:30:00Z — a typical US market session.
+  const referenceTime = 1704205800;
+  const startTime = referenceTime - count * step;
 
   const timestamps: number[] = [];
   const open: number[] = [];
@@ -122,8 +124,8 @@ function generateYahooResponse(symbol: string, interval: string, count: number) 
   };
 }
 
-/** Determine how many bars to generate based on interval/range */
-function barCount(interval: string, range: string): number {
+/** Determine how many bars to generate based on interval */
+function barCount(interval: string): number {
   const counts: Record<string, number> = {
     '1m': 390,
     '5m': 390,
@@ -143,7 +145,7 @@ export const handlers = [
     const url = new URL(request.url);
     const interval = url.searchParams.get('interval') ?? '1d';
     const range = url.searchParams.get('range') ?? '1y';
-    const count = barCount(interval, range);
+    const count = barCount(interval);
 
     return HttpResponse.json(generateYahooResponse(symbol, interval, count));
   }),
@@ -154,7 +156,7 @@ export const handlers = [
     const url = new URL(request.url);
     const interval = url.searchParams.get('interval') ?? '1d';
     const range = url.searchParams.get('range') ?? '1y';
-    const count = barCount(interval, range);
+    const count = barCount(interval);
 
     return HttpResponse.json(generateYahooResponse(symbol, interval, count));
   }),
