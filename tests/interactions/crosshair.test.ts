@@ -122,4 +122,36 @@ describe('CrosshairHandler', () => {
     handler.onPointerMove(250, 175, 1);
     expect(crosshair.y).toBe(175);
   });
+
+  it('sourcePaneId is set from constructor', () => {
+    const h = new CrosshairHandler(crosshair, dataLayer, timeScale, priceScale, requestInvalidation, 'main-pane');
+    h.onPointerMove(250, 200, 1);
+    expect(crosshair.sourcePaneId).toBe('main-pane');
+  });
+
+  it('setSourcePaneId changes the pane id for subsequent moves', () => {
+    const h = new CrosshairHandler(crosshair, dataLayer, timeScale, priceScale, requestInvalidation, 'main-pane');
+    h.onPointerMove(250, 200, 1);
+    expect(crosshair.sourcePaneId).toBe('main-pane');
+
+    h.setSourcePaneId('pane-1');
+    h.onPointerMove(250, 100, 1);
+    expect(crosshair.sourcePaneId).toBe('pane-1');
+  });
+
+  it('setPriceScale changes the price scale for Y conversion', () => {
+    const altPriceScale = new PriceScale('right');
+    altPriceScale.setHeight(400);
+    altPriceScale.autoScale(0, 100); // Different range than main (90-150)
+
+    handler.onPointerMove(250, 200, 1);
+    const priceWithMain = crosshair.price;
+
+    handler.setPriceScale(altPriceScale);
+    handler.onPointerMove(250, 200, 1);
+    const priceWithAlt = crosshair.price;
+
+    // Different price scales with different ranges should produce different prices
+    expect(priceWithMain).not.toBeCloseTo(priceWithAlt, 0);
+  });
 });
