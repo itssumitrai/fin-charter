@@ -42,7 +42,7 @@ const chart = createChart(container, {
       symbol: 'AAPL',
       priceFormatter: (price: number) => `$${price.toFixed(2)}`,
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -87,7 +87,7 @@ export const CompactFormat: Story = {
         return price.toFixed(2);
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -126,7 +126,7 @@ export const BasisPoints: Story = {
       symbol: 'AAPL',
       priceFormatter: (price: number) => `${(price * 100).toFixed(0)} bps`,
     });
-    const series = chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 });
+    const series = chart.addSeries({ type: 'line', color: '#9c27b0', lineWidth: 2 });
     // Normalize data to a 0-1 scale for demonstration
     const base = AAPL_DAILY[0].close;
     const normalized = AAPL_DAILY.map((b) => ({

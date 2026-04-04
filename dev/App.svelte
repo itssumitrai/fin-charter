@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TradingViewApp from './components/TradingViewApp.svelte';
+  import AdvancedChart from './components/AdvancedChart.svelte';
 </script>
 
-<TradingViewApp />
+<AdvancedChart />

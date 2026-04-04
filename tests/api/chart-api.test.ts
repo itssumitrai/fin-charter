@@ -131,7 +131,7 @@ describe('createChart', () => {
 
   it('adds and removes a candlestick series', () => {
     chart = createChart(container);
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
 
     expect(series.seriesType()).toBe('candlestick');
 
@@ -154,7 +154,7 @@ describe('createChart', () => {
     chart = createChart(container, { width: 600, height: 300 });
 
     // Series A – becomes the primary; crosshair handler is created pointing to its DataLayer
-    const seriesA = chart.addCandlestickSeries();
+    const seriesA = chart.addSeries({ type: 'candlestick' });
     seriesA.setData(makeBars(5, 1000)); // times 1000, 1060, ..., 1240
 
     // Remove series A – handler must be reset
@@ -162,7 +162,7 @@ describe('createChart', () => {
 
     // Series B – must become the new primary and the crosshair handler should
     // reference its DataLayer (not the stale one from series A)
-    const seriesB = chart.addCandlestickSeries();
+    const seriesB = chart.addSeries({ type: 'candlestick' });
     seriesB.setData(makeBars(3, 5000)); // times 5000, 5060, 5120
 
     // Painting must not throw (would fail if handler uses freed DataLayer)
@@ -177,10 +177,10 @@ describe('createChart', () => {
   it('crosshair handler is replaced with next series when primary is removed while others remain', () => {
     chart = createChart(container, { width: 600, height: 300 });
 
-    const seriesA = chart.addCandlestickSeries();
+    const seriesA = chart.addSeries({ type: 'candlestick' });
     seriesA.setData(makeBars(5, 1000));
 
-    const seriesB = chart.addCandlestickSeries();
+    const seriesB = chart.addSeries({ type: 'candlestick' });
     seriesB.setData(makeBars(3, 5000));
 
     // Remove the primary series while series B still exists
@@ -197,7 +197,7 @@ describe('createChart', () => {
   it('adds a line series with initial data', () => {
     chart = createChart(container);
     const bars = makeBars(5);
-    const series = chart.addLineSeries({ data: bars, color: '#ff0000' });
+    const series = chart.addSeries({ type: 'line', data: bars, color: '#ff0000' });
 
     expect(series.seriesType()).toBe('line');
     expect(series.dataByIndex(0)?.time).toBe(1000);
@@ -206,7 +206,7 @@ describe('createChart', () => {
 
   it('real-time update appends a bar', () => {
     chart = createChart(container);
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(3));
 
     const newBar: Bar = {
@@ -274,7 +274,7 @@ describe('createChart', () => {
 
   it('paint runs on RAF after requestRepaint', () => {
     chart = createChart(container);
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(20));
 
     // RAF should have been scheduled
@@ -287,19 +287,19 @@ describe('createChart', () => {
   it('adds area, bar, baseline, hollow-candle, histogram series', () => {
     chart = createChart(container);
 
-    const area = chart.addAreaSeries();
+    const area = chart.addSeries({ type: 'area' });
     expect(area.seriesType()).toBe('area');
 
-    const bar = chart.addBarSeries();
+    const bar = chart.addSeries({ type: 'bar' });
     expect(bar.seriesType()).toBe('bar');
 
-    const baseline = chart.addBaselineSeries();
+    const baseline = chart.addSeries({ type: 'baseline' });
     expect(baseline.seriesType()).toBe('baseline');
 
-    const hollow = chart.addHollowCandleSeries();
+    const hollow = chart.addSeries({ type: 'hollow-candle' });
     expect(hollow.seriesType()).toBe('hollow-candle');
 
-    const hist = chart.addHistogramSeries();
+    const hist = chart.addSeries({ type: 'histogram' });
     expect(hist.seriesType()).toBe('histogram');
   });
 
@@ -329,7 +329,7 @@ describe('createChart', () => {
 
   it('scrollToRealTime resets rightOffset to 0', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(50));
 
     // Scroll away from realtime by adjusting rightOffset via timeScale
@@ -345,7 +345,7 @@ describe('createChart', () => {
 
   it('setVisibleLogicalRange adjusts barSpacing and rightOffset', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(100));
     flushRAF(); // allow _paint to update dataLength on timeScale
 
@@ -358,7 +358,7 @@ describe('createChart', () => {
 
   it('setVisibleRange finds nearest bar indices by timestamp', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const bars = makeBars(10, 1000); // times 1000, 1060, 1120, ..., 1540
     series.setData(bars);
     flushRAF();
@@ -374,7 +374,7 @@ describe('createChart', () => {
 
   it('subscribeVisibleRangeChange fires when visible range changes', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(20, 1000));
 
     const callback = vi.fn();
@@ -392,7 +392,7 @@ describe('createChart', () => {
 
   it('unsubscribeVisibleRangeChange stops firing callbacks', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(20, 1000));
 
     const callback = vi.fn();
@@ -420,7 +420,7 @@ describe('createChart', () => {
       priceFormatter: formatter,
     });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(10));
 
     // Flush to trigger painting which uses _formatPrice internally
@@ -442,7 +442,7 @@ describe('createChart', () => {
     expect(opts.priceFormatter).toBeUndefined();
 
     // Painting should not throw without a custom formatter
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(5));
     expect(() => flushRAF()).not.toThrow();
   });
@@ -465,17 +465,17 @@ describe('createChart', () => {
 
     // Apply colorful theme values manually (same as COLORFUL_THEME)
     chart.applyOptions({
-      layout: { backgroundColor: '#131722', textColor: '#b2b5be' },
+      layout: { backgroundColor: '#0f0e17', textColor: '#a7a9be' },
       grid: {
-        vertLinesColor: 'rgba(42, 46, 57, 0.8)',
-        horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+        vertLinesColor: 'rgba(255, 255, 255, 0.03)',
+        horzLinesColor: 'rgba(255, 255, 255, 0.03)',
       },
     });
 
     const opts = chart.options();
-    expect(opts.layout.backgroundColor).toBe('#131722');
-    expect(opts.layout.textColor).toBe('#b2b5be');
-    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    expect(opts.layout.backgroundColor).toBe('#0f0e17');
+    expect(opts.layout.textColor).toBe('#a7a9be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(255, 255, 255, 0.03)');
     // Other options should be preserved
     expect(opts.layout.fontSize).toBe(11);
     expect(opts.lastPriceLine.visible).toBe(true);
@@ -485,9 +485,9 @@ describe('createChart', () => {
     chart = createChart(container, { width: 600, height: 300, theme: 'colorful' });
 
     const opts = chart.options();
-    expect(opts.layout.backgroundColor).toBe('#131722');
-    expect(opts.layout.textColor).toBe('#b2b5be');
-    expect(opts.grid.vertLinesColor).toBe('rgba(42, 46, 57, 0.8)');
+    expect(opts.layout.backgroundColor).toBe('#0f0e17');
+    expect(opts.layout.textColor).toBe('#a7a9be');
+    expect(opts.grid.vertLinesColor).toBe('rgba(255, 255, 255, 0.03)');
   });
 
   it('createChart with theme: dark applies DARK_THEME', () => {
@@ -518,7 +518,7 @@ describe('createChart', () => {
     expect(opts.leftPriceScale.visible).toBe(true);
 
     // Painting should not throw with left scale enabled
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(5));
     expect(() => flushRAF()).not.toThrow();
   });
@@ -541,7 +541,7 @@ describe('createChart', () => {
     const opts = chart.options();
     expect(opts.timeGaps.visible).toBe(true);
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(5));
     expect(() => flushRAF()).not.toThrow();
   });
@@ -550,7 +550,7 @@ describe('createChart', () => {
 
   it('addDrawing converts timestamps to bar indices', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const bars = makeBars(10, 1000); // times: 1000, 1060, 1120, ...
     series.setData(bars);
 
@@ -573,7 +573,7 @@ describe('createChart', () => {
 
   it('serializeDrawings preserves bar indices after addDrawing', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const bars = makeBars(20, 1000);
     series.setData(bars);
 
@@ -590,7 +590,7 @@ describe('createChart', () => {
 
   it('_addDrawingByIndex does not re-convert bar indices', () => {
     chart = createChart(container, { width: 600, height: 300 });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     const bars = makeBars(10, 1000);
     series.setData(bars);
 

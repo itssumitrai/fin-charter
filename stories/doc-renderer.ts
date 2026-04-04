@@ -15,7 +15,7 @@ const TOKEN_COLORS: Record<string, string> = {
   string: '#98c379',    // green  – '…', "…", `…`
   comment: '#5c6370',   // gray   – // … and /* … */
   number: '#d19a66',    // orange – 42, 3.14
-  method: '#61afef',    // blue   – .addCandlestickSeries
+  method: '#61afef',    // blue   – .addSeries
   property: '#e5c07b',  // yellow – object keys before ':'
   type: '#e06c75',      // red    – type names after ':'
   punctuation: '#abb2bf',
@@ -120,7 +120,7 @@ function escapeHtml(text: string): string {
 /* ------------------------------------------------------------------ */
 
 export interface DocOptions {
-  /** Short description shown above the chart. Supports simple line breaks. */
+  /** Short description shown below the chart. Supports simple line breaks. */
   description: string;
   /** Code snippet displayed in a collapsible block. */
   code: string;
@@ -164,7 +164,7 @@ export function withDocs(
   docPanel.style.cssText = `
     padding: 20px 24px 16px;
     background: #13141f;
-    border-bottom: 1px solid #1e2235;
+    border-top: 1px solid #1e2235;
     flex-shrink: 0;
   `;
 
@@ -259,8 +259,8 @@ export function withDocs(
   // Make chart fill remaining space
   chartElement.style.height = '100%';
 
-  wrapper.appendChild(docPanel);
   wrapper.appendChild(chartWrapper);
+  wrapper.appendChild(docPanel);
 
   return wrapper;
 }

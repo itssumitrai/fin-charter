@@ -116,7 +116,7 @@ The ES module structure ensures unused chart types are excluded:
 // Only LineRenderer is bundled
 import { createChart } from 'fin-charter';
 const chart  = createChart(container);
-const series = chart.addLineSeries();
+const series = chart.addSeries({ type: 'line' });
 ```
 
 Each renderer is a separate module. The package sets `"sideEffects": false` so this works out of the box with Vite, Rollup, and webpack.

@@ -29,7 +29,7 @@ export const InfiniteScrollBack: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(initialData);
 
 chart.subscribeVisibleRangeChange(async (range) => {
@@ -61,7 +61,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
     const initialData = generateOHLCV(totalBars, 185, INITIAL_START);
     let earliestTime = initialData[0].time;
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(initialData);
 
     let loading = false;
@@ -102,7 +102,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(initialData);
 
 chart.subscribeVisibleRangeChange(async (range) => {

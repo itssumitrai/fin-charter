@@ -47,8 +47,8 @@ const chart = createChart(container, {
   leftPriceScale: { visible: true },
 });
 
-chart.addCandlestickSeries(); // right scale (default)
-chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
+chart.addSeries({ type: 'candlestick' }); // right scale (default)
+chart.addSeries({ type: 'line', color: '#f4c430', priceScaleId: 'left' });`,
       },
     },
   },
@@ -62,13 +62,13 @@ chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
     });
 
     // Primary series on the right scale (default)
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     // SMA on left scale
     const closes = new Float64Array(AAPL_DAILY.map((b) => b.close));
     const smaValues = computeSMA(closes, AAPL_DAILY.length, 20);
-    const smaSeries = chart.addLineSeries({ color: '#f4c430', lineWidth: 2, priceScaleId: 'left' });
+    const smaSeries = chart.addSeries({ type: 'line', color: '#f4c430', lineWidth: 2, priceScaleId: 'left' });
     smaSeries.setData(indicatorToLineBars(AAPL_DAILY, smaValues));
 
     return withDocs(container, {
@@ -86,10 +86,10 @@ const chart = createChart(container, {
 });
 
 // Candlesticks on right scale (default)
-chart.addCandlestickSeries();
+chart.addSeries({ type: 'candlestick' });
 
 // SMA line on left scale
-chart.addLineSeries({ color: '#f4c430', priceScaleId: 'left' });`,
+chart.addSeries({ type: 'line', color: '#f4c430', priceScaleId: 'left' });`,
     });
   },
 };
@@ -116,7 +116,7 @@ export const RightOnly: Story = {
       rightPriceScale: { visible: true },
       leftPriceScale: { visible: false },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -154,7 +154,7 @@ export const LeftOnly: Story = {
       rightPriceScale: { visible: false },
       leftPriceScale: { visible: true },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:

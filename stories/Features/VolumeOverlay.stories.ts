@@ -32,7 +32,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   volume: { visible: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`,
       },
     },
@@ -44,7 +44,7 @@ series.setData(data);`,
       symbol: 'AAPL',
       volume: { visible: true },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'Enable the built-in <strong>volume overlay</strong> with <code>volume: { visible: true }</code>. Volume bars render at the bottom of the chart using the same up/down color conventions as the candlesticks, providing a quick visual read on trading activity.';
@@ -53,7 +53,7 @@ series.setData(data);`,
   symbol: 'AAPL',
   volume: { visible: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`;
 
     return withDocs(container, { description, code });
@@ -88,7 +88,7 @@ export const CustomVolumeColors: Story = {
         downColor: 'rgba(255, 64, 129, 0.5)',
       },
     });
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#00e5ff',
       downColor: '#ff4081',
       wickUpColor: '#00e5ff',

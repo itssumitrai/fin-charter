@@ -2,8 +2,20 @@ export const VERSION = '0.1.0';
 
 // ─── API layer ──────────────────────────────────────────────────────────────
 export { createChart } from './api/chart-api';
-export type { IChartApi, IDrawingApi, CrosshairMoveCallback, ClickCallback } from './api/chart-api';
-export type { ISeriesApi, DataChangedCallback } from './api/series-api';
+export type {
+  IChartApi, IDrawingApi,
+  CrosshairMoveCallback, ClickCallback, DblClickCallback,
+  VisibleRangeChangeCallback,
+  DrawingEventType, DrawingEventCallback,
+  IndicatorEventType, IndicatorEventCallback,
+  ResizeCallback,
+  SymbolChangeCallback,
+  ChartTypeChangeCallback,
+  PreferencesChangeCallback,
+  LayoutChangeAction,
+  LayoutChangeCallback,
+} from './api/chart-api';
+export type { ISeriesApi, DataChangedCallback, VisibilityChangeCallback } from './api/series-api';
 export type { IPaneApi } from './api/pane-api';
 export type { IIndicatorApi } from './api/indicator-api';
 

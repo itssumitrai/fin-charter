@@ -48,7 +48,7 @@ const chart = createChart(container, {
         fontSize: 11,
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -94,7 +94,7 @@ export const SystemSansSerif: Story = {
         fontSize: 12,
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -135,7 +135,7 @@ export const LargeFontSize: Story = {
         fontSize: 14,
       },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:

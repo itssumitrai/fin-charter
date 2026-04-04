@@ -120,16 +120,16 @@ export const DARK_THEME: DeepPartial<ChartOptions> = {
 
 export const COLORFUL_THEME: DeepPartial<ChartOptions> = {
   layout: {
-    backgroundColor: '#131722',
-    textColor: '#b2b5be',
+    backgroundColor: '#0f0e17',
+    textColor: '#a7a9be',
   },
   grid: {
-    vertLinesColor: 'rgba(42, 46, 57, 0.8)',
-    horzLinesColor: 'rgba(42, 46, 57, 0.8)',
+    vertLinesColor: 'rgba(255, 255, 255, 0.03)',
+    horzLinesColor: 'rgba(255, 255, 255, 0.03)',
   },
   crosshair: {
-    vertLineColor: '#758696',
-    horzLineColor: '#758696',
+    vertLineColor: '#ff8906',
+    horzLineColor: '#ff8906',
   },
 };
 

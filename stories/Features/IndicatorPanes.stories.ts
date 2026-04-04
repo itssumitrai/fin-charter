@@ -27,7 +27,7 @@ export const RSIAndMACD: Story = {
         code: `import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 chart.addIndicator('rsi', {
@@ -45,7 +45,7 @@ chart.addIndicator('macd', {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     // SMA 20 overlay
@@ -82,7 +82,7 @@ chart.addIndicator('macd', {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Overlay indicator on the price pane
@@ -126,7 +126,7 @@ chart.addIndicator('adx', { source: series, params: { period: 14 }, label: 'ADX'
     container.style.height = '800px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const candleSeries = chart.addCandlestickSeries();
+    const candleSeries = chart.addSeries({ type: 'candlestick' });
     candleSeries.setData(AAPL_DAILY);
 
     // VWAP overlay

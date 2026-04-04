@@ -66,7 +66,7 @@ const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 chart.setMarketSessions(US_EQUITY_SESSIONS);
 chart.setPeriodicity({ interval: 5, unit: 'minute' });
 
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(intradayData);
 
 // Filter to regular hours only
@@ -118,7 +118,7 @@ chart.setSessionFilter('regular');`,
     chart.setMarketSessions(US_EQUITY_SESSIONS);
     chart.setPeriodicity({ interval: 5, unit: 'minute' });
 
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries({ type: 'candlestick',
       upColor: '#22AB94',
       downColor: '#F7525F',
       borderUpColor: '#22AB94',
@@ -144,7 +144,7 @@ const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 chart.setMarketSessions(US_EQUITY_SESSIONS);
 chart.setPeriodicity({ interval: 5, unit: 'minute' });
 
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(intradayData);
 
 // Filter to regular hours only

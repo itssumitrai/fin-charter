@@ -32,7 +32,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   timeScale: { barSpacing: 2 },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Auto-scale to fit all bars in the visible area
@@ -58,7 +58,7 @@ chart.fitContent();`,
       timeScale: { barSpacing: 2 },
     });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     button.addEventListener('click', () => {
@@ -81,7 +81,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   timeScale: { barSpacing: 2 },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 // Auto-scale to fit all bars in the visible area

@@ -67,7 +67,7 @@ describe('SeriesMarkers', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     chart = createChart(container, { width: 600, height: 300 });
-    series = chart.addCandlestickSeries();
+    series = chart.addSeries({ type: 'candlestick' });
     series.setData(makeBars(20));
   });
 

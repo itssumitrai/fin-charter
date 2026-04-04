@@ -33,7 +33,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`,
       },
     },
@@ -45,7 +45,7 @@ series.setData(data);`,
       symbol: 'AAPL',
       lastPriceLine: { visible: true },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'The <strong>last price line</strong> is a horizontal dashed line anchored to the most recent close price. It helps traders quickly see where the current price sits on the chart. Enable it with <code>lastPriceLine: { visible: true }</code>.';
@@ -54,7 +54,7 @@ series.setData(data);`,
   symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`;
 
     return withDocs(container, { description, code });
@@ -81,7 +81,7 @@ export const Hidden: Story = {
       symbol: 'AAPL',
       lastPriceLine: { visible: false },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'Hide the last price line by setting <code>lastPriceLine: { visible: false }</code>. This gives a cleaner chart when the current price indicator is not needed.';
@@ -105,7 +105,7 @@ export const OnLineSeries: Story = {
   symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
-const series = chart.addLineSeries({ color: '#00e5ff' });
+const series = chart.addSeries({ type: 'line', color: '#00e5ff' });
 series.setData(data);`,
       },
     },
@@ -117,7 +117,7 @@ series.setData(data);`,
       symbol: 'AAPL',
       lastPriceLine: { visible: true },
     });
-    const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+    const series = chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 });
     series.setData(AAPL_DAILY);
 
     const description = 'The <strong>last price line</strong> works with any series type, including line series. The dashed line matches the series color and tracks the final data point.';
@@ -126,7 +126,7 @@ series.setData(data);`,
   symbol: 'AAPL',
   lastPriceLine: { visible: true },
 });
-const series = chart.addLineSeries({ color: '#00e5ff' });
+const series = chart.addSeries({ type: 'line', color: '#00e5ff' });
 series.setData(data);`;
 
     return withDocs(container, { description, code });

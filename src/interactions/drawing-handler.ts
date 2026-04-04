@@ -18,7 +18,7 @@ export interface DrawingHandlerCallbacks {
   getDrawings(): (ISeriesPrimitive & DrawingPrimitive)[];
   getDrawingContext(): DrawingContext | null;
   onDrawingCreated(drawing: ISeriesPrimitive & DrawingPrimitive): void;
-  onDrawingUpdated(): void;
+  onDrawingUpdated(drawing?: ISeriesPrimitive & DrawingPrimitive): void;
   xToTime(x: number): number;
   yToPrice(y: number): number;
 }
@@ -129,7 +129,7 @@ export class DrawingHandler implements EventHandler {
       const dx = x - this._dragStartX;
       const dy = y - this._dragStartY;
       this._applyDrag(dx, dy);
-      this._callbacks.onDrawingUpdated();
+      this._callbacks.onDrawingUpdated(this._selectedDrawing);
       return true;
     }
 

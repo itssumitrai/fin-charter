@@ -27,7 +27,7 @@ export const Default: Story = {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addAreaSeries();
+const series = chart.addSeries({ type: 'area' });
 series.setData(data);
 `.trim(),
       },
@@ -36,7 +36,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addAreaSeries();
+    const series = chart.addSeries({ type: 'area' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -49,7 +49,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addAreaSeries();
+const series = chart.addSeries({ type: 'area' });
 series.setData(data);
       `,
     });
@@ -62,7 +62,8 @@ export const CustomColors: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addAreaSeries({
+const series = chart.addSeries({
+  type: 'area',
   lineColor: '#00e5ff',
   topColor: 'rgba(0, 229, 255, 0.4)',
   bottomColor: 'rgba(0, 229, 255, 0.0)',
@@ -75,7 +76,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addAreaSeries({
+    const series = chart.addSeries({ type: 'area',
       lineColor: '#00e5ff',
       topColor: 'rgba(0, 229, 255, 0.4)',
       bottomColor: 'rgba(0, 229, 255, 0.0)',
@@ -86,7 +87,8 @@ series.setData(data);
         'Customize the area gradient with <code>lineColor</code>, <code>topColor</code>, and <code>bottomColor</code>. ' +
         'Use RGBA values for <code>topColor</code> / <code>bottomColor</code> to control the gradient opacity.',
       code: `
-const series = chart.addAreaSeries({
+const series = chart.addSeries({
+  type: 'area',
   lineColor: '#00e5ff',                    // Line at the top of the area
   topColor: 'rgba(0, 229, 255, 0.4)',      // Gradient start (near line)
   bottomColor: 'rgba(0, 229, 255, 0.0)',   // Gradient end (transparent)

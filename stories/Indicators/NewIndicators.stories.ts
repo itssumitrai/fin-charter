@@ -45,7 +45,7 @@ chart.addIndicator('aroon', {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('aroon', {
@@ -89,7 +89,7 @@ export const AwesomeOscillator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('awesome-oscillator', {
@@ -133,7 +133,7 @@ export const ChaikinMF: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('chaikin-mf', {
@@ -177,7 +177,7 @@ export const CoppockCurve: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('coppock', {
@@ -221,7 +221,7 @@ export const ElderForce: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('elder-force', {
@@ -265,7 +265,7 @@ export const TRIXIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('trix', {
@@ -309,7 +309,7 @@ export const SupertrendIndicator: Story = {
     container.style.height = '500px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('supertrend', {
@@ -353,7 +353,7 @@ export const VWMAIndicator: Story = {
     container.style.height = '500px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('vwma', {
@@ -397,7 +397,7 @@ export const ChoppinessIndex: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('choppiness', {
@@ -441,7 +441,7 @@ export const MFIIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('mfi', {
@@ -485,7 +485,7 @@ export const ROCIndicator: Story = {
     container.style.height = '600px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('roc', {
@@ -529,7 +529,7 @@ export const LinearRegressionIndicator: Story = {
     container.style.height = '500px';
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(generateOHLCV(200));
 
     chart.addIndicator('linear-regression', {

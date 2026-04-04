@@ -18,7 +18,7 @@ interface TrackedPosition {
 }
 
 /**
- * Pan and zoom handler following TradingView lightweight-charts' model.
+ * Pan and zoom handler for chart navigation.
  *
  * Pan:
  * - On pointer down: store scrollStartX and savedRightOffset
@@ -87,7 +87,7 @@ export class PanZoomHandler implements EventHandler {
   }
 
   onWheel(x: number, _y: number, deltaY: number): void {
-    // TV negates deltaY and clamps to ±1 for zoom scale
+    // Negate deltaY and clamp to ±1 for zoom scale
     const scale = -Math.sign(deltaY);
     if (scale === 0) return;
     this._timeScale.zoomAt(x, scale);

@@ -28,7 +28,7 @@ export const Default: Story = {
 import { createChart } from 'fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
-const series = chart.addHollowCandleSeries();
+const series = chart.addSeries({ type: 'hollow-candle' });
 series.setData(data);
 `.trim(),
       },
@@ -37,7 +37,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addHollowCandleSeries();
+    const series = chart.addSeries({ type: 'hollow-candle' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -51,7 +51,7 @@ const chart = createChart(document.getElementById('chart'), {
   autoSize: true,
   symbol: 'AAPL',
 });
-const series = chart.addHollowCandleSeries();
+const series = chart.addSeries({ type: 'hollow-candle' });
 series.setData(data);
       `,
     });
@@ -64,7 +64,8 @@ export const CustomColors: Story = {
     docs: {
       source: {
         code: `
-const series = chart.addHollowCandleSeries({
+const series = chart.addSeries({
+  type: 'hollow-candle',
   upColor: '#00e5ff',
   downColor: '#ff4081',
   wickColor: '#aaaaaa',
@@ -77,7 +78,7 @@ series.setData(data);
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addHollowCandleSeries({
+    const series = chart.addSeries({ type: 'hollow-candle',
       upColor: '#00e5ff',
       downColor: '#ff4081',
       wickColor: '#aaaaaa',
@@ -88,7 +89,8 @@ series.setData(data);
         'Customize hollow candle colors with <code>upColor</code>, <code>downColor</code>, and <code>wickColor</code>. ' +
         'The <code>wickColor</code> option sets a uniform wick color for both directions.',
       code: `
-const series = chart.addHollowCandleSeries({
+const series = chart.addSeries({
+  type: 'hollow-candle',
   upColor: '#00e5ff',    // Bullish candle border/fill
   downColor: '#ff4081',  // Bearish candle fill
   wickColor: '#aaaaaa',  // Wick color for both directions

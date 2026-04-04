@@ -5,6 +5,7 @@
   import { fetchBars, fetchMoreBars } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
+  import { chartContext } from '../data/chart-context.svelte.ts';
   import { stylesToColorMap } from '../data/indicator-settings';
   import Toolbar from './Toolbar/Toolbar.svelte';
   import Sidebar from './Sidebar/Sidebar.svelte';
@@ -130,17 +131,26 @@
     comparisonSeries.clear();
     indicatorApis.clear();
 
+    // Sync chartContext into appStore on init
+    appStore.symbol = chartContext.symbol;
+    appStore.chartType = chartContext.chartType;
+    appStore.sidebarOpen = chartContext.sidebarOpen;
+    appStore.timezone = chartContext.timezone;
+
+    const layout = chartContext.resolvedLayout;
+    const grid = chartContext.resolvedGrid;
+
     const c = createChart(containerEl, {
       autoSize: true,
-      symbol: appStore.symbol,
+      symbol: chartContext.symbol,
       layout: {
-        backgroundColor: '#0d0d1a',
-        textColor: '#d1d4dc',
-        fontSize: 11,
+        backgroundColor: layout.backgroundColor,
+        textColor: layout.textColor,
+        fontSize: layout.fontSize,
       },
       grid: {
-        vertLinesColor: 'rgba(255,255,255,0.04)',
-        horzLinesColor: 'rgba(255,255,255,0.04)',
+        vertLinesColor: grid.vertLinesColor,
+        horzLinesColor: grid.horzLinesColor,
       },
       crosshair: {
         vertLineColor: 'rgba(150,160,180,0.5)',
@@ -260,6 +270,23 @@
     chart?.applyOptions({ timezone: tz });
   });
 
+  // React to chartContext theme/layout changes at runtime
+  $effect(() => {
+    const layout = chartContext.resolvedLayout;
+    const grid = chartContext.resolvedGrid;
+    chart?.applyOptions({
+      layout: {
+        backgroundColor: layout.backgroundColor,
+        textColor: layout.textColor,
+        fontSize: layout.fontSize,
+      },
+      grid: {
+        vertLinesColor: grid.vertLinesColor,
+        horzLinesColor: grid.horzLinesColor,
+      },
+    });
+  });
+
   // React to comparison additions
   $effect(() => {
     const syms = appStore.comparisonSymbols;
@@ -308,7 +335,7 @@
   });
 </script>
 
-<div class="tv-app">
+<div class="advanced-chart">
   <Toolbar onfullscreen={handleFullscreen} onscreenshot={handleScreenshot} onsettings={() => {}} />
 
   <div class="main-area">
@@ -326,7 +353,7 @@
 </div>
 
 <style>
-  .tv-app {
+  .advanced-chart {
     display: flex;
     flex-direction: column;
     width: 100%;

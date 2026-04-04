@@ -33,7 +33,7 @@ const chart = createChart(container, {
   symbol: 'AAPL',
   tooltip: { enabled: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`,
       },
     },
@@ -45,7 +45,7 @@ series.setData(data);`,
       symbol: 'AAPL',
       tooltip: { enabled: true },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'The <strong>OHLC legend</strong> and <strong>tooltip</strong> update live as you move the crosshair over the chart. The legend shows Open/High/Low/Close values in the top-left corner, while the tooltip follows the cursor as a floating panel. Enable the tooltip with <code>tooltip: { enabled: true }</code> in chart options.';
@@ -54,7 +54,7 @@ series.setData(data);`,
   symbol: 'AAPL',
   tooltip: { enabled: true },
 });
-const series = chart.addCandlestickSeries();
+const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);`;
 
     return withDocs(container, { description, code });
@@ -81,7 +81,7 @@ export const TooltipDisabled: Story = {
       symbol: 'AAPL',
       tooltip: { enabled: false },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'Disable the floating tooltip with <code>tooltip: { enabled: false }</code>. The <strong>OHLC legend</strong> in the top-left corner still updates as you hover, providing a cleaner look when the tooltip panel is not needed.';
@@ -117,7 +117,7 @@ export const WithVolume: Story = {
       tooltip: { enabled: true },
       volume: { visible: true },
     });
-    const series = chart.addCandlestickSeries();
+    const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
     const description = 'Combine the <strong>OHLC legend</strong> with a <strong>volume overlay</strong> for a complete data view. The legend and tooltip include volume information when <code>volume: { visible: true }</code> is set alongside the tooltip.';
