@@ -21,6 +21,23 @@ type Story = StoryObj;
 
 export const FitContentDemo: Story = {
   name: 'Fit Content Demo',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  timeScale: { barSpacing: 2 },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Auto-scale to fit all bars in the visible area
+chart.fitContent();`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';

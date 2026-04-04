@@ -22,6 +22,23 @@ type Story = StoryObj;
 
 export const CompareSymbols: Story = {
   name: 'Compare Symbols',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const mainSeries = chart.addCandlestickSeries();
+mainSeries.setData(aaplData);
+
+// Enable comparison mode (Y-axis shows % change)
+chart.setComparisonMode(true);
+
+const compSeries = chart.addLineSeries({ color: '#2196F3' });
+compSeries.setData(msftData);`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
@@ -47,7 +64,7 @@ export const CompareSymbols: Story = {
       return item;
     };
 
-    legendEl.appendChild(makeLegendItem('AAPL', '#26a69a'));
+    legendEl.appendChild(makeLegendItem('AAPL', '#22AB94'));
 
     toolbar.appendChild(toggleBtn);
     toolbar.appendChild(legendEl);
@@ -56,12 +73,12 @@ export const CompareSymbols: Story = {
     const chart = createChart(container, { autoSize: true });
 
     const mainSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      upColor: '#22AB94',
+      downColor: '#F7525F',
+      borderUpColor: '#22AB94',
+      borderDownColor: '#F7525F',
+      wickUpColor: '#22AB94',
+      wickDownColor: '#F7525F',
     });
     mainSeries.setData(AAPL_DAILY);
 
@@ -76,7 +93,7 @@ export const CompareSymbols: Story = {
       if (compEnabled) {
         toggleBtn.textContent = 'Disable Comparison';
         toggleBtn.style.background = '#4a1a1a';
-        toggleBtn.style.borderColor = '#ef5350';
+        toggleBtn.style.borderColor = '#F7525F';
 
         // Add two comparison series with different price seeds
         const comp1Data = generateOHLCV(AAPL_DAILY.length, 150, AAPL_DAILY[0].time);

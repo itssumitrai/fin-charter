@@ -21,6 +21,18 @@ type Story = StoryObj;
 
 export const CurrencyFormat: Story = {
   name: 'Currency Format ($XXX.XX)',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  priceFormatter: (price) => \`$\${price.toFixed(2)}\`,
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -35,6 +47,20 @@ export const CurrencyFormat: Story = {
 
 export const CompactFormat: Story = {
   name: 'Compact Format (1.5K, 2.3M)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  priceFormatter: (price) => {
+    if (price >= 1_000_000) return \`\${(price / 1_000_000).toFixed(2)}M\`;
+    if (price >= 1_000) return \`\${(price / 1_000).toFixed(1)}K\`;
+    return price.toFixed(2);
+  },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -53,6 +79,16 @@ export const CompactFormat: Story = {
 
 export const BasisPoints: Story = {
   name: 'Basis Points (×100)',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  priceFormatter: (price) => \`\${(price * 100).toFixed(0)} bps\`,
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

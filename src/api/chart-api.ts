@@ -67,6 +67,7 @@ import {
 import { computeSMA } from '../indicators/sma';
 import { computeEMA } from '../indicators/ema';
 import { computeRSI } from '../indicators/rsi';
+import { computeHeikinAshi } from '../transforms/heikin-ashi';
 import { computeMACD } from '../indicators/macd';
 import { computeBollinger } from '../indicators/bollinger';
 import { computeVWAP } from '../indicators/vwap';
@@ -192,6 +193,8 @@ interface SeriesEntry {
     | HistogramRenderer;
   type: SeriesType;
   paneId: string;
+  /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
+  _haCache?: { length: number; store: import('../core/types').ColumnStore };
 }
 
 // ─── niceStep utility ───────────────────────────────────────────────────────
@@ -976,7 +979,11 @@ class ChartApi implements IChartApi {
     // Color map for multi-output indicators
     const colorMap = this._getIndicatorColorMap(type, primaryColor);
 
-    for (const key of Object.keys(result)) {
+    // Draw histogram series first so line series render on top
+    const sortedKeys = Object.keys(result).sort((a, b) =>
+      (a === 'histogram' ? -1 : 0) - (b === 'histogram' ? -1 : 0),
+    );
+    for (const key of sortedKeys) {
       const values = result[key];
       const color = colorMap[key] ?? primaryColor;
 
@@ -1000,8 +1007,8 @@ class ChartApi implements IChartApi {
         series = this._addSeries('histogram', {
           paneId,
           data: bars,
-          upColor: '#26a69a',
-          downColor: '#ef5350',
+          upColor: 'rgba(34, 171, 148, 0.4)',
+          downColor: 'rgba(247, 82, 95, 0.4)',
         }, true);
       } else {
         series = this._addSeries('line', {
@@ -1022,21 +1029,21 @@ class ChartApi implements IChartApi {
   ): Record<string, string> {
     switch (type) {
       case 'macd':
-        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#26a69a' };
+        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#22AB94' };
       case 'bollinger':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'stochastic':
         return { k: primaryColor, d: '#ff6d00' };
       case 'adx':
-        return { adx: primaryColor, plusDI: '#26a69a', minusDI: '#ef5350' };
+        return { adx: primaryColor, plusDI: '#22AB94', minusDI: '#F7525F' };
       case 'ichimoku':
-        return { tenkan: '#2962ff', kijun: '#ef5350', senkouA: '#26a69a', senkouB: '#ee6823', chikou: '#9c27b0' };
+        return { tenkan: '#2962ff', kijun: '#F7525F', senkouA: '#22AB94', senkouB: '#ee6823', chikou: '#9c27b0' };
       case 'keltner':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'donchian':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'pivot-points':
-        return { pp: primaryColor, r1: '#ef5350', r2: '#ef5350', r3: '#ef5350', s1: '#26a69a', s2: '#26a69a', s3: '#26a69a' };
+        return { pp: primaryColor, r1: '#F7525F', r2: '#F7525F', r3: '#F7525F', s1: '#22AB94', s2: '#22AB94', s3: '#22AB94' };
       default:
         return { value: primaryColor };
     }
@@ -1581,10 +1588,16 @@ class ChartApi implements IChartApi {
         })()
       : (p: number) => pane.priceScale.priceToY(p);
 
+    // Volume overlay (main pane only) — drawn before series so it appears behind
+    if (isMain && this._options.volume.visible) {
+      this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
+    }
+
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
-      const store = entry.api.getDataLayer().store;
+      const rawStore = entry.api.getDataLayer().store;
+      const store = this._getEffectiveStore(entry, rawStore);
       let priceToY: (p: number) => number;
       if (this._comparisonMode) {
         const basis = this._getBasisPrice(entry, range);
@@ -1596,11 +1609,6 @@ class ChartApi implements IChartApi {
         priceToY = (p: number) => pane.priceScale.priceToY(p);
       }
       this._drawSeries(entry, target, store, range, indexToX, priceToY);
-    }
-
-    // Volume overlay (main pane only)
-    if (isMain && this._options.volume.visible) {
-      this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
     // Markers (main pane only)
@@ -1631,7 +1639,7 @@ class ChartApi implements IChartApi {
       const lastClose = primaryStore.close[primaryStore.length - 1];
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
-      const lineColor = isUp ? '#26a69a' : '#ef5350';
+      const lineColor = isUp ? '#22AB94' : '#F7525F';
       const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
 
       ctx.save();
@@ -1676,6 +1684,7 @@ class ChartApi implements IChartApi {
 
     switch (entry.type) {
       case 'candlestick':
+      case 'heikin-ashi':
         (entry.renderer as CandlestickRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
         break;
       case 'line':
@@ -1886,7 +1895,7 @@ class ChartApi implements IChartApi {
         const lastClose = store.close[store.length - 1];
         const lastOpen = store.open[store.length - 1];
         const isUp = lastClose >= lastOpen;
-        const bgColor = isUp ? '#26a69a' : '#ef5350';
+        const bgColor = isUp ? '#22AB94' : '#F7525F';
         // In comparison mode, map last close to percent space for Y position
         let labelY: number;
         let priceText: string;
@@ -2090,7 +2099,8 @@ class ChartApi implements IChartApi {
 
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
-      const store = entry.api.getDataLayer().store;
+      const rawStore = entry.api.getDataLayer().store;
+      const store = this._getEffectiveStore(entry, rawStore);
       const to = Math.min(range.toIdx, store.length - 1);
 
       const isLeft = entry.api.options().priceScaleId === 'left';
@@ -2367,7 +2377,9 @@ class ChartApi implements IChartApi {
       return;
     }
 
-    const store = this._series[0].api.getDataLayer().store;
+    const primaryEntry = this._series[0];
+    const rawStore = primaryEntry.api.getDataLayer().store;
+    const store = this._getEffectiveStore(primaryEntry, rawStore);
     const idx = this._crosshair.barIndex;
     if (idx < 0 || idx >= store.length) {
       this._tooltipEl.style.display = 'none';
@@ -2382,7 +2394,7 @@ class ChartApi implements IChartApi {
       const h = store.high[idx];
       const l = store.low[idx];
       const c = store.close[idx];
-      const v = store.volume ? store.volume[idx] : 0;
+      const v = rawStore.volume ? rawStore.volume[idx] : 0;
       const timestamp = store.time[idx];
       const date = new Date(timestamp * 1000);
 
@@ -2397,7 +2409,7 @@ class ChartApi implements IChartApi {
       }
 
       const isUp = c >= o;
-      const color = isUp ? '#26a69a' : '#ef5350';
+      const color = isUp ? '#22AB94' : '#F7525F';
 
       this._tooltipDateEl.textContent = dateStr;
       this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
@@ -2469,37 +2481,40 @@ class ChartApi implements IChartApi {
       case 'candlestick':
       case 'bar':
       case 'hollow-candle':
-        return (options.upColor as string) ?? '#26a69a';
+        return (options.upColor as string) ?? '#22AB94';
       case 'line':
         return (options.color as string) ?? '#2196F3';
       case 'area':
         return (options.lineColor as string) ?? '#2196F3';
       case 'baseline':
-        return (options.topLineColor as string) ?? '#26a69a';
+        return (options.topLineColor as string) ?? '#22AB94';
       case 'histogram':
-        return (options.upColor as string) ?? '#26a69a';
+        return (options.upColor as string) ?? '#22AB94';
       default:
         return '#2196F3';
     }
   }
 
   private _getSeriesValues(api: SeriesApi<SeriesType>, barIndex: number): string {
-    const store = api.getDataLayer().store;
-    if (barIndex < 0 || barIndex >= store.length) return '';
+    const rawStore = api.getDataLayer().store;
+    if (barIndex < 0 || barIndex >= rawStore.length) return '';
 
     const type = api.seriesType();
-    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle';
+    const isOHLC = type === 'candlestick' || type === 'bar' || type === 'hollow-candle' || type === 'heikin-ashi';
 
     if (isOHLC) {
+      // For heikin-ashi, use the transformed store via the series entry cache
+      const entry = this._series.find(e => e.api === (api as SeriesApi<SeriesType>));
+      const store = entry ? this._getEffectiveStore(entry, rawStore) : rawStore;
       const o = store.open[barIndex];
       const h = store.high[barIndex];
       const l = store.low[barIndex];
       const c = store.close[barIndex];
-      const v = store.volume ? store.volume[barIndex] : 0;
+      const v = rawStore.volume ? rawStore.volume[barIndex] : 0;
       return `O ${this._formatPrice(o)}  H ${this._formatPrice(h)}  L ${this._formatPrice(l)}  C ${this._formatPrice(c)}  V ${this._volumeFormatter.format(v)}`;
     }
 
-    const c = store.close[barIndex];
+    const c = rawStore.close[barIndex];
     return this._formatPrice(c);
   }
 
@@ -2522,8 +2537,8 @@ class ChartApi implements IChartApi {
     const fields: SettingsField[] = [];
     switch (type) {
       case 'candlestick':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
         break;
       case 'line':
         fields.push({ key: 'color', label: 'Color', type: 'color', value: (options.color as string) ?? '#2196F3' });
@@ -2536,16 +2551,16 @@ class ChartApi implements IChartApi {
         break;
       case 'bar':
       case 'hollow-candle':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
         break;
       case 'histogram':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#26a69a' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#ef5350' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
         break;
       case 'baseline':
-        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#26a69a' });
-        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#ef5350' });
+        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#22AB94' });
+        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#F7525F' });
         fields.push({ key: 'basePrice', label: 'Base Price', type: 'number', value: (options.basePrice as number) ?? 0, step: 0.01 });
         break;
     }
@@ -2581,7 +2596,7 @@ class ChartApi implements IChartApi {
     const hudRowId = `series-${type}-${seriesIndex}`;
     hud.addRow({
       id: hudRowId,
-      label: (resolvedOptions.label as string) || type,
+      label: (resolvedOptions.label as string) || 'Symbol',
       color: this._getSeriesColor(type, resolvedOptions),
       getValues: (barIndex: number) => this._getSeriesValues(api, barIndex),
       onToggleVisible: () => {
@@ -2775,6 +2790,15 @@ class ChartApi implements IChartApi {
 
     this.requestRepaint(InvalidationLevel.Full);
     return api;
+  }
+
+  private _getEffectiveStore(entry: SeriesEntry, rawStore: ColumnStore): ColumnStore {
+    if (entry.type !== 'heikin-ashi') return rawStore;
+    const cache = entry._haCache;
+    if (cache && cache.length === rawStore.length) return cache.store;
+    const haStore = computeHeikinAshi(rawStore);
+    entry._haCache = { length: rawStore.length, store: haStore };
+    return haStore;
   }
 
   private _createRenderer(

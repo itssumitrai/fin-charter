@@ -22,6 +22,25 @@ type Story = StoryObj;
 
 export const InfiniteScrollBack: Story = {
   name: 'Infinite Scroll-Back',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(initialData);
+
+chart.subscribeVisibleRangeChange(async (range) => {
+  const info = series.barsInLogicalRange({ from: 0, to: range.from });
+  if (info.barsBefore <= 20) {
+    const olderBars = await fetchOlderData();
+    series.prependData(olderBars);
+  }
+});`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';

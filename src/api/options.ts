@@ -157,7 +157,7 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   timeScale: {
     barSpacing: 6,
     rightOffset: 0,
-    minBarSpacing: 2,
+    minBarSpacing: 4,
     maxBarSpacing: 50,
   },
   crosshair: {
@@ -190,8 +190,8 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   },
   volume: {
     visible: false,
-    upColor: 'rgba(38,166,154,0.3)',
-    downColor: 'rgba(239,83,80,0.3)',
+    upColor: 'rgba(34,171,148,0.24)',
+    downColor: 'rgba(247,82,95,0.24)',
     scaleMarginTop: 0.7,
   },
   rightPriceScale: {

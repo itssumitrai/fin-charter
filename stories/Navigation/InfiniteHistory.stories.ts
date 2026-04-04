@@ -42,6 +42,24 @@ function generatePreceding(existing: Bar[], count: number): Bar[] {
 
 export const Default: Story = {
   name: 'Infinite History',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+chart.subscribeVisibleRangeChange(async (range) => {
+  if (range.from <= firstBarTime) {
+    const olderBars = await fetchHistory();
+    series.setData([...olderBars, ...bars]);
+  }
+});`,
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'flex';

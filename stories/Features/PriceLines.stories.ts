@@ -21,6 +21,24 @@ type Story = StoryObj;
 
 export const SupportResistance: Story = {
   name: 'Support & Resistance',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+series.createPriceLine({
+  price: 185, color: '#22AB94', lineStyle: 'dashed', title: 'Support',
+});
+series.createPriceLine({
+  price: 195, color: '#F7525F', lineStyle: 'dashed', title: 'Resistance',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -29,7 +47,7 @@ export const SupportResistance: Story = {
 
     series.createPriceLine({
       price: 185,
-      color: '#26a69a',
+      color: '#22AB94',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Support',
@@ -38,7 +56,7 @@ export const SupportResistance: Story = {
 
     series.createPriceLine({
       price: 195,
-      color: '#ef5350',
+      color: '#F7525F',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Resistance',
@@ -51,6 +69,23 @@ export const SupportResistance: Story = {
 
 export const TradeLevels: Story = {
   name: 'Trade Levels',
+  parameters: {
+    docs: {
+      source: {
+        code: `series.createPriceLine({
+  price: 190, color: '#2196F3', lineStyle: 'solid', title: 'Entry',
+});
+series.createPriceLine({
+  price: 182, color: '#F7525F', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#F7525F',
+});
+series.createPriceLine({
+  price: 210, color: '#22AB94', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#22AB94',
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -70,24 +105,24 @@ export const TradeLevels: Story = {
     // Stop loss
     series.createPriceLine({
       price: 182,
-      color: '#ef5350',
+      color: '#F7525F',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Stop Loss',
       axisLabelVisible: true,
-      axisLabelColor: '#ef5350',
+      axisLabelColor: '#F7525F',
       axisLabelTextColor: '#ffffff',
     });
 
     // Target
     series.createPriceLine({
       price: 210,
-      color: '#26a69a',
+      color: '#22AB94',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Target',
       axisLabelVisible: true,
-      axisLabelColor: '#26a69a',
+      axisLabelColor: '#22AB94',
       axisLabelTextColor: '#ffffff',
     });
 

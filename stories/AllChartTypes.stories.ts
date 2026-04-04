@@ -50,6 +50,39 @@ function makePanel(spec: ChartSpec): HTMLElement {
 
 export const Overview: Story = {
   name: 'All Types Overview',
+  parameters: {
+    docs: {
+      source: {
+        code: `
+import { createChart } from 'fin-charter';
+
+const chart = createChart(document.getElementById('chart'), { autoSize: true });
+
+// Candlestick
+chart.addCandlestickSeries().setData(data);
+
+// Hollow Candle
+chart.addHollowCandleSeries().setData(data);
+
+// OHLC Bar
+chart.addBarSeries().setData(data);
+
+// Line
+chart.addLineSeries({ color: '#9c27b0', lineWidth: 2 }).setData(data);
+
+// Area
+chart.addAreaSeries({
+  lineColor: '#ff9800',
+  topColor: 'rgba(255, 152, 0, 0.4)',
+  bottomColor: 'rgba(255, 152, 0, 0.0)',
+}).setData(data);
+
+// Baseline
+chart.addBaselineSeries().setData(data);
+`.trim(),
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'grid';
@@ -64,7 +97,7 @@ export const Overview: Story = {
     const specs: ChartSpec[] = [
       {
         title: 'Candlestick',
-        color: '#26a69a',
+        color: '#22AB94',
         create: (el) => {
           const chart = createChart(el, { autoSize: true });
           chart.addCandlestickSeries().setData(bars);

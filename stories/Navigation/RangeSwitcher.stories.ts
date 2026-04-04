@@ -22,6 +22,24 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Range Switcher',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+// Jump to a 3-month window
+const DAY = 86400;
+chart.setVisibleRange(lastTime - 90 * DAY, lastTime);
+
+// Snap back to the latest bar
+chart.scrollToRealTime();`,
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'flex';
@@ -87,14 +105,14 @@ export const Default: Story = {
     const rtBtn = document.createElement('button');
     rtBtn.textContent = 'Go to Realtime';
     rtBtn.style.cssText = btnStyle(false);
-    rtBtn.style.color = '#26a69a';
+    rtBtn.style.color = '#22AB94';
     rtBtn.addEventListener('click', () => {
       chart.scrollToRealTime();
       if (activeBtn) activeBtn.style.cssText = btnStyle(false);
       activeBtn = null;
     });
     rtBtn.addEventListener('mouseenter', () => { rtBtn.style.background = '#1a3a3a'; });
-    rtBtn.addEventListener('mouseleave', () => { rtBtn.style.cssText = btnStyle(false); rtBtn.style.color = '#26a69a'; });
+    rtBtn.addEventListener('mouseleave', () => { rtBtn.style.cssText = btnStyle(false); rtBtn.style.color = '#22AB94'; });
     toolbar.appendChild(rtBtn);
 
     root.appendChild(toolbar);

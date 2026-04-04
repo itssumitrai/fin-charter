@@ -48,6 +48,22 @@ function generateIntradayData(intervalSeconds: number, barCount: number): Bar[] 
 
 export const IntervalSwitcher: Story = {
   name: 'Interval Switcher',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(dailyData);
+
+// Switch to 5-minute bars
+chart.setPeriodicity({ interval: 5, unit: 'minute' });
+series.setData(fiveMinData);
+chart.fitContent();`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
@@ -60,12 +76,12 @@ export const IntervalSwitcher: Story = {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
     const series = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      upColor: '#22AB94',
+      downColor: '#F7525F',
+      borderUpColor: '#22AB94',
+      borderDownColor: '#F7525F',
+      wickUpColor: '#22AB94',
+      wickDownColor: '#F7525F',
     });
 
     // Start with daily data

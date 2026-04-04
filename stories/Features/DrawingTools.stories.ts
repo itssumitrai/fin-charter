@@ -32,6 +32,23 @@ function makeButton(label: string, onClick: () => void): HTMLButtonElement {
 
 export const InteractiveDrawing: Story = {
   name: 'Interactive Drawing',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+// Activate a drawing tool (user clicks chart to place it)
+chart.setActiveDrawingTool('trendline');
+
+// Cancel the active tool
+chart.setActiveDrawingTool(null);`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
@@ -82,6 +99,20 @@ export const InteractiveDrawing: Story = {
 
 export const PresetDrawings: Story = {
   name: 'Preset Drawings',
+  parameters: {
+    docs: {
+      source: {
+        code: `chart.addDrawing('horizontal-line',
+  [{ time: t1, price: 190 }],
+  { color: '#f4c430', lineWidth: 1, lineDash: [4, 4] },
+);
+chart.addDrawing('trendline',
+  [{ time: t1, price: low1 }, { time: t2, price: high2 }],
+  { color: '#22AB94', lineWidth: 2 },
+);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -103,7 +134,7 @@ export const PresetDrawings: Story = {
         { time: AAPL_DAILY[20].time, price: AAPL_DAILY[20].low },
         { time: AAPL_DAILY[80].time, price: AAPL_DAILY[80].high },
       ],
-      { color: '#26a69a', lineWidth: 2 },
+      { color: '#22AB94', lineWidth: 2 },
     );
 
     // Add a rectangle marking a consolidation zone

@@ -21,6 +21,20 @@ type Story = StoryObj;
 
 export const Default: Story = {
   name: 'Go to Realtime',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(bars);
+
+// Snap the viewport to the most recent bar
+chart.scrollToRealTime();`,
+      },
+    },
+  },
   render: () => {
     const root = document.createElement('div');
     root.style.display = 'flex';
@@ -54,7 +68,7 @@ export const Default: Story = {
     rtBtn.textContent = 'Go to Realtime';
     rtBtn.style.cssText =
       'cursor:pointer;padding:4px 14px;border-radius:3px;border:none;font-size:12px;' +
-      'font-family:monospace;background:#26a69a;color:#fff;';
+      'font-family:monospace;background:#22AB94;color:#fff;';
     rtBtn.addEventListener('click', () => chart.scrollToRealTime());
 
     const hint = document.createElement('span');

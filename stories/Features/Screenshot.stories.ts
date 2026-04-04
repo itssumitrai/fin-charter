@@ -21,6 +21,20 @@ type Story = StoryObj;
 
 export const TakeScreenshot: Story = {
   name: 'Take Screenshot',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(data);
+
+const canvas = chart.takeScreenshot();
+const dataUrl = canvas.toDataURL('image/png');`,
+      },
+    },
+  },
   render: () => {
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';

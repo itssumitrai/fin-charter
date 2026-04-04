@@ -20,6 +20,23 @@ type Story = StoryObj;
 
 export const LiveStream: Story = {
   name: 'Live Stream (500ms interval)',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true });
+const series = chart.addCandlestickSeries();
+series.setData(historicalBars);
+
+// Stream new bars in real time
+setInterval(() => {
+  const newBar = { time, open, high, low, close, volume };
+  series.update(newBar);
+}, 500);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });
@@ -66,6 +83,18 @@ export const LiveStream: Story = {
 
 export const LiveLine: Story = {
   name: 'Live Line Chart',
+  parameters: {
+    docs: {
+      source: {
+        code: `const series = chart.addLineSeries({ color: '#00e5ff', lineWidth: 2 });
+series.setData(historicalBars);
+
+setInterval(() => {
+  series.update({ time, open, high, low, close, volume: 0 });
+}, 500);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true });

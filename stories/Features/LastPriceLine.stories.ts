@@ -22,6 +22,20 @@ type Story = StoryObj;
 
 export const Visible: Story = {
   name: 'Last Price Line Visible',
+  parameters: {
+    docs: {
+      source: {
+        code: `import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  lastPriceLine: { visible: true },
+});
+const series = chart.addCandlestickSeries();
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -36,6 +50,16 @@ export const Visible: Story = {
 
 export const Hidden: Story = {
   name: 'Last Price Line Hidden',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  lastPriceLine: { visible: false },
+});`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {
@@ -50,6 +74,18 @@ export const Hidden: Story = {
 
 export const OnLineSeries: Story = {
   name: 'Last Price Line on Line Series',
+  parameters: {
+    docs: {
+      source: {
+        code: `const chart = createChart(container, {
+  autoSize: true,
+  lastPriceLine: { visible: true },
+});
+const series = chart.addLineSeries({ color: '#00e5ff' });
+series.setData(data);`,
+      },
+    },
+  },
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, {

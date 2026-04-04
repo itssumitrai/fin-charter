@@ -6,8 +6,8 @@ export interface HistogramRendererOptions {
 }
 
 const DEFAULT_OPTIONS: HistogramRendererOptions = {
-  upColor: 'rgba(38, 166, 154, 0.5)',
-  downColor: 'rgba(239, 83, 80, 0.5)',
+  upColor: 'rgba(34, 171, 148, 0.5)',
+  downColor: 'rgba(247, 82, 95, 0.5)',
 };
 
 /**
