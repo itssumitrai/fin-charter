@@ -92,6 +92,7 @@ export class TimeScale {
       this._options.minBarSpacing,
       Math.min(this._options.maxBarSpacing, spacing),
     );
+    this.correctOffset();
   }
 
   /** Scroll by pixels (positive = scroll right, negative = scroll left). */

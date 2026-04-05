@@ -54,6 +54,8 @@ export class TouchGestureHandler implements EventHandler {
     this._timeScale = timeScale;
     this._requestRepaint = requestRepaint;
     this._options = { ...DEFAULT_OPTIONS, ...options };
+    // Clamp momentumFriction to valid (0, 1) range
+    this._options.momentumFriction = Math.max(0, Math.min(1, this._options.momentumFriction));
   }
 
   get activeTouchCount(): number {
@@ -137,7 +139,9 @@ export class TouchGestureHandler implements EventHandler {
   }
 
   private _startMomentum(): void {
+    const savedVelocity = this._velocityX;
     this._stopMomentum();
+    this._velocityX = savedVelocity;
     const friction = this._options.momentumFriction;
     const tick = () => {
       this._velocityX *= friction;
