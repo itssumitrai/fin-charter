@@ -120,9 +120,9 @@ export type {
 export { AlertLine } from './core/alert-line';
 export type { AlertLineOptions, AlertTriggerMode, AlertLineCallback } from './core/alert-line';
 
-// ─── Chart Sync ────────────────────────────────────────────────────────────
-export { ChartSyncGroup } from './core/chart-sync';
-export type { ISyncableChart, SyncCrosshairState, CrosshairSyncCallback, TimeScaleSyncCallback } from './core/chart-sync';
+// ─── Accessibility ─────────────────────────────────────────────────────────
+export { ChartAccessibility } from './core/accessibility';
+export type { BarData as AccessibilityBarData } from './core/accessibility';
 
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
