@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectDirection, mirrorX, textAlign } from '@/core/rtl';
+import { detectDirection, mirrorX, resolveTextAlign } from '@/core/rtl';
 
 describe('detectDirection', () => {
   it('returns rtl for Arabic', () => {
@@ -38,14 +38,14 @@ describe('mirrorX', () => {
   });
 });
 
-describe('textAlign', () => {
+describe('resolveTextAlign', () => {
   it('returns correct alignment for LTR', () => {
-    expect(textAlign('start', false)).toBe('left');
-    expect(textAlign('end', false)).toBe('right');
+    expect(resolveTextAlign('start', false)).toBe('left');
+    expect(resolveTextAlign('end', false)).toBe('right');
   });
 
   it('returns mirrored alignment for RTL', () => {
-    expect(textAlign('start', true)).toBe('right');
-    expect(textAlign('end', true)).toBe('left');
+    expect(resolveTextAlign('start', true)).toBe('right');
+    expect(resolveTextAlign('end', true)).toBe('left');
   });
 });

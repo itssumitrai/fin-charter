@@ -55,7 +55,7 @@ export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
 // ─── RTL ────────────────────────────────────────────────────────────
-export { detectDirection, mirrorX, textAlign as rtlTextAlign } from './core/rtl';
+export { detectDirection, mirrorX, resolveTextAlign } from './core/rtl';
 export type { TextDirection } from './core/rtl';
 
 // ─── Replay ─────────────────────────────────────────────────────────

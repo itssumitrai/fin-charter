@@ -1,14 +1,30 @@
 /**
- * RTL (Right-to-Left) layout utilities.
+ * RTL (Right-to-Left) layout building blocks.
  *
- * When RTL mode is active:
- * - Price scale flips to the opposite side
- * - Time axis labels flow right-to-left
- * - Tooltips, legends, and context menus mirror horizontally
- * - CSS logical properties used throughout Svelte components
+ * These utilities provide the foundation for RTL support. Chart-level
+ * integration (price axis flip, time axis mirroring, tooltip/menu layout)
+ * uses these helpers when the `direction` option is set.
  */
 
 export type TextDirection = 'ltr' | 'rtl';
+
+/**
+ * Languages that use right-to-left script by default.
+ * Kurdish (ku) is excluded because it depends on script variant
+ * (ku-Arab/Sorani is RTL, ku-Latn is LTR). Use 'ckb' for Sorani.
+ */
+const RTL_LANGUAGES = new Set([
+  'ar', // Arabic
+  'he', // Hebrew
+  'fa', // Persian
+  'ur', // Urdu
+  'ps', // Pashto
+  'sd', // Sindhi
+  'yi', // Yiddish
+  'dv', // Divehi
+  'ckb', // Central Kurdish (Sorani)
+  'ug', // Uyghur
+]);
 
 /**
  * Detect text direction from a locale string.
@@ -16,19 +32,7 @@ export type TextDirection = 'ltr' | 'rtl';
  */
 export function detectDirection(locale: string): TextDirection {
   const lang = locale.split('-')[0].toLowerCase();
-  const rtlLanguages = new Set([
-    'ar', // Arabic
-    'he', // Hebrew
-    'fa', // Persian
-    'ur', // Urdu
-    'ps', // Pashto
-    'sd', // Sindhi
-    'yi', // Yiddish
-    'dv', // Divehi
-    'ku', // Kurdish (Sorani)
-    'ug', // Uyghur
-  ]);
-  return rtlLanguages.has(lang) ? 'rtl' : 'ltr';
+  return RTL_LANGUAGES.has(lang) ? 'rtl' : 'ltr';
 }
 
 /**
@@ -42,7 +46,7 @@ export function mirrorX(x: number, width: number, isRTL: boolean): number {
 /**
  * Get the CSS text-align value for the current direction.
  */
-export function textAlign(align: 'start' | 'end', isRTL: boolean): 'left' | 'right' {
+export function resolveTextAlign(align: 'start' | 'end', isRTL: boolean): 'left' | 'right' {
   if (align === 'start') return isRTL ? 'right' : 'left';
   return isRTL ? 'left' : 'right';
 }
