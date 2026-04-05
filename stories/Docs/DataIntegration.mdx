@@ -13,7 +13,7 @@ This guide covers the four main data patterns in fin-charter: loading paginated 
 Use `series.prependData()` together with `series.barsInLogicalRange()` and `chart.subscribeVisibleRangeChange()` to implement infinite-history scrolling.
 
 ```ts
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -80,7 +80,7 @@ For high-frequency feeds, the internal RAF batching means only one repaint happe
 ## Periodicity / Interval Switching
 
 ```ts
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart  = createChart(container, { autoSize: true });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -100,7 +100,7 @@ chart.setPeriodicity({ interval: 5, unit: 'minute' });
 ### Client-Side Resampling with `aggregateOHLC`
 
 ```ts
-import { aggregateOHLC } from 'fin-charter/transforms';
+import { aggregateOHLC } from '@itssumitrai/fin-charter/transforms';
 
 const fiveMin = aggregateOHLC(baseStore, 5 * 60);   // 5-minute bars
 const hourly  = aggregateOHLC(baseStore, 60 * 60);  // 1-hour bars
@@ -142,7 +142,7 @@ chart.setComparisonMode(true);
 ## Event Markers
 
 ```ts
-import type { ChartEvent } from 'fin-charter';
+import type { ChartEvent } from '@itssumitrai/fin-charter';
 
 const events: ChartEvent[] = [
   { time: 1700000000, type: 'earnings', label: 'Q3 EPS Beat', color: '#26a69a' },

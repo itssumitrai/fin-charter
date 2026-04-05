@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
 import { withDocs } from '../doc-renderer';
@@ -25,7 +25,7 @@ export const FitContentDemo: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -74,7 +74,7 @@ chart.fitContent();`,
         'The chart starts with a narrow <code>barSpacing: 2</code> so bars are compressed. ' +
         'Click the <strong>Fit Content</strong> button to auto-scale so all bars fill the visible width.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

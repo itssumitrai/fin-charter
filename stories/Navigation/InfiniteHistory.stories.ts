@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
@@ -46,7 +46,7 @@ export const Default: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -111,7 +111,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
         'Subscribe to <code>chart.subscribeVisibleRangeChange()</code> and detect when <code>range.from</code> ' +
         'reaches the earliest bar time, then fetch and prepend older data with <code>series.setData()</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

@@ -11,7 +11,7 @@ fin-charter supports runtime theming through CSS custom properties (CSS variable
 All properties are prefixed with `--fc-` to avoid collisions:
 
 ```ts
-import { CSS_VARS } from 'fin-charter';
+import { CSS_VARS } from '@itssumitrai/fin-charter';
 ```
 
 | Variable | CSS Property | Description |
@@ -71,7 +71,7 @@ import { CSS_VARS } from 'fin-charter';
 Use `readCSSTheme()` to read the computed CSS variables from a container element and convert them into `ChartOptions`:
 
 ```ts
-import { readCSSTheme, createChart } from 'fin-charter';
+import { readCSSTheme, createChart } from '@itssumitrai/fin-charter';
 
 const container = document.getElementById('chart')!;
 container.classList.add('chart-dark');
@@ -92,7 +92,7 @@ Only variables that are defined in CSS are included in the result. Undefined var
 Convert a `ChartOptions` object into a CSS custom properties string:
 
 ```ts
-import { generateCSSTheme, DARK_THEME } from 'fin-charter';
+import { generateCSSTheme, DARK_THEME } from '@itssumitrai/fin-charter';
 
 const css = generateCSSTheme(DARK_THEME);
 // Returns: "--fc-bg: #1a1a2e; --fc-text: #d1d4dc; ..."
@@ -105,7 +105,7 @@ const css = generateCSSTheme(DARK_THEME);
 Apply CSS variables directly to a container element:
 
 ```ts
-import { applyCSSTheme, LIGHT_THEME } from 'fin-charter';
+import { applyCSSTheme, LIGHT_THEME } from '@itssumitrai/fin-charter';
 
 applyCSSTheme(container, LIGHT_THEME);
 // Sets all --fc-* properties on the container's style

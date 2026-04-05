@@ -298,7 +298,7 @@ setMarketSessions(sessions: MarketSession[]): void
 ```
 
 ```ts
-import { US_EQUITY_SESSIONS } from 'fin-charter';
+import { US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 chart.setMarketSessions(US_EQUITY_SESSIONS);
 ```
 
@@ -638,7 +638,19 @@ type SeriesType =
   | 'histogram'
   | 'baseline'
   | 'hollow-candle'
-  | 'heikin-ashi';
+  | 'heikin-ashi'
+  | 'step-line'
+  | 'colored-line'
+  | 'colored-mountain'
+  | 'hlc-area'
+  | 'high-low'
+  | 'column'
+  | 'volume-candle'
+  | 'baseline-delta-mountain'
+  | 'renko'
+  | 'kagi'
+  | 'line-break'
+  | 'point-figure';
 ```
 
 ---
@@ -711,7 +723,7 @@ interface MarketSession {
 ```
 
 ```ts
-import { US_EQUITY_SESSIONS } from 'fin-charter';
+import { US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 // [{ id: 'premarket', ... }, { id: 'regular', ... }, { id: 'postmarket', ... }]
 ```
 

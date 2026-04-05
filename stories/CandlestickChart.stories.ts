@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { generateOHLCV, createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
@@ -23,7 +23,7 @@ export const Default: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -42,7 +42,7 @@ series.setData(data); // Array of { time, open, high, low, close, volume }`,
         'Green (bullish) candles indicate the close was higher than the open; red (bearish) candles indicate the close was lower.\n' +
         'Pass an array of <code>{ time, open, high, low, close, volume }</code> objects to <code>series.setData()</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), {
   autoSize: true,

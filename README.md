@@ -13,7 +13,7 @@
 - **Ultra-fast canvas rendering** — direct 2D canvas drawing, no virtual DOM
 - **Tiny bundle** — core is under 15 KB gzipped; unused chart types tree-shake away
 - **Tree-shakeable** — `"sideEffects": false` ES module package
-- **8 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram, Heikin-Ashi
+- **20 chart types** — Candlestick, Line, Area, Bar (OHLC), Baseline, Hollow Candle, Histogram, Heikin-Ashi, Step Line, Colored Line, Colored Mountain, HLC Area, High-Low, Column, Volume Candle, Baseline Delta Mountain, Renko, Kagi, Line Break, Point & Figure
 - **30 built-in indicators** — SMA, EMA, Bollinger Bands, RSI, MACD, VWAP, Stochastic, ATR, ADX, OBV, Williams %R, Volume, Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, Pivot Points, Aroon, Awesome Oscillator, Chaikin MF, Coppock, Elder Force, TRIX, Supertrend, VWMA, Choppiness, MFI, ROC, Linear Regression
 - **Chart-managed indicators** — `chart.addIndicator('rsi', { source: series })` with auto-compute and auto-pane creation
 - **Multi-pane layout** — indicator panes with draggable dividers and independent price scales
@@ -24,7 +24,7 @@
 - **Real-time data** — `series.update(bar)` appends or overwrites the last bar in O(1)
 - **Drawing tools** — 16 built-in types (horizontal line, vertical line, trendline, fibonacci, rectangle, text, ray, arrow, channel, ellipse, pitchfork, fib projection, fib arc, fib fan, crossline, measurement); extensible via `registerDrawingType()`
 - **Comparison mode** — normalise multiple series to percentage change for side-by-side performance comparison
-- **Heikin-Ashi** — `chart.addHeikinAshiSeries()` with automatic OHLC-to-HA transform
+- **Heikin-Ashi** — `chart.addSeries({ type: 'heikin-ashi' })` with automatic OHLC-to-HA transform
 - **Market sessions** — define pre/post-market windows with background highlights; filter bars by session
 - **Chart state save/restore** — `exportState()` / `importState()` round-trips the full chart configuration
 - **Data pagination** — `series.prependData()` + `barsInLogicalRange()` + `subscribeVisibleRangeChange()` for infinite-history scrolling
@@ -37,13 +37,13 @@
 ## Installation
 
 ```bash
-npm install fin-charter
+npm install @itssumitrai/fin-charter
 ```
 
 ## Quick Start
 
 ```ts
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart')!, {
   width: 800,
@@ -71,25 +71,43 @@ series.setData([
 | Hollow Candle | `addSeries({ type: 'hollow-candle' })` | Up candles hollow (outline only), down candles filled |
 | Histogram | `addSeries({ type: 'histogram' })` | Vertical bars from the bottom; useful for volume |
 | Heikin-Ashi | `addSeries({ type: 'heikin-ashi' })` | Smoothed OHLC candles with automatic HA transform |
+| Step Line | `addSeries({ type: 'step-line' })` | Horizontal-then-vertical line segments |
+| Colored Line | `addSeries({ type: 'colored-line' })` | Line with per-bar color control |
+| Colored Mountain | `addSeries({ type: 'colored-mountain' })` | Area chart with per-bar color control |
+| HLC Area | `addSeries({ type: 'hlc-area' })` | High-low-close area band |
+| High-Low | `addSeries({ type: 'high-low' })` | High-low range bars |
+| Column | `addSeries({ type: 'column' })` | Vertical column bars |
+| Volume Candle | `addSeries({ type: 'volume-candle' })` | Candles with width proportional to volume |
+| Baseline Delta Mountain | `addSeries({ type: 'baseline-delta-mountain' })` | Filled delta area around baseline |
+| Renko | `addSeries({ type: 'renko' })` | Price-action-only brick charts |
+| Kagi | `addSeries({ type: 'kagi' })` | Trend reversal line charts |
+| Line Break | `addSeries({ type: 'line-break' })` | N-line break charts |
+| Point & Figure | `addSeries({ type: 'point-figure' })` | X and O column charts |
 
-> **Note:** The individual `addCandlestickSeries()`, `addLineSeries()`, etc. methods still work but are deprecated. Prefer the unified `addSeries({ type })` API.
+> All chart types use the unified `addSeries({ type })` API.
 
 ## Bundle Size (measured)
 
 | Entry point | Size (gzip) |
 |---|---|
-| `fin-charter` (core, main chunk) | ~13.8 KB |
+| `@itssumitrai/fin-charter` (core) | ~13.8 KB |
 | Full bundle (all chart types + indicators) | ~35.9 KB |
 
 ## Documentation
 
-- [Getting Started](docs/getting-started.md)
-- [API Reference](docs/api-reference.md)
-- [Indicators](docs/indicators.md)
-- [Drawing Tools](docs/drawings.md)
-- [Data Integration](docs/data-integration.md)
-- [Plugins](docs/plugins.md)
-- [Performance](docs/performance.md)
+All documentation is available in the **[Live Storybook](https://itssumitrai.github.io/fin-charter/)**:
+
+- Getting Started
+- API Reference
+- Indicators & Custom Indicators
+- Drawing Tools
+- Data Integration & Data Feed
+- Plugin System
+- Performance & WebGL
+- CSS Theming
+- Accessibility & RTL Support
+- Touch Gestures
+- And more...
 
 ## License
 

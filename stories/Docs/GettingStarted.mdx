@@ -7,7 +7,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 ## Installation
 
 ```bash
-npm install fin-charter
+npm install @itssumitrai/fin-charter
 ```
 
 fin-charter is a pure ES module package. No CommonJS build is provided.
@@ -15,7 +15,7 @@ fin-charter is a pure ES module package. No CommonJS build is provided.
 ## Basic Chart
 
 ```ts
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart')!, {
   width: 800,
@@ -184,7 +184,7 @@ All three are optional. Without them, the chart defaults to `en-US` locale, UTC 
 Use built-in market definitions for exchange-specific settings:
 
 ```ts
-import { US_MARKET } from 'fin-charter/market';
+import { US_MARKET } from '@itssumitrai/fin-charter/market';
 
 const chart = createChart(container, {
   timezone: US_MARKET.timezone,  // America/New_York
@@ -199,7 +199,7 @@ Built-in markets: US, UK, JP (Japan), DE (Germany), AU (Australia), Crypto.
 Register translations for UI labels:
 
 ```ts
-import { registerLocale, setLocale } from 'fin-charter/i18n';
+import { registerLocale, setLocale } from '@itssumitrai/fin-charter/i18n';
 
 registerLocale('fr', {
   'label.open': 'O', 'label.high': 'H',
@@ -245,7 +245,7 @@ Import only the chart types you need to minimise bundle size:
 
 ```ts
 // Only the core chart engine + line series are included in the bundle.
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container);
 const series = chart.addSeries({ type: 'line' });
@@ -256,5 +256,5 @@ Because unused renderers are never referenced the bundler excludes them. The pac
 Indicators are in a separate entry point so they never appear in the core bundle unless imported:
 
 ```ts
-import { computeSMA } from 'fin-charter/indicators';
+import { computeSMA } from '@itssumitrai/fin-charter/indicators';
 ```

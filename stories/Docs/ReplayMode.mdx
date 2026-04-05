@@ -9,7 +9,7 @@ The `ReplayManager` steps through historical data bar-by-bar to simulate live da
 ## `ReplayManager`
 
 ```ts
-import { ReplayManager } from 'fin-charter';
+import { ReplayManager } from '@itssumitrai/fin-charter';
 
 const replay = new ReplayManager();
 ```
@@ -126,7 +126,7 @@ type ReplaySpeed = 1 | 2 | 5 | 10;
 ## Full Example
 
 ```ts
-import { createChart, ReplayManager } from 'fin-charter';
+import { createChart, ReplayManager } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

@@ -25,7 +25,7 @@ All methods are async to support both synchronous (localStorage) and asynchronou
 Persists data to browser `localStorage` with an optional key prefix to avoid collisions.
 
 ```ts
-import { LocalStorageAdapter } from 'fin-charter';
+import { LocalStorageAdapter } from '@itssumitrai/fin-charter';
 
 const storage = new LocalStorageAdapter('fc-');
 
@@ -51,7 +51,7 @@ new LocalStorageAdapter(prefix?: string)
 Persists data to browser `IndexedDB` for larger payloads that exceed localStorage limits.
 
 ```ts
-import { IndexedDBAdapter } from 'fin-charter';
+import { IndexedDBAdapter } from '@itssumitrai/fin-charter';
 
 const storage = new IndexedDBAdapter('fin-charter', 'chart-state');
 
@@ -78,7 +78,7 @@ new IndexedDBAdapter(dbName?: string, storeName?: string)
 Manages auto-save and load of drawings per symbol with debouncing to avoid excessive writes.
 
 ```ts
-import { DrawingPersistence, LocalStorageAdapter } from 'fin-charter';
+import { DrawingPersistence, LocalStorageAdapter } from '@itssumitrai/fin-charter';
 
 const adapter = new LocalStorageAdapter();
 const persistence = new DrawingPersistence(adapter, 500); // 500ms debounce
@@ -117,7 +117,7 @@ new DrawingPersistence(adapter: IStorageAdapter, debounceMs?: number)
 Implement `IStorageAdapter` to save to any backend:
 
 ```ts
-import type { IStorageAdapter } from 'fin-charter';
+import type { IStorageAdapter } from '@itssumitrai/fin-charter';
 
 class RestStorageAdapter implements IStorageAdapter {
   constructor(private baseUrl: string) {}

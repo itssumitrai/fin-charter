@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import type { Bar } from '../src/core/types';
 import { generateOHLCV, createChartContainer } from './helpers';
 import { withDocs } from './doc-renderer';
@@ -25,7 +25,7 @@ export const LiveStream: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -83,7 +83,7 @@ setInterval(() => {
         'it is appended to the chart. When the timestamp matches the last bar, it updates in place.\n' +
         'This example appends a new candlestick every 500ms. Use a <code>MutationObserver</code> to clean up intervals when the story unmounts.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -104,7 +104,7 @@ export const CandleBuilding: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

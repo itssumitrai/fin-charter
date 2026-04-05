@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
@@ -24,7 +24,7 @@ export const Default: Story = {
     docs: {
       source: {
         code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'bar' });
@@ -43,7 +43,7 @@ series.setData(data);
         'The <strong>OHLC bar chart</strong> displays each period as a vertical bar with tick marks for open (left) and close (right). ' +
         'The bar extends from the high to the low price. This is a traditional chart type favored by commodity and futures traders.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), {
   autoSize: true,

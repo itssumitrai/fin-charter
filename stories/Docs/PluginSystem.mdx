@@ -68,7 +68,7 @@ interface PluginPaintContext {
 Manages plugin lifecycle, dependency resolution, and event dispatch.
 
 ```ts
-import { PluginManager } from 'fin-charter';
+import { PluginManager } from '@itssumitrai/fin-charter';
 
 const manager = new PluginManager();
 manager.setChartApi(chartApi);
@@ -135,7 +135,7 @@ manager.dispose(); // Calls uninstall() on all plugins in reverse order
 ## Example: Watermark Plugin
 
 ```ts
-import type { IPlugin, PluginChartApi, PluginPaintContext } from 'fin-charter';
+import type { IPlugin, PluginChartApi, PluginPaintContext } from '@itssumitrai/fin-charter';
 
 class WatermarkPlugin implements IPlugin {
   readonly name = 'watermark';

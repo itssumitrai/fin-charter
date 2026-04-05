@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
@@ -25,7 +25,7 @@ export const CurrencyFormat: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -48,7 +48,7 @@ const chart = createChart(container, {
       description:
         '<strong>Currency Format</strong> — Format prices as currency (<code>$XXX.XX</code>) using a custom ' +
         '<code>priceFormatter</code> function passed to <code>createChart()</code>.',
-      code: `import { createChart } from 'fin-charter';
+      code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

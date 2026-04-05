@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { withDocs } from '../doc-renderer';
@@ -26,7 +26,7 @@ export const InfiniteScrollBack: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -99,7 +99,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
         'Use <code>chart.subscribeVisibleRangeChange()</code> to detect when the visible range approaches the first bar, ' +
         'then call <code>series.prependData()</code> to prepend historical bars without replacing existing data.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

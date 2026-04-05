@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
@@ -85,7 +85,7 @@ export const CrosshairMove: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -130,7 +130,7 @@ chart.subscribeCrosshairMove((state) => {
         'The callback receives a <code>CrosshairState</code> object with <code>x</code>, <code>y</code>, ' +
         '<code>price</code>, <code>time</code>, and <code>barIndex</code> — or <code>null</code> when the cursor leaves the chart.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -191,7 +191,7 @@ chart.subscribeDblClick((e) => {
         'Subscribe to <code>click</code> and <code>dblclick</code> events for user interaction handling. ' +
         'Both receive the same payload: <code>{ x, y, time, price }</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -278,7 +278,7 @@ export const DrawingEvents: Story = {
         'Receives <code>{ type, drawingId, drawingType }</code> where type is ' +
         '<code>"created"</code>, <code>"modified"</code>, or <code>"removed"</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -357,7 +357,7 @@ export const IndicatorEvents: Story = {
         'Receives <code>{ type, indicatorId, indicatorType, paneId }</code> where type is ' +
         '<code>"added"</code>, <code>"removed"</code>, or <code>"updated"</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -433,7 +433,7 @@ export const ResizeEvent: Story = {
         'React to chart size changes with <code>subscribeResize()</code>. ' +
         'Receives <code>{ width, height }</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -502,7 +502,7 @@ chart.applyOptions({ symbol: 'MSFT' });`,
         'Receives <code>{ previous, current }</code>. The event fires when you call ' +
         '<code>chart.applyOptions({ symbol })</code> with a new symbol.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -582,7 +582,7 @@ export const ChartTypeChange: Story = {
         'Receives <code>{ seriesType }</code>. The event fires when a new series is added via ' +
         '<code>addSeries({ type: \'candlestick\' })</code>, <code>addSeries({ type: \'line\' })</code>, etc.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 let series = chart.addSeries({ type: 'candlestick' });
@@ -666,7 +666,7 @@ chart.applyOptions({ layout: { backgroundColor: '#1a1a2e' } });`,
         'Receives the changed options object (a <code>DeepPartial&lt;ChartOptions&gt;</code>). ' +
         'Fires on every <code>chart.applyOptions()</code> call.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -737,7 +737,7 @@ export const LayoutChange: Story = {
         'Receives <code>{ action, paneId }</code> where action is <code>"pane-added"</code> or ' +
         '<code>"pane-removed"</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -813,7 +813,7 @@ series.applyOptions({ visible: false });`,
         'Series-level event via <code>series.subscribeVisibilityChange()</code>. ' +
         'Receives <code>boolean</code> (<code>true</code> = visible, <code>false</code> = hidden).',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -984,7 +984,7 @@ series.subscribeVisibilityChange(cb);`,
         'Use the buttons to trigger different events and watch them appear in the unified log. ' +
         'Crosshair events are throttled to avoid flooding the log.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

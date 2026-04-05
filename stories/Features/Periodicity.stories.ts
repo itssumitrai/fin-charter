@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
-import type { Periodicity } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
+import type { Periodicity } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
@@ -52,7 +52,7 @@ export const IntervalSwitcher: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -140,7 +140,7 @@ chart.fitContent();`,
         '<code>1m</code>, <code>5m</code>, <code>1h</code>, and <code>1D</code>. ' +
         'Call <code>chart.setPeriodicity({ interval, unit })</code> to change the interval, then reload data for that timeframe.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

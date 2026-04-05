@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 
@@ -30,7 +30,7 @@ export const ContextMenuDemo: Story = {
 // Right-click on empty chart for: Reset Zoom, Scroll to Latest
 // Right-click on indicator pane for: Settings, Hide, Remove
 
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -107,7 +107,7 @@ chart.addIndicator('rsi', {
         'Right-click on the <strong>chart area</strong> for Reset Zoom and Scroll to Latest. ' +
         'Right-click an <strong>indicator pane</strong> header for Settings, Hide, and Remove.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

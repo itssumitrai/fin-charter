@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
 import { withDocs } from '../doc-renderer';
@@ -25,7 +25,7 @@ export const CustomTimeFormatter: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -72,7 +72,7 @@ const chart = createChart(container, {
         '<code>"day"</code>, <code>"time"</code>) and returns a formatted string. ' +
         'This demo formats day ticks as <code>MM/DD</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

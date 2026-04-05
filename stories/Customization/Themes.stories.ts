@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart, DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from 'fin-charter';
+import { createChart, DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
@@ -25,7 +25,7 @@ export const Dark: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart, DARK_THEME } from 'fin-charter';
+        code: `import { createChart, DARK_THEME } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'dark' });
 chart.applyOptions(DARK_THEME);`,
@@ -42,7 +42,7 @@ chart.applyOptions(DARK_THEME);`,
       description:
         '<strong>Dark Theme</strong> — Built-in dark theme with dark backgrounds and contrasting candle colors. ' +
         'Apply with <code>chart.applyOptions(DARK_THEME)</code> or pass <code>theme: \'dark\'</code> to <code>createChart()</code>.',
-      code: `import { createChart, DARK_THEME } from 'fin-charter';
+      code: `import { createChart, DARK_THEME } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'dark' });
 chart.applyOptions(DARK_THEME);`,
@@ -79,7 +79,7 @@ chart.addSeries({ type: 'candlestick',
       description:
         '<strong>Light Theme</strong> — Light theme with white backgrounds and clean styling. ' +
         'Apply with <code>chart.applyOptions(LIGHT_THEME)</code> or pass <code>theme: \'light\'</code> to <code>createChart()</code>.',
-      code: `import { createChart, LIGHT_THEME } from 'fin-charter';
+      code: `import { createChart, LIGHT_THEME } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
 chart.applyOptions(LIGHT_THEME);`,
@@ -119,7 +119,7 @@ chart.addSeries({ type: 'candlestick',
         'The theme uses a deep dark background with orange crosshair accents. Pair with custom candle colors for a distinctive look.\n' +
         'Apply with <code>chart.applyOptions(COLORFUL_THEME)</code> or pass <code>theme: &quot;colorful&quot;</code> to <code>createChart()</code>.',
       code: `
-import { createChart, COLORFUL_THEME } from 'fin-charter';
+import { createChart, COLORFUL_THEME } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'colorful' });
 const series = chart.addSeries({ type: 'candlestick',

@@ -28,8 +28,8 @@ Implement `getBars()` to fetch OHLCV data from your backend. The chart calls thi
 Wraps an `IDataFeed` with request deduplication, local caching, and loading state tracking.
 
 ```ts
-import { DataFeedManager } from 'fin-charter';
-import type { IDataFeed } from 'fin-charter';
+import { DataFeedManager } from '@itssumitrai/fin-charter';
+import type { IDataFeed } from '@itssumitrai/fin-charter';
 
 class MyDataFeed implements IDataFeed {
   async getBars(symbol: string, resolution: string, from: number, to: number) {
@@ -75,7 +75,7 @@ interface IStreamingAdapter {
 Streams bar data over WebSocket with automatic reconnection and exponential backoff.
 
 ```ts
-import { WebSocketAdapter } from 'fin-charter';
+import { WebSocketAdapter } from '@itssumitrai/fin-charter';
 
 const ws = new WebSocketAdapter({
   url: 'wss://stream.example.com/bars',
@@ -104,7 +104,7 @@ ws.subscribeBars('AAPL', 'D', (bar) => {
 Polls a REST endpoint at a fixed interval for environments without WebSocket support.
 
 ```ts
-import { PollingAdapter } from 'fin-charter';
+import { PollingAdapter } from '@itssumitrai/fin-charter';
 
 const poller = new PollingAdapter({
   url: 'https://api.example.com/latest',
@@ -125,7 +125,7 @@ poller.subscribeBars('AAPL', 'D', (bar) => series.update(bar));
 Buffers incoming ticks and flushes them as OHLCV bars at configurable intervals:
 
 ```ts
-import { TickBuffer } from 'fin-charter';
+import { TickBuffer } from '@itssumitrai/fin-charter';
 
 const buffer = new TickBuffer({
   flushIntervalMs: 1000,
@@ -143,7 +143,7 @@ buffer.push({ price: 185.55, volume: 200 });
 ## Full Integration Example
 
 ```ts
-import { createChart, DataFeedManager, WebSocketAdapter } from 'fin-charter';
+import { createChart, DataFeedManager, WebSocketAdapter } from '@itssumitrai/fin-charter';
 
 const feed = new DataFeedManager(myDataFeed);
 const ws = new WebSocketAdapter({ url: 'wss://...' });

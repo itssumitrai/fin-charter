@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
@@ -35,7 +35,7 @@ export const LinearVsLog: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 // Linear scale (default)
 const chart = createChart(container, {

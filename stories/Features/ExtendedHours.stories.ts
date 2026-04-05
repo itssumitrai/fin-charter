@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
+import { createChart, US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
@@ -60,7 +60,7 @@ export const MarketSessions: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
+        code: `import { createChart, US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 chart.setMarketSessions(US_EQUITY_SESSIONS);
@@ -138,7 +138,7 @@ chart.setSessionFilter('regular');`,
         'Use <code>chart.setMarketSessions()</code> to define session boundaries and ' +
         '<code>chart.setSessionFilter()</code> to toggle between <code>"regular"</code>, <code>"extended"</code>, or <code>"all"</code> sessions.',
       code: `
-import { createChart, US_EQUITY_SESSIONS } from 'fin-charter';
+import { createChart, US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 chart.setMarketSessions(US_EQUITY_SESSIONS);

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart, isWebGLAvailable } from 'fin-charter';
+import { createChart, isWebGLAvailable } from '@itssumitrai/fin-charter';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { withDocs } from '../doc-renderer';
 
@@ -25,7 +25,7 @@ export const WebGLMode: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart, isWebGLAvailable } from 'fin-charter';
+        code: `import { createChart, isWebGLAvailable } from '@itssumitrai/fin-charter';
 
 console.log('WebGL available:', isWebGLAvailable());
 
@@ -63,7 +63,7 @@ series.setData(largeDataset); // 5000 bars`,
     wrapper.appendChild(container);
 
     const description = '<strong>WebGL rendering</strong> uses GPU-accelerated drawing for supported series types (candlestick, line, area). Set <code>renderer: \'webgl\'</code> in chart options. Use <code>isWebGLAvailable()</code> to check browser support. The chart falls back to <code>canvas2d</code> automatically if WebGL is unavailable. WebGL excels with large datasets (5,000+ bars).';
-    const code = `import { createChart, isWebGLAvailable } from 'fin-charter';
+    const code = `import { createChart, isWebGLAvailable } from '@itssumitrai/fin-charter';
 
 // Check availability
 console.log('WebGL available:', isWebGLAvailable());

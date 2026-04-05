@@ -9,7 +9,7 @@ The `computeVolumeProfile()` function generates a horizontal histogram of volume
 ## `computeVolumeProfile()`
 
 ```ts
-import { computeVolumeProfile } from 'fin-charter/indicators/volume-profile';
+import { computeVolumeProfile } from '@itssumitrai/fin-charter/indicators/volume-profile';
 
 const result = computeVolumeProfile(store, fromIdx, toIdx, {
   binCount: 24,
@@ -79,8 +79,8 @@ The price range containing `valueAreaPercent` (default 70%) of total volume. The
 ## Example
 
 ```ts
-import { createChart } from 'fin-charter';
-import { computeVolumeProfile } from 'fin-charter/indicators/volume-profile';
+import { createChart } from '@itssumitrai/fin-charter';
+import { computeVolumeProfile } from '@itssumitrai/fin-charter/indicators/volume-profile';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

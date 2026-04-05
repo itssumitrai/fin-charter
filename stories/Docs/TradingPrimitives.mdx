@@ -11,8 +11,8 @@ fin-charter provides `OrderLine` and `PositionLine` for displaying trading-speci
 Represents a pending order (limit, stop, or market) on the chart.
 
 ```ts
-import { OrderLine } from 'fin-charter';
-import type { OrderLineOptions } from 'fin-charter';
+import { OrderLine } from '@itssumitrai/fin-charter';
+import type { OrderLineOptions } from '@itssumitrai/fin-charter';
 
 const order = new OrderLine({
   price: 185.00,
@@ -97,8 +97,8 @@ const serialized = order.serialize();
 Represents an open trading position with entry price and unrealized P&L calculation.
 
 ```ts
-import { PositionLine } from 'fin-charter';
-import type { PositionLineOptions } from 'fin-charter';
+import { PositionLine } from '@itssumitrai/fin-charter';
+import type { PositionLineOptions } from '@itssumitrai/fin-charter';
 
 const position = new PositionLine({
   entryPrice: 185.00,
@@ -141,7 +141,7 @@ For sell (short) positions, the calculation is inverted: profit when price falls
 ## Example: Order Entry Display
 
 ```ts
-import { createChart, OrderLine, PositionLine } from 'fin-charter';
+import { createChart, OrderLine, PositionLine } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

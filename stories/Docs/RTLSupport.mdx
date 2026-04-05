@@ -9,7 +9,7 @@ fin-charter provides right-to-left (RTL) layout support for Arabic, Hebrew, Pers
 ## Direction Detection
 
 ```ts
-import { detectDirection } from 'fin-charter';
+import { detectDirection } from '@itssumitrai/fin-charter';
 
 detectDirection('ar');    // 'rtl' (Arabic)
 detectDirection('he');    // 'rtl' (Hebrew)
@@ -50,7 +50,7 @@ type TextDirection = 'ltr' | 'rtl';
 In RTL mode, X coordinates are mirrored so that `x=0` becomes `x=width`:
 
 ```ts
-import { mirrorX } from 'fin-charter';
+import { mirrorX } from '@itssumitrai/fin-charter';
 
 const chartWidth = 800;
 
@@ -72,7 +72,7 @@ This is used internally to flip the price axis from right to left and mirror all
 Resolve logical `start`/`end` alignment to physical `left`/`right`:
 
 ```ts
-import { resolveTextAlign } from 'fin-charter';
+import { resolveTextAlign } from '@itssumitrai/fin-charter';
 
 resolveTextAlign('start', false); // 'left'  (LTR)
 resolveTextAlign('start', true);  // 'right' (RTL)
@@ -85,7 +85,7 @@ resolveTextAlign('end', true);    // 'left'  (RTL)
 ## Enabling RTL in a Chart
 
 ```ts
-import { createChart, detectDirection } from 'fin-charter';
+import { createChart, detectDirection } from '@itssumitrai/fin-charter';
 
 const locale = 'ar'; // Arabic
 const direction = detectDirection(locale);
