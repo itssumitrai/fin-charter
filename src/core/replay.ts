@@ -2,11 +2,11 @@ import type { Bar, ColumnStore } from './types';
 
 export type ReplaySpeed = 1 | 2 | 5 | 10;
 
-export type ReplayCallback = (event: {
-  type: 'bar' | 'end' | 'pause' | 'resume';
-  barIndex: number;
-  bar?: Bar;
-}) => void;
+export type ReplayBarEvent = { type: 'bar'; barIndex: number; bar: Bar };
+export type ReplayControlEvent = { type: 'pause' | 'resume' | 'end'; barIndex: number };
+export type ReplayEvent = ReplayBarEvent | ReplayControlEvent;
+
+export type ReplayEventCallback = (event: ReplayEvent) => void;
 
 export interface ReplayOptions {
   /** Playback speed multiplier (default: 1). */
@@ -19,7 +19,7 @@ export interface ReplayOptions {
  *
  * Usage:
  *   replay.start(store, fromIndex, { speed: 2 });
- *   replay.onBar(callback); // fired for each revealed bar
+ *   replay.onEvent(callback); // fired for each revealed bar or control event
  *   replay.pause();
  *   replay.stepForward();
  *   replay.resume();
@@ -32,7 +32,7 @@ export class ReplayManager {
   private _speed: ReplaySpeed = 1;
   private _playing = false;
   private _timerId: ReturnType<typeof setInterval> | null = null;
-  private _callbacks: ReplayCallback[] = [];
+  private _callbacks: ReplayEventCallback[] = [];
   private _baseIntervalMs = 500; // 500ms per bar at 1x speed
 
   /** Whether replay is currently active (playing or paused). */
@@ -56,12 +56,12 @@ export class ReplayManager {
   }
 
   /** Subscribe to replay events. */
-  onBar(callback: ReplayCallback): void {
+  onEvent(callback: ReplayEventCallback): void {
     this._callbacks.push(callback);
   }
 
   /** Unsubscribe from replay events. */
-  offBar(callback: ReplayCallback): void {
+  offEvent(callback: ReplayEventCallback): void {
     const idx = this._callbacks.indexOf(callback);
     if (idx >= 0) this._callbacks.splice(idx, 1);
   }
@@ -73,10 +73,20 @@ export class ReplayManager {
    */
   start(store: ColumnStore, fromIndex: number, options?: ReplayOptions): void {
     this.stop();
+    if (store.length === 0) return;
+
     this._store = store;
-    this._currentIndex = Math.max(0, Math.min(fromIndex, store.length - 1));
     this._endIndex = store.length - 1;
+    this._currentIndex = Math.max(0, Math.min(fromIndex, this._endIndex));
     this._speed = options?.speed ?? 1;
+
+    // Don't start playing if already at the end
+    if (this._currentIndex >= this._endIndex) {
+      this._playing = false;
+      this._emit({ type: 'end', barIndex: this._currentIndex });
+      return;
+    }
+
     this._playing = true;
     this._startTimer();
   }
@@ -92,6 +102,8 @@ export class ReplayManager {
   /** Resume playback after pause. */
   resume(): void {
     if (this._playing || !this._store) return;
+    // Don't resume if already at end
+    if (this._currentIndex >= this._endIndex) return;
     this._playing = true;
     this._startTimer();
     this._emit({ type: 'resume', barIndex: this._currentIndex });
@@ -140,6 +152,7 @@ export class ReplayManager {
     const interval = this._baseIntervalMs / this._speed;
     this._timerId = setInterval(() => {
       if (!this.stepForward()) {
+        this._playing = false;
         this._stopTimer();
       }
     }, interval);
@@ -166,7 +179,7 @@ export class ReplayManager {
     this._emit({ type: 'bar', barIndex: i, bar });
   }
 
-  private _emit(event: Parameters<ReplayCallback>[0]): void {
+  private _emit(event: ReplayEvent): void {
     for (const cb of this._callbacks) cb(event);
   }
 }

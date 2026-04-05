@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ReplayManager } from '@/core/replay';
 import type { ColumnStore } from '@/core/types';
+import type { ReplayEvent } from '@/core/replay';
 
 function makeStore(length: number): ColumnStore {
-  const time = new Float64Array(length);
-  const open = new Float64Array(length);
-  const high = new Float64Array(length);
-  const low = new Float64Array(length);
-  const close = new Float64Array(length);
-  const volume = new Float64Array(length);
+  const capacity = Math.max(length, 1);
+  const time = new Float64Array(capacity);
+  const open = new Float64Array(capacity);
+  const high = new Float64Array(capacity);
+  const low = new Float64Array(capacity);
+  const close = new Float64Array(capacity);
+  const volume = new Float64Array(capacity);
   for (let i = 0; i < length; i++) {
     time[i] = 1000 + i * 60;
     open[i] = 100 + i;
@@ -17,7 +19,7 @@ function makeStore(length: number): ColumnStore {
     close[i] = 105 + i;
     volume[i] = 1000;
   }
-  return { time, open, high, low, close, volume, length };
+  return { time, open, high, low, close, volume, length, capacity };
 }
 
 describe('ReplayManager', () => {
@@ -46,20 +48,22 @@ describe('ReplayManager', () => {
     expect(replay.currentIndex).toBe(2);
   });
 
-  it('steps forward and fires bar callback', () => {
+  it('steps forward and fires bar event with discriminated type', () => {
     const store = makeStore(10);
     const cb = vi.fn();
-    replay.onBar(cb);
+    replay.onEvent(cb);
     replay.start(store, 3);
 
     const stepped = replay.stepForward();
     expect(stepped).toBe(true);
     expect(replay.currentIndex).toBe(4);
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'bar',
-      barIndex: 4,
-    }));
-    expect(cb.mock.calls[0][0].bar.time).toBe(store.time[4]);
+
+    const event = cb.mock.calls[0][0] as ReplayEvent;
+    expect(event.type).toBe('bar');
+    if (event.type === 'bar') {
+      expect(event.bar.time).toBe(store.time[4]);
+      expect(event.barIndex).toBe(4);
+    }
   });
 
   it('steps backward', () => {
@@ -78,11 +82,11 @@ describe('ReplayManager', () => {
   it('fires end event when reaching last bar', () => {
     const store = makeStore(5);
     const cb = vi.fn();
-    replay.onBar(cb);
+    replay.onEvent(cb);
     replay.start(store, 3);
 
     replay.stepForward(); // index 4 = last bar
-    const endCall = cb.mock.calls.find((c: unknown[]) => (c[0] as { type: string }).type === 'end');
+    const endCall = cb.mock.calls.find((c: unknown[]) => (c[0] as ReplayEvent).type === 'end');
     expect(endCall).toBeDefined();
     expect(replay.playing).toBe(false);
   });
@@ -90,25 +94,24 @@ describe('ReplayManager', () => {
   it('pauses and resumes', () => {
     const store = makeStore(10);
     const cb = vi.fn();
-    replay.onBar(cb);
+    replay.onEvent(cb);
     replay.start(store, 0);
 
     replay.pause();
     expect(replay.playing).toBe(false);
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'pause' }));
+    const pauseCall = cb.mock.calls.find((c: unknown[]) => (c[0] as ReplayEvent).type === 'pause');
+    expect(pauseCall).toBeDefined();
 
     replay.resume();
     expect(replay.playing).toBe(true);
-    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'resume' }));
+    const resumeCall = cb.mock.calls.find((c: unknown[]) => (c[0] as ReplayEvent).type === 'resume');
+    expect(resumeCall).toBeDefined();
   });
 
   it('auto-advances via timer at 1x speed', () => {
     const store = makeStore(10);
-    const cb = vi.fn();
-    replay.onBar(cb);
     replay.start(store, 0);
 
-    // At 1x speed, base interval is 500ms
     vi.advanceTimersByTime(500);
     expect(replay.currentIndex).toBe(1);
 
@@ -121,7 +124,6 @@ describe('ReplayManager', () => {
     replay.start(store, 0, { speed: 5 });
     expect(replay.speed).toBe(5);
 
-    // At 5x speed, interval is 500/5 = 100ms
     vi.advanceTimersByTime(100);
     expect(replay.currentIndex).toBe(1);
   });
@@ -133,7 +135,6 @@ describe('ReplayManager', () => {
     replay.setSpeed(10);
     expect(replay.speed).toBe(10);
 
-    // At 10x, interval is 50ms
     vi.advanceTimersByTime(50);
     expect(replay.currentIndex).toBe(1);
   });
@@ -147,13 +148,49 @@ describe('ReplayManager', () => {
     expect(replay.currentIndex).toBe(0);
   });
 
-  it('offBar removes callback', () => {
+  it('offEvent removes callback', () => {
     const store = makeStore(10);
     const cb = vi.fn();
-    replay.onBar(cb);
-    replay.offBar(cb);
+    replay.onEvent(cb);
+    replay.offEvent(cb);
     replay.start(store, 0);
     replay.stepForward();
     expect(cb).not.toHaveBeenCalled();
+  });
+
+  // Edge cases from review
+  it('does not start playing when fromIndex is at last bar', () => {
+    const store = makeStore(5);
+    const cb = vi.fn();
+    replay.onEvent(cb);
+    replay.start(store, 4); // last bar
+    expect(replay.playing).toBe(false);
+    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ type: 'end' }));
+  });
+
+  it('handles empty store gracefully', () => {
+    const store = makeStore(0);
+    replay.start(store, 0);
+    expect(replay.active).toBe(false);
+    expect(replay.playing).toBe(false);
+  });
+
+  it('resume does nothing when already at end', () => {
+    const store = makeStore(5);
+    replay.start(store, 3);
+    replay.stepForward(); // reaches end
+    expect(replay.playing).toBe(false);
+    replay.resume();
+    expect(replay.playing).toBe(false); // should not resume
+  });
+
+  it('timer sets playing=false when stepForward fails', () => {
+    const store = makeStore(3);
+    replay.start(store, 1);
+
+    // Advance timer: index 1→2 (last bar, end fires, playing=false)
+    vi.advanceTimersByTime(500);
+    expect(replay.currentIndex).toBe(2);
+    expect(replay.playing).toBe(false);
   });
 });
