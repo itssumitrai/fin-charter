@@ -120,9 +120,9 @@ export type {
 export { AlertLine } from './core/alert-line';
 export type { AlertLineOptions, AlertTriggerMode, AlertLineCallback } from './core/alert-line';
 
-// ─── Accessibility ─────────────────────────────────────────────────────────
-export { ChartAccessibility } from './core/accessibility';
-export type { BarData as AccessibilityBarData } from './core/accessibility';
+// ─── Order & Position Lines ────────────────────────────────────────────────
+export { OrderLine, PositionLine } from './core/order-line';
+export type { OrderLineOptions, OrderSide, OrderType, OrderModifiedCallback, OrderCancelledCallback, PositionLineOptions } from './core/order-line';
 
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
