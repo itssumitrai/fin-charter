@@ -142,9 +142,11 @@ export class OrderLine {
     side: OrderSide;
     orderType: OrderType;
     color: string;
+    lineWidth: number;
     lineStyle: string;
     title: string;
     draggable: boolean;
+    axisLabelVisible: boolean;
   } {
     return {
       id: this.id,
@@ -153,9 +155,11 @@ export class OrderLine {
       side: this._side,
       orderType: this._orderType,
       color: this._color,
+      lineWidth: this._lineWidth,
       lineStyle: this._lineStyle,
       title: this._title,
       draggable: this._draggable,
+      axisLabelVisible: this._axisLabelVisible,
     };
   }
 
@@ -222,6 +226,7 @@ export class PositionLine {
    */
   unrealizedPnL(currentPrice: number): number {
     const diff = currentPrice - this._entryPrice;
+    if (diff === 0) return 0;
     return this._side === 'buy'
       ? diff * this._quantity
       : -diff * this._quantity;
@@ -255,8 +260,10 @@ export class PositionLine {
     quantity: number;
     side: OrderSide;
     color: string;
+    lineWidth: number;
     lineStyle: string;
     title: string;
+    axisLabelVisible: boolean;
   } {
     return {
       id: this.id,
@@ -264,8 +271,10 @@ export class PositionLine {
       quantity: this._quantity,
       side: this._side,
       color: this._color,
+      lineWidth: this._lineWidth,
       lineStyle: this._lineStyle,
       title: this._title,
+      axisLabelVisible: this._axisLabelVisible,
     };
   }
 }

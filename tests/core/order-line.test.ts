@@ -178,7 +178,7 @@ describe('PositionLine', () => {
     const pos = makePosition({ entryPrice: 100, quantity: 10, side: 'sell' });
     expect(pos.unrealizedPnL(90)).toBe(100);  // profit when price drops
     expect(pos.unrealizedPnL(110)).toBe(-100); // loss when price rises
-    expect(pos.unrealizedPnL(100)).toBe(-0); // -0 for short side at entry
+    expect(pos.unrealizedPnL(100)).toBe(0); // zero at entry price
   });
 
   it('calculates unrealized P&L percentage', () => {
