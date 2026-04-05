@@ -14,7 +14,7 @@ jobs:
     permissions:
       contents: write      # to create release tags and commits
       pull-requests: write  # to create the "Version Packages" PR
-      id-token: write       # for npm provenance
+      id-token: write       # for npm provenance and OIDC trusted publishing
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,11 +41,13 @@ jobs:
         with:
           # When changesets are present: creates a "Version Packages" PR
           # When no changesets remain (PR was merged): publishes to npm
-          publish: npm publish --provenance
+          publish: npm publish --provenance --access public
           version: npx changeset version
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Trusted publishing: npm uses the OIDC id-token to authenticate.
+          # No NPM_TOKEN secret needed — configure the trusted publisher on npmjs.com instead.
+          # Fallback: if NPM_TOKEN secret is set, it will be used as NODE_AUTH_TOKEN.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
