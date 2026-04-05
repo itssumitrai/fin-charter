@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Replay ─────────────────────────────────────────────────────────
+export { ReplayManager } from './core/replay';
+export type { ReplaySpeed, ReplayCallback, ReplayOptions } from './core/replay';
+
 // ─── Text Labels ────────────────────────────────────────────────────
 export { TextLabel, createTextLabels } from './core/text-label';
 export type { TextLabelOptions } from './core/text-label';
