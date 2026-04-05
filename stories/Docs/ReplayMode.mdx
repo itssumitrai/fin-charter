@@ -1,0 +1,156 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Replay Mode" />
+
+# Replay Mode
+
+The `ReplayManager` steps through historical data bar-by-bar to simulate live data streaming. Bars appear progressively as if in real-time, which is useful for backtesting visualization and trading practice.
+
+## `ReplayManager`
+
+```ts
+import { ReplayManager } from 'fin-charter';
+
+const replay = new ReplayManager();
+```
+
+---
+
+## Starting Replay
+
+```ts
+// Start replay from bar index 50 at 2x speed
+replay.start(store, 50, { speed: 2 });
+
+// Bars 0-50 are initially visible
+// Bars 51+ are revealed progressively
+```
+
+### `ReplayOptions`
+
+```ts
+interface ReplayOptions {
+  speed?: ReplaySpeed; // 1 | 2 | 5 | 10
+}
+```
+
+The base interval is 500ms per bar at 1x speed. At 2x, bars appear every 250ms.
+
+---
+
+## Playback Controls
+
+```ts
+// Pause playback
+replay.pause();
+
+// Resume playback
+replay.resume();
+
+// Step forward one bar while paused
+replay.stepForward();
+
+// Stop replay entirely
+replay.stop();
+```
+
+### State Properties
+
+```ts
+replay.active;        // true when replay is running (playing or paused)
+replay.playing;       // true when actively playing (not paused)
+replay.currentIndex;  // current bar index
+replay.speed;         // current speed multiplier
+```
+
+---
+
+## Events
+
+Subscribe to replay events for each revealed bar or control action:
+
+```ts
+replay.onEvent((event) => {
+  switch (event.type) {
+    case 'bar':
+      // A new bar was revealed
+      series.update(event.bar);
+      console.log('Bar', event.barIndex, 'revealed');
+      break;
+    case 'pause':
+      console.log('Replay paused at bar', event.barIndex);
+      break;
+    case 'resume':
+      console.log('Replay resumed at bar', event.barIndex);
+      break;
+    case 'end':
+      console.log('Replay finished at bar', event.barIndex);
+      break;
+  }
+});
+```
+
+### Event Types
+
+```ts
+type ReplayBarEvent = { type: 'bar'; barIndex: number; bar: Bar };
+type ReplayControlEvent = { type: 'pause' | 'resume' | 'end'; barIndex: number };
+type ReplayEvent = ReplayBarEvent | ReplayControlEvent;
+```
+
+### Unsubscribing
+
+```ts
+const handler = (event: ReplayEvent) => { /* ... */ };
+replay.onEvent(handler);
+replay.offEvent(handler);
+```
+
+---
+
+## Speed Control
+
+```ts
+type ReplaySpeed = 1 | 2 | 5 | 10;
+```
+
+| Speed | Interval per bar |
+|---|---|
+| `1` | 500ms |
+| `2` | 250ms |
+| `5` | 100ms |
+| `10` | 50ms |
+
+---
+
+## Full Example
+
+```ts
+import { createChart, ReplayManager } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addSeries({ type: 'candlestick' });
+
+// Load all historical data
+series.setData(allBars.slice(0, 50)); // Show first 50 bars
+
+const replay = new ReplayManager();
+
+replay.onEvent((event) => {
+  if (event.type === 'bar') {
+    series.update(event.bar);
+  }
+});
+
+// Start from bar 50 at normal speed
+replay.start(store, 50, { speed: 1 });
+
+// Speed up
+replay.start(store, replay.currentIndex, { speed: 5 });
+
+// Pause and step through manually
+replay.pause();
+replay.stepForward();
+replay.stepForward();
+replay.resume();
+```

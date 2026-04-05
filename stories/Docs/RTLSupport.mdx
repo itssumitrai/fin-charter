@@ -1,0 +1,132 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/RTL Support" />
+
+# RTL Support
+
+fin-charter provides right-to-left (RTL) layout support for Arabic, Hebrew, Persian, Urdu, and other RTL scripts. The RTL utilities handle direction detection, coordinate mirroring, and text alignment.
+
+## Direction Detection
+
+```ts
+import { detectDirection } from 'fin-charter';
+
+detectDirection('ar');    // 'rtl' (Arabic)
+detectDirection('he');    // 'rtl' (Hebrew)
+detectDirection('fa');    // 'rtl' (Persian)
+detectDirection('ur');    // 'rtl' (Urdu)
+detectDirection('en');    // 'ltr' (English)
+detectDirection('de');    // 'ltr' (German)
+detectDirection('ja');    // 'ltr' (Japanese)
+```
+
+### Supported RTL Languages
+
+| Code | Language |
+|---|---|
+| `ar` | Arabic |
+| `he` | Hebrew |
+| `fa` | Persian |
+| `ur` | Urdu |
+| `ps` | Pashto |
+| `sd` | Sindhi |
+| `yi` | Yiddish |
+| `dv` | Divehi |
+| `ckb` | Central Kurdish (Sorani) |
+| `ug` | Uyghur |
+
+---
+
+## `TextDirection` Type
+
+```ts
+type TextDirection = 'ltr' | 'rtl';
+```
+
+---
+
+## Coordinate Mirroring
+
+In RTL mode, X coordinates are mirrored so that `x=0` becomes `x=width`:
+
+```ts
+import { mirrorX } from 'fin-charter';
+
+const chartWidth = 800;
+
+// In LTR mode, no change
+mirrorX(100, chartWidth, false); // 100
+
+// In RTL mode, mirrored
+mirrorX(100, chartWidth, true);  // 700
+mirrorX(0, chartWidth, true);    // 800
+mirrorX(800, chartWidth, true);  // 0
+```
+
+This is used internally to flip the price axis from right to left and mirror all horizontal positioning.
+
+---
+
+## Text Alignment
+
+Resolve logical `start`/`end` alignment to physical `left`/`right`:
+
+```ts
+import { resolveTextAlign } from 'fin-charter';
+
+resolveTextAlign('start', false); // 'left'  (LTR)
+resolveTextAlign('start', true);  // 'right' (RTL)
+resolveTextAlign('end', false);   // 'right' (LTR)
+resolveTextAlign('end', true);    // 'left'  (RTL)
+```
+
+---
+
+## Enabling RTL in a Chart
+
+```ts
+import { createChart, detectDirection } from 'fin-charter';
+
+const locale = 'ar'; // Arabic
+const direction = detectDirection(locale);
+
+const chart = createChart(container, {
+  autoSize: true,
+  locale,
+  direction, // 'rtl'
+});
+```
+
+When `direction` is `'rtl'`:
+
+- The price axis moves to the left side
+- The time axis reads right-to-left
+- Tooltips and context menus are mirrored
+- Drawing tool anchor points are mirrored
+- Text labels use RTL text alignment
+
+---
+
+## Dynamic Direction Switching
+
+```ts
+function setLocale(locale: string) {
+  const direction = detectDirection(locale);
+  chart.applyOptions({ locale, direction });
+}
+
+// Switch to Arabic
+setLocale('ar');
+
+// Switch back to English
+setLocale('en');
+```
+
+---
+
+## Best Practices
+
+- Use `detectDirection()` rather than hardcoding direction, so the chart adapts to any locale
+- Test with both LTR and RTL locales to ensure layouts do not break
+- Custom plugins should use `mirrorX()` and `resolveTextAlign()` for RTL compatibility
+- The `direction` option affects all panes and overlays in the chart

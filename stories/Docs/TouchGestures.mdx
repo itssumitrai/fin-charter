@@ -1,0 +1,98 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Touch Gestures" />
+
+# Touch Gestures
+
+fin-charter provides mobile touch gesture support through the `TouchGestureHandler` class, enabling pinch-to-zoom, two-finger pan, and momentum scrolling on touch devices.
+
+## `TouchGestureHandler`
+
+```ts
+import { TouchGestureHandler } from 'fin-charter';
+```
+
+The handler is automatically attached when the chart detects a touch-capable device. It translates multi-touch gestures into time-scale operations.
+
+---
+
+## Options
+
+```ts
+interface TouchGestureOptions {
+  pinchZoom?: boolean;         // default: true
+  twoFingerPan?: boolean;      // default: true
+  momentum?: boolean;          // default: true
+  momentumFriction?: number;   // default: 0.95 (0-1 range)
+}
+```
+
+### Configuring Touch Gestures
+
+```ts
+import { createChart } from 'fin-charter';
+
+const chart = createChart(container, {
+  autoSize: true,
+  touchGestures: {
+    pinchZoom: true,
+    twoFingerPan: true,
+    momentum: true,
+    momentumFriction: 0.95,
+  },
+});
+```
+
+---
+
+## Supported Gestures
+
+| Gesture | Action | Option |
+|---|---|---|
+| Pinch (two fingers) | Zoom in/out on the time axis | `pinchZoom` |
+| Two-finger drag | Pan the chart horizontally | `twoFingerPan` |
+| Flick release | Momentum scroll after pan | `momentum` |
+| Single tap | Show crosshair at tap position | Always enabled |
+| Long press | Open context menu | Always enabled |
+
+---
+
+## Pinch-to-Zoom
+
+When two fingers touch the chart, the handler calculates the distance between them. As the fingers move apart, the chart zooms in (increases `barSpacing`). Moving fingers together zooms out.
+
+```
+Initial pinch distance -> stored as reference
+Current pinch distance -> ratio applied to barSpacing
+```
+
+The zoom is centered on the midpoint between the two fingers.
+
+---
+
+## Momentum Scrolling
+
+After a two-finger pan, releasing with velocity triggers momentum scrolling. The `momentumFriction` parameter controls deceleration:
+
+- `0.99` = very smooth, long coast
+- `0.95` = default, natural feel
+- `0.85` = quick stop
+
+Momentum is cancelled when the user touches the chart again.
+
+---
+
+## Disabling Touch Gestures
+
+```ts
+const chart = createChart(container, {
+  autoSize: true,
+  touchGestures: {
+    pinchZoom: false,
+    twoFingerPan: false,
+    momentum: false,
+  },
+});
+```
+
+This leaves single-touch interactions (crosshair, tap) functional while disabling multi-touch gestures.

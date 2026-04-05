@@ -1,0 +1,132 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Chart Sync" />
+
+# Chart Sync
+
+Synchronize multiple chart instances so that crosshair movement and time-scale panning/zooming on one chart is mirrored to all others in the group.
+
+## `ChartSyncGroup`
+
+```ts
+import { ChartSyncGroup } from 'fin-charter/core/chart-sync';
+
+const group = new ChartSyncGroup();
+group.addChart(chart1);
+group.addChart(chart2);
+group.addChart(chart3);
+
+// Enable crosshair synchronization
+group.syncCrosshair();
+
+// Enable time-scale synchronization (zoom/pan)
+group.syncTimeScale();
+```
+
+When the user moves the crosshair on `chart1`, the same time/price position is shown on `chart2` and `chart3`. When the user pans or zooms `chart1`, all charts follow.
+
+---
+
+## Interfaces
+
+### `ISyncableChart`
+
+The minimal chart interface required for synchronization:
+
+```ts
+interface ISyncableChart {
+  subscribeCrosshairMove(cb: (state: SyncCrosshairState | null) => void): void;
+  unsubscribeCrosshairMove(cb: (state: SyncCrosshairState | null) => void): void;
+  subscribeVisibleRangeChange(cb: (range: { from: number; to: number } | null) => void): void;
+  unsubscribeVisibleRangeChange(cb: (range: { from: number; to: number } | null) => void): void;
+  setVisibleRange(from: number, to: number): void;
+}
+```
+
+### `SyncCrosshairState`
+
+```ts
+interface SyncCrosshairState {
+  time: number;
+  price: number;
+  x: number;
+  y: number;
+  barIndex: number;
+}
+```
+
+---
+
+## Crosshair Sync
+
+When enabled, moving the crosshair on any chart in the group broadcasts the position to all other charts:
+
+```ts
+group.syncCrosshair();
+
+// Listen for sync events
+group.onCrosshairSync((sourceChart, state) => {
+  console.log('Crosshair moved on source chart to time:', state?.time);
+});
+```
+
+The sync uses guard flags to prevent re-entrant loops (chart A triggers chart B which triggers chart A).
+
+---
+
+## Time-Scale Sync
+
+When enabled, panning or zooming on any chart updates the visible range on all other charts:
+
+```ts
+group.syncTimeScale();
+
+// Listen for sync events
+group.onTimeScaleSync((sourceChart, range) => {
+  console.log('Visible range changed:', range.from, 'to', range.to);
+});
+```
+
+---
+
+## Managing Charts
+
+```ts
+// Add a chart to the group
+group.addChart(newChart);
+
+// Remove a chart from the group
+group.removeChart(oldChart);
+
+// Dispose the entire group (unsubscribes all listeners)
+group.dispose();
+```
+
+---
+
+## Example: Multi-Symbol Dashboard
+
+```ts
+import { createChart } from 'fin-charter';
+import { ChartSyncGroup } from 'fin-charter/core/chart-sync';
+
+const syncGroup = new ChartSyncGroup();
+
+const symbols = ['AAPL', 'GOOGL', 'MSFT'];
+const charts = symbols.map((symbol) => {
+  const container = document.createElement('div');
+  container.style.height = '300px';
+  document.getElementById('dashboard')!.appendChild(container);
+
+  const chart = createChart(container, { autoSize: true, symbol });
+  const series = chart.addSeries({ type: 'candlestick' });
+  // ... load data for each symbol
+
+  syncGroup.addChart(chart);
+  return chart;
+});
+
+// Sync all charts
+syncGroup.syncCrosshair();
+syncGroup.syncTimeScale();
+```

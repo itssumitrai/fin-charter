@@ -1,0 +1,151 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Volume Profile" />
+
+# Volume Profile
+
+The `computeVolumeProfile()` function generates a horizontal histogram of volume distributed by price level. It calculates the Point of Control (POC), Value Area High (VAH), and Value Area Low (VAL).
+
+## `computeVolumeProfile()`
+
+```ts
+import { computeVolumeProfile } from 'fin-charter/indicators/volume-profile';
+
+const result = computeVolumeProfile(store, fromIdx, toIdx, {
+  binCount: 24,
+  valueAreaPercent: 0.7,
+});
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `store` | `ColumnStore` | The bar data store |
+| `fromIdx` | `number` | Start bar index (inclusive) |
+| `toIdx` | `number` | End bar index (inclusive) |
+| `options` | `VolumeProfileOptions` | Configuration options |
+
+### `VolumeProfileOptions`
+
+```ts
+interface VolumeProfileOptions {
+  binCount?: number;          // default: 24
+  valueAreaPercent?: number;  // default: 0.7 (70%)
+}
+```
+
+---
+
+## Result
+
+```ts
+interface VolumeProfileResult {
+  bins: VolumeProfileBin[];
+  poc: number;          // Price level with highest volume
+  vah: number;          // Value Area High (upper bound of 70% volume)
+  val: number;          // Value Area Low (lower bound of 70% volume)
+  totalVolume: number;  // Total volume across all bins
+}
+```
+
+### `VolumeProfileBin`
+
+```ts
+interface VolumeProfileBin {
+  price: number;       // Center price of this bin
+  low: number;         // Bottom of bin
+  high: number;        // Top of bin
+  volume: number;      // Total volume
+  buyVolume: number;   // Volume where close >= open
+  sellVolume: number;  // Volume where close < open
+}
+```
+
+---
+
+## Key Levels
+
+### Point of Control (POC)
+
+The price level with the highest traded volume. This often acts as a magnet for price action.
+
+### Value Area High (VAH) / Value Area Low (VAL)
+
+The price range containing `valueAreaPercent` (default 70%) of total volume. The value area is built by expanding outward from the POC bin until the threshold is reached.
+
+---
+
+## Example
+
+```ts
+import { createChart } from 'fin-charter';
+import { computeVolumeProfile } from 'fin-charter/indicators/volume-profile';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addSeries({ type: 'candlestick' });
+series.setData(data);
+
+// Compute volume profile for the visible range
+const store = series.getColumnStore();
+const vp = computeVolumeProfile(store, 0, store.length - 1, {
+  binCount: 30,
+  valueAreaPercent: 0.7,
+});
+
+console.log('POC:', vp.poc.toFixed(2));
+console.log('VAH:', vp.vah.toFixed(2));
+console.log('VAL:', vp.val.toFixed(2));
+console.log('Total volume:', vp.totalVolume);
+
+// Draw key levels as price lines
+series.createPriceLine({
+  price: vp.poc,
+  color: '#FF9800',
+  lineStyle: 'solid',
+  lineWidth: 2,
+  title: `POC ${vp.poc.toFixed(2)}`,
+});
+
+series.createPriceLine({
+  price: vp.vah,
+  color: '#26a69a',
+  lineStyle: 'dashed',
+  title: `VAH ${vp.vah.toFixed(2)}`,
+});
+
+series.createPriceLine({
+  price: vp.val,
+  color: '#ef5350',
+  lineStyle: 'dashed',
+  title: `VAL ${vp.val.toFixed(2)}`,
+});
+
+// Display bins
+vp.bins.forEach((bin) => {
+  console.log(
+    `${bin.low.toFixed(2)}-${bin.high.toFixed(2)}: ` +
+    `volume=${bin.volume}, buy=${bin.buyVolume}, sell=${bin.sellVolume}`
+  );
+});
+```
+
+---
+
+## Buy/Sell Volume Split
+
+Each bin tracks buy and sell volume separately:
+
+- **Buy volume**: bars where `close >= open` (bullish)
+- **Sell volume**: bars where `close < open` (bearish)
+
+This allows rendering the volume profile with a buy/sell color split for additional market insight.
+
+---
+
+## Edge Cases
+
+- If `fromIdx > toIdx` or the store is empty, returns `{ bins: [], poc: 0, vah: 0, val: 0, totalVolume: 0 }`
+- If all bars have the same price, a small margin is added to create valid bin boundaries
+- `binCount` is clamped to a minimum of 1
+- `valueAreaPercent` is clamped to the 0-1 range

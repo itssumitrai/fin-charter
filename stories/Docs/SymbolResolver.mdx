@@ -1,0 +1,157 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Symbol Resolver" />
+
+# Symbol Resolver
+
+The symbol resolver system provides symbol lookup and metadata resolution for chart instances. It supports both custom backends and a built-in in-memory resolver with fuzzy search.
+
+## `ISymbolResolver` Interface
+
+```ts
+interface ISymbolResolver {
+  resolveSymbol(ticker: string): Promise<SymbolInfo>;
+  searchSymbols(query: string, type?: string): Promise<SymbolInfo[]>;
+}
+```
+
+### `SymbolInfo`
+
+```ts
+interface SymbolInfo {
+  symbol: string;          // "AAPL"
+  name: string;            // "Apple Inc."
+  type: string;            // "stock", "crypto", "forex"
+  exchange: string;        // "NASDAQ"
+  timezone: string;        // "America/New_York"
+  pricePrecision: number;  // Decimal places for display (e.g., 2)
+  minMov: number;          // Minimum price movement (e.g., 0.01)
+}
+```
+
+---
+
+## `SimpleSymbolResolver`
+
+An in-memory symbol resolver that uses fuzzy matching on both ticker symbols and human-readable names.
+
+```ts
+import { SimpleSymbolResolver } from 'fin-charter/core/symbol-resolver';
+import type { SymbolInfo } from 'fin-charter/core/symbol-resolver';
+
+const symbols = new Map<string, SymbolInfo>([
+  ['AAPL', {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    type: 'stock',
+    exchange: 'NASDAQ',
+    timezone: 'America/New_York',
+    pricePrecision: 2,
+    minMov: 0.01,
+  }],
+  ['GOOGL', {
+    symbol: 'GOOGL',
+    name: 'Alphabet Inc.',
+    type: 'stock',
+    exchange: 'NASDAQ',
+    timezone: 'America/New_York',
+    pricePrecision: 2,
+    minMov: 0.01,
+  }],
+  ['BTCUSD', {
+    symbol: 'BTCUSD',
+    name: 'Bitcoin / USD',
+    type: 'crypto',
+    exchange: 'Coinbase',
+    timezone: 'Etc/UTC',
+    pricePrecision: 2,
+    minMov: 0.01,
+  }],
+]);
+
+const resolver = new SimpleSymbolResolver(symbols);
+```
+
+### Resolving a Symbol
+
+```ts
+const info = await resolver.resolveSymbol('AAPL');
+// { symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', ... }
+
+try {
+  await resolver.resolveSymbol('INVALID');
+} catch (err) {
+  // "Symbol not found: INVALID"
+}
+```
+
+### Searching Symbols
+
+```ts
+// Search by ticker or name (fuzzy matching)
+const results = await resolver.searchSymbols('app');
+// [{ symbol: 'AAPL', name: 'Apple Inc.', ... }]
+
+// Filter by instrument type
+const cryptoResults = await resolver.searchSymbols('btc', 'crypto');
+// [{ symbol: 'BTCUSD', name: 'Bitcoin / USD', ... }]
+```
+
+---
+
+## Fuzzy Matching
+
+The built-in fuzzy matcher scores results as follows:
+
+| Match Type | Score |
+|---|---|
+| Exact match | 1.0 |
+| Starts with query | 0.9 |
+| Contains query | 0.8 |
+| Characters in order | 0.0 - 0.7 |
+
+Results are sorted by score descending, so exact matches always appear first.
+
+---
+
+## Custom Symbol Resolver
+
+Implement `ISymbolResolver` for your data backend:
+
+```ts
+import type { ISymbolResolver, SymbolInfo } from 'fin-charter/core/symbol-resolver';
+
+class ApiSymbolResolver implements ISymbolResolver {
+  constructor(private baseUrl: string) {}
+
+  async resolveSymbol(ticker: string): Promise<SymbolInfo> {
+    const res = await fetch(`${this.baseUrl}/symbols/${ticker}`);
+    if (!res.ok) throw new Error(`Symbol not found: ${ticker}`);
+    return res.json();
+  }
+
+  async searchSymbols(query: string, type?: string): Promise<SymbolInfo[]> {
+    const params = new URLSearchParams({ q: query });
+    if (type) params.set('type', type);
+    const res = await fetch(`${this.baseUrl}/symbols/search?${params}`);
+    return res.json();
+  }
+}
+```
+
+---
+
+## Integration with Chart
+
+```ts
+const chart = createChart(container, {
+  autoSize: true,
+  symbol: 'AAPL',
+  symbolResolver: new ApiSymbolResolver('https://api.example.com'),
+});
+
+// The chart uses the resolver for:
+// - Symbol search UI
+// - Price precision and formatting
+// - Timezone and exchange info
+```

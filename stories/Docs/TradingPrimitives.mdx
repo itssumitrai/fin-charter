@@ -1,0 +1,187 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Trading Primitives" />
+
+# Trading Primitives
+
+fin-charter provides `OrderLine` and `PositionLine` for displaying trading-specific information on charts. These extend price lines with trading semantics such as order side, quantity, drag-to-modify, and P&L calculation.
+
+## `OrderLine`
+
+Represents a pending order (limit, stop, or market) on the chart.
+
+```ts
+import { OrderLine } from 'fin-charter';
+import type { OrderLineOptions } from 'fin-charter';
+
+const order = new OrderLine({
+  price: 185.00,
+  quantity: 100,
+  side: 'buy',
+  orderType: 'limit',
+  color: '#26a69a',
+  lineStyle: 'dashed',
+  title: 'Buy Limit',
+  draggable: true,
+  axisLabelVisible: true,
+});
+```
+
+### `OrderLineOptions`
+
+```ts
+interface OrderLineOptions {
+  price: number;
+  quantity: number;
+  side: OrderSide;            // 'buy' | 'sell'
+  orderType: OrderType;       // 'limit' | 'stop' | 'market'
+  color?: string;             // default: '#2196F3'
+  lineWidth?: number;         // default: 1
+  lineStyle?: 'solid' | 'dashed' | 'dotted';  // default: 'dashed'
+  title?: string;
+  draggable?: boolean;        // default: true
+  axisLabelVisible?: boolean; // default: true
+}
+```
+
+### Modifying Orders
+
+```ts
+// Update price (e.g., after drag)
+order.setPrice(186.50);
+
+// Update quantity
+order.setQuantity(200);
+
+// Apply multiple option changes
+order.applyOptions({
+  price: 187.00,
+  color: '#FF9800',
+  lineStyle: 'solid',
+});
+
+// Cancel the order
+order.cancel();
+console.log(order.isCancelled); // true
+```
+
+### Event Callbacks
+
+```ts
+// Listen for modifications (price/quantity/options changes)
+order.onModified((o) => {
+  console.log('Order modified:', o.price, o.quantity);
+});
+
+// Listen for cancellation
+order.onCancelled((o) => {
+  console.log('Order cancelled:', o.id);
+});
+
+// Unsubscribe
+order.offModified(handler);
+order.offCancelled(handler);
+```
+
+### Serialization
+
+```ts
+const serialized = order.serialize();
+// { id, price, quantity, side, orderType, color, lineWidth, ... }
+```
+
+---
+
+## `PositionLine`
+
+Represents an open trading position with entry price and unrealized P&L calculation.
+
+```ts
+import { PositionLine } from 'fin-charter';
+import type { PositionLineOptions } from 'fin-charter';
+
+const position = new PositionLine({
+  entryPrice: 185.00,
+  quantity: 100,
+  side: 'buy',
+  color: '#26a69a',
+  title: 'Long AAPL',
+});
+```
+
+### `PositionLineOptions`
+
+```ts
+interface PositionLineOptions {
+  entryPrice: number;
+  quantity: number;
+  side: OrderSide;            // 'buy' | 'sell'
+  color?: string;             // default: green for buy, red for sell
+  lineWidth?: number;         // default: 1
+  lineStyle?: 'solid' | 'dashed' | 'dotted';  // default: 'solid'
+  title?: string;
+  axisLabelVisible?: boolean; // default: true
+}
+```
+
+### Unrealized P&L
+
+```ts
+const pnl = position.unrealizedPnL(190.00);
+// Buy position: (190 - 185) * 100 = 500.00
+
+const pnl2 = position.unrealizedPnL(180.00);
+// Buy position: (180 - 185) * 100 = -500.00
+```
+
+For sell (short) positions, the calculation is inverted: profit when price falls.
+
+---
+
+## Example: Order Entry Display
+
+```ts
+import { createChart, OrderLine, PositionLine } from 'fin-charter';
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addSeries({ type: 'candlestick' });
+series.setData(data);
+
+// Show existing position
+const position = new PositionLine({
+  entryPrice: 185.00,
+  quantity: 100,
+  side: 'buy',
+  title: 'Long 100 @ 185.00',
+});
+
+// Show pending orders
+const takeProfit = new OrderLine({
+  price: 200.00,
+  quantity: 100,
+  side: 'sell',
+  orderType: 'limit',
+  color: '#26a69a',
+  title: 'Take Profit',
+  draggable: true,
+});
+
+const stopLoss = new OrderLine({
+  price: 175.00,
+  quantity: 100,
+  side: 'sell',
+  orderType: 'stop',
+  color: '#ef5350',
+  title: 'Stop Loss',
+  draggable: true,
+});
+
+// React to drag modifications
+takeProfit.onModified((o) => {
+  console.log('Take profit moved to:', o.price);
+});
+
+stopLoss.onModified((o) => {
+  console.log('Stop loss moved to:', o.price);
+});
+```
