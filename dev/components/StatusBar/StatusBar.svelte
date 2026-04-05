@@ -1,8 +1,8 @@
 <script lang="ts">
   import { appStore } from '../../data/store.svelte.ts';
-  import { getMarketForExchange } from 'fin-charter/market';
+  import { getMarketForExchange } from '@itssumitrai/fin-charter/market';
   import { getSymbolInfo } from '../../data/symbols';
-  import { VERSION } from 'fin-charter';
+  import { VERSION } from '@itssumitrai/fin-charter';
   import Icon from '../Icon.svelte';
   import { mdiChevronRight } from '@mdi/js';
 

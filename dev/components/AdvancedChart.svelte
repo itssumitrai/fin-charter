@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { createChart } from 'fin-charter';
-  import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from 'fin-charter';
+  import { createChart } from '@itssumitrai/fin-charter';
+  import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from '@itssumitrai/fin-charter';
   import { fetchBars, fetchMoreBars } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
@@ -23,7 +23,7 @@
   let prevChartType: ChartTypeLabel = 'Candlestick';
   let loadRequestId = 0;
   let isFetchingHistory = false;
-  let allBars: import('fin-charter').Bar[] = [];
+  let allBars: import('@itssumitrai/fin-charter').Bar[] = [];
 
   function createSeries(c: IChartApi, type: ChartTypeLabel): ISeriesApi<SeriesType> {
     const seriesType: SeriesType = CHART_TYPE_TO_SERIES[type] ?? 'candlestick';

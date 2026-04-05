@@ -7,13 +7,13 @@ export default defineConfig({
   plugins: [svelte()],
   resolve: {
     alias: [
-      { find: 'fin-charter/indicators', replacement: resolve(__dirname, '../src/indicators/index.ts') },
-      { find: 'fin-charter/market', replacement: resolve(__dirname, '../src/market/index.ts') },
-      { find: 'fin-charter/formatting', replacement: resolve(__dirname, '../src/formatting/index.ts') },
-      { find: 'fin-charter/timezone', replacement: resolve(__dirname, '../src/timezone/index.ts') },
-      { find: 'fin-charter/currency', replacement: resolve(__dirname, '../src/currency/index.ts') },
-      { find: 'fin-charter/i18n', replacement: resolve(__dirname, '../src/i18n/index.ts') },
-      { find: 'fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
+      { find: '@itssumitrai/fin-charter/indicators', replacement: resolve(__dirname, '../src/indicators/index.ts') },
+      { find: '@itssumitrai/fin-charter/market', replacement: resolve(__dirname, '../src/market/index.ts') },
+      { find: '@itssumitrai/fin-charter/formatting', replacement: resolve(__dirname, '../src/formatting/index.ts') },
+      { find: '@itssumitrai/fin-charter/timezone', replacement: resolve(__dirname, '../src/timezone/index.ts') },
+      { find: '@itssumitrai/fin-charter/currency', replacement: resolve(__dirname, '../src/currency/index.ts') },
+      { find: '@itssumitrai/fin-charter/i18n', replacement: resolve(__dirname, '../src/i18n/index.ts') },
+      { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
     ],
   },
   server: {

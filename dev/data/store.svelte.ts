@@ -1,4 +1,4 @@
-import type { Periodicity, SeriesType } from 'fin-charter';
+import type { Periodicity, SeriesType } from '@itssumitrai/fin-charter';
 import type { QuoteMeta } from './yahoo-finance';
 
 export type ChartTypeLabel =
