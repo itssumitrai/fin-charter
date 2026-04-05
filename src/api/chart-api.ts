@@ -17,6 +17,7 @@ import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../cor
 import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { AlertLine, type AlertLineOptions } from '../core/alert-line';
+import { UndoRedoManager, type Command } from '../core/undo-redo';
 import {
   RangeSelectionHandler,
   MeasureHandler,
@@ -265,6 +266,15 @@ export interface IChartApi {
   /** Export the current chart view as a PDF Blob. */
   exportPDF(options?: import('./export').PDFExportOptions): Blob;
   // ── Alert Lines ──────────────────────────────────────────────────────────
+  // ── Undo/Redo ────────────────────────────────────────────────────────
+  /** Undo the last drawing/chart modification. */
+  undo(): boolean;
+  /** Redo the last undone modification. */
+  redo(): boolean;
+  /** Whether undo is available. */
+  canUndo(): boolean;
+  /** Whether redo is available. */
+  canRedo(): boolean;
   // ── Range Selection & Measure ─────────────────────────────────────────
   /** Activate the range selection mode (drag to highlight a time range). */
   setRangeSelectionActive(active: boolean): void;
@@ -440,6 +450,10 @@ class ChartApi implements IChartApi {
   private _drawingHandler: DrawingHandler | null = null;
   private _nextDrawingId = 0;
 
+  // Undo/redo
+  private _undoRedo: UndoRedoManager = new UndoRedoManager(50);
+  private _handleUndoRedoKey: ((e: KeyboardEvent) => void) | null = null;
+
   // Range selection & measure handlers
   private _rangeSelectionHandler: RangeSelectionHandler | null = null;
   private _measureHandler: MeasureHandler | null = null;
@@ -571,6 +585,20 @@ class ChartApi implements IChartApi {
     );
     this._eventRouter.addHandler(this._panZoomHandler);
     this._eventRouter.attach(mainPane.canvases.overlayCanvas);
+
+    // ── Undo/Redo keyboard shortcuts ──────────────────────────────────────
+    this._handleUndoRedoKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        this.undo();
+      } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey)) {
+        e.preventDefault();
+        this.redo();
+      }
+    };
+    mainPane.canvases.overlayCanvas.addEventListener('keydown', this._handleUndoRedoKey);
 
     // ── Context Menu ───────────────────────────────────────────────────────
     this._contextMenuHandler = new ContextMenuHandler({
@@ -1023,6 +1051,12 @@ class ChartApi implements IChartApi {
     this._preferencesChangeCallbacks.length = 0;
     this._layoutChangeCallbacks.length = 0;
 
+    // Clean up undo/redo keyboard handler
+    if (this._handleUndoRedoKey) {
+      this._mainPane.canvases.overlayCanvas.removeEventListener('keydown', this._handleUndoRedoKey);
+    }
+    this._undoRedo.clear();
+
     // Clean up WebGL renderers
     this._webglCandlestick?.dispose();
     this._webglLine?.dispose();
@@ -1272,6 +1306,24 @@ class ChartApi implements IChartApi {
   exportPDF(options?: PDFExportOptions): Blob {
     const canvas = this.takeScreenshot();
     return exportPDFFn(canvas, options);
+  }
+
+  // ── Undo/Redo ─────────────────────────────────────────────────────────
+
+  undo(): boolean {
+    return this._undoRedo.undo();
+  }
+
+  redo(): boolean {
+    return this._undoRedo.redo();
+  }
+
+  canUndo(): boolean {
+    return this._undoRedo.canUndo();
+  }
+
+  canRedo(): boolean {
+    return this._undoRedo.canRedo();
   }
 
   // ── Range Selection & Measure ─────────────────────────────────────────
