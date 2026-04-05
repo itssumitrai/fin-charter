@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Streaming Adapters ─────────────────────────────────────────────
+export { WebSocketAdapter, PollingAdapter, TickBuffer } from './core/streaming-adapter';
+export type { IStreamingAdapter, WebSocketAdapterOptions, PollingAdapterOptions } from './core/streaming-adapter';
+
 // ─── RTL ────────────────────────────────────────────────────────────
 export { detectDirection, mirrorX, resolveTextAlign } from './core/rtl';
 export type { TextDirection } from './core/rtl';
