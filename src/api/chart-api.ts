@@ -2963,14 +2963,15 @@ class ChartApi implements IChartApi {
 
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
-      const rawStore = entry.api.getDataLayer().store;
+      const dataLayer = entry.api.getDataLayer();
+      const rawStore = dataLayer.store;
       const store = this._getEffectiveStore(entry, rawStore);
       const to = Math.min(range.toIdx, store.length - 1);
 
       const isLeft = entry.api.options().priceScaleId === 'left';
 
       if (this._comparisonMode) {
-        // In comparison mode auto-scale in percent space
+        // In comparison mode we must scan in percent space (no segment tree shortcut)
         const basis = this._getBasisPrice(entry, range);
         for (let i = range.fromIdx; i <= to; i++) {
           const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
@@ -2984,15 +2985,29 @@ class ChartApi implements IChartApi {
           }
         }
       } else {
-        for (let i = range.fromIdx; i <= to; i++) {
-          const lo = store.low[i];
-          const hi = store.high[i];
+        // Use segment tree for O(log n) min/max when the store is the raw (non-transformed) one.
+        // Heikin-Ashi and other transforms produce a different store, so fall back to linear scan.
+        if (store === rawStore && dataLayer.segmentTree.length === store.length) {
+          const { min, max } = dataLayer.queryMinMax(range.fromIdx, to);
           if (isLeft) {
-            if (lo < leftMin) leftMin = lo;
-            if (hi > leftMax) leftMax = hi;
+            if (min < leftMin) leftMin = min;
+            if (max > leftMax) leftMax = max;
           } else {
-            if (lo < rightMin) rightMin = lo;
-            if (hi > rightMax) rightMax = hi;
+            if (min < rightMin) rightMin = min;
+            if (max > rightMax) rightMax = max;
+          }
+        } else {
+          // Linear scan fallback for transformed stores
+          for (let i = range.fromIdx; i <= to; i++) {
+            const lo = store.low[i];
+            const hi = store.high[i];
+            if (isLeft) {
+              if (lo < leftMin) leftMin = lo;
+              if (hi > leftMax) leftMax = hi;
+            } else {
+              if (lo < rightMin) rightMin = lo;
+              if (hi > rightMax) rightMax = hi;
+            }
           }
         }
       }
