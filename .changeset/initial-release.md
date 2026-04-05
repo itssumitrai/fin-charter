@@ -1,5 +1,5 @@
 ---
-"fin-charter": minor
+"@itssumitrai/fin-charter": minor
 ---
 
 Initial feature-complete release with 20+ features:

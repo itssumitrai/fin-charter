@@ -1,5 +1,5 @@
 {
-  "name": "fin-charter",
+  "name": "@itssumitrai/fin-charter",
   "version": "0.1.0",
   "description": "Ultra-fast, tree-shakeable financial charting library",
   "type": "module",
