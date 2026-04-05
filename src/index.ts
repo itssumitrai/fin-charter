@@ -54,6 +54,15 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Custom Indicators ──────────────────────────────────────────────
+export { CustomIndicatorRegistry } from './core/custom-indicator';
+export type {
+  CustomIndicatorDescriptor,
+  IndicatorOutput,
+  IndicatorParam,
+  IndicatorComputeFn,
+} from './core/custom-indicator';
+
 // ─── CSS Theme ──────────────────────────────────────────────────────
 export { CSS_VARS, readCSSTheme, generateCSSTheme, applyCSSTheme } from './core/css-theme';
 
