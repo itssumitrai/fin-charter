@@ -53,6 +53,9 @@
     "./market": {
       "types": "./dist/market/index.d.ts",
       "import": "./dist/market/index.js"
+    },
+    "./gui/*": {
+      "svelte": "./src/gui/*.svelte"
     }
   },
   "files": [
