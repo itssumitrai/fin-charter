@@ -78,7 +78,8 @@ const pdfBlob = chart.exportPDF({ title: 'AAPL Chart' });`,
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Defer revocation so the browser has time to start the download (Safari/WebKit)
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     const csvBtn = makeButton('Export CSV', () => {

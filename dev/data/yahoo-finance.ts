@@ -288,8 +288,9 @@ export async function fetchMoreBars(
   if (cached) {
     const requestAge = Date.now() - cached.lastRequest;
     if (requestAge < 30000 && cached.period1 <= (beforeTimestamp - chunkSize)) {
-      // We already fetched this far back recently
-      return { bars: [], moreAvailable: false };
+      // We already fetched this far back recently. This is a debounce/cache
+      // no-op, not a signal that history is exhausted.
+      return { bars: [], moreAvailable: true };
     }
   }
 

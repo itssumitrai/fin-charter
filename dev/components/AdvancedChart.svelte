@@ -187,7 +187,15 @@
             mainSeries.setData(allBars);
           }
           if (!result.moreAvailable) {
-            historyExhausted = true;
+            // Only mark exhausted when we actually know there's no more history
+            // (API returned empty, or we've reached firstTradeDate / interval limit)
+            const reachedStart = firstTradeDate > 0 && (
+              allBars[0].time <= firstTradeDate ||
+              (result.bars.length > 0 && result.bars[0].time <= firstTradeDate)
+            );
+            if (reachedStart || result.bars.length === 0) {
+              historyExhausted = true;
+            }
           }
         } catch (err) {
           console.error('Failed to load historical data:', err);
