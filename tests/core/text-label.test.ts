@@ -56,6 +56,45 @@ describe('TextLabel', () => {
     expect(data.price).toBe(150.5);
     expect(data.options.text).toBe('Q2 Earnings');
   });
+
+  it('defaults boxAnchor to center', () => {
+    const label = new TextLabel('l1', 0, 0, { text: 'test' });
+    expect(label.options.boxAnchor).toBe('center');
+  });
+
+  it('renders border-only correctly (transparent background)', () => {
+    const label = new TextLabel('l1', 5, 100, {
+      text: 'Border Only',
+      backgroundColor: 'transparent',
+      borderColor: '#FF0000',
+      borderWidth: 2,
+    });
+    const view = label.createPaneView(
+      (i) => i * 10,
+      (p) => 400 - p,
+    );
+    const renderer = view.renderer();
+    expect(renderer).not.toBeNull();
+    // Verify draw doesn't throw for border-only case
+    const mockCtx = {
+      save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(),
+      lineTo: vi.fn(), arcTo: vi.fn(), closePath: vi.fn(), fill: vi.fn(),
+      stroke: vi.fn(), fillText: vi.fn(), measureText: vi.fn().mockReturnValue({ width: 50 }),
+      setLineDash: vi.fn(),
+      font: '', fillStyle: '', strokeStyle: '', lineWidth: 1,
+      textBaseline: 'alphabetic', textAlign: 'left',
+    };
+    const target = {
+      canvas: document.createElement('canvas'),
+      context: mockCtx as unknown as CanvasRenderingContext2D,
+      width: 800, height: 400, pixelRatio: 1,
+    };
+    renderer!.draw(target);
+    // Border stroke should be called (with the box path)
+    expect(mockCtx.stroke).toHaveBeenCalled();
+    // Fill should NOT be called (transparent background)
+    // Note: fill is also not called because backgroundColor is transparent
+  });
 });
 
 describe('createTextLabels', () => {

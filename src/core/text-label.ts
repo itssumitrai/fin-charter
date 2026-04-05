@@ -17,8 +17,8 @@ export interface TextLabelOptions {
   fontSize: number;
   /** Font family. */
   fontFamily: string;
-  /** Horizontal text alignment within the box. */
-  textAlign: 'left' | 'center' | 'right';
+  /** Box anchor relative to the time/price coordinate: 'left' = box starts at anchor, 'center' = centered, 'right' = box ends at anchor. */
+  boxAnchor: 'left' | 'center' | 'right';
   /** Padding inside the box (pixels). */
   padding: number;
   /** Whether to draw an arrow/connector line from the box to the anchor point. */
@@ -38,7 +38,7 @@ export const DEFAULT_TEXT_LABEL_OPTIONS: TextLabelOptions = {
   borderRadius: 4,
   fontSize: 11,
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  textAlign: 'center',
+  boxAnchor: 'center',
   padding: 6,
   showConnector: true,
   connectorColor: 'rgba(33, 150, 243, 0.6)',
@@ -55,7 +55,8 @@ export const DEFAULT_TEXT_LABEL_OPTIONS: TextLabelOptions = {
  */
 export class TextLabel {
   readonly id: string;
-  private _time: number; // bar index
+  /** Bar index (not timestamp). Use DataLayer.findIndex(timestamp) to convert. */
+  private _time: number;
   private _price: number;
   private _options: TextLabelOptions;
   private _requestRepaint: (() => void) | null;
@@ -118,11 +119,12 @@ export class TextLabel {
             const pad = opts.padding * pr;
             const boxW = textW + pad * 2;
             const boxH = fontSize + pad * 2;
-            const borderR = opts.borderRadius * pr;
+            // Clamp borderRadius to prevent self-intersecting paths
+            const borderR = Math.min(opts.borderRadius * pr, boxW / 2, boxH / 2);
 
-            // Position box
+            // Position box relative to anchor
             let boxX: number;
-            switch (opts.textAlign) {
+            switch (opts.boxAnchor) {
               case 'left': boxX = anchorX; break;
               case 'right': boxX = anchorX - boxW; break;
               default: boxX = anchorX - boxW / 2; break;
@@ -141,24 +143,26 @@ export class TextLabel {
               ctx.setLineDash([]);
             }
 
-            // Background box (rounded rect)
+            // Build rounded rect path (shared between fill and stroke)
+            ctx.beginPath();
+            ctx.moveTo(boxX + borderR, boxY);
+            ctx.lineTo(boxX + boxW - borderR, boxY);
+            ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + borderR, borderR);
+            ctx.lineTo(boxX + boxW, boxY + boxH - borderR);
+            ctx.arcTo(boxX + boxW, boxY + boxH, boxX + boxW - borderR, boxY + boxH, borderR);
+            ctx.lineTo(boxX + borderR, boxY + boxH);
+            ctx.arcTo(boxX, boxY + boxH, boxX, boxY + boxH - borderR, borderR);
+            ctx.lineTo(boxX, boxY + borderR);
+            ctx.arcTo(boxX, boxY, boxX + borderR, boxY, borderR);
+            ctx.closePath();
+
+            // Fill background
             if (opts.backgroundColor !== 'transparent') {
               ctx.fillStyle = opts.backgroundColor;
-              ctx.beginPath();
-              ctx.moveTo(boxX + borderR, boxY);
-              ctx.lineTo(boxX + boxW - borderR, boxY);
-              ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + borderR, borderR);
-              ctx.lineTo(boxX + boxW, boxY + boxH - borderR);
-              ctx.arcTo(boxX + boxW, boxY + boxH, boxX + boxW - borderR, boxY + boxH, borderR);
-              ctx.lineTo(boxX + borderR, boxY + boxH);
-              ctx.arcTo(boxX, boxY + boxH, boxX, boxY + boxH - borderR, borderR);
-              ctx.lineTo(boxX, boxY + borderR);
-              ctx.arcTo(boxX, boxY, boxX + borderR, boxY, borderR);
-              ctx.closePath();
               ctx.fill();
             }
 
-            // Border
+            // Stroke border (uses the same path)
             if (opts.borderColor !== 'transparent' && opts.borderWidth > 0) {
               ctx.strokeStyle = opts.borderColor;
               ctx.lineWidth = opts.borderWidth * pr;

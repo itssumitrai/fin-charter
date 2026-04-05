@@ -297,8 +297,8 @@ export interface IChartApi {
   /** Get all alert lines. */
   getAlertLines(): import('../core/alert-line').AlertLine[];
   // ── Text Labels ─────────────────────────────────────────────────────────
-  /** Add a text label anchored to a time/price coordinate. */
-  addTextLabel(time: number, price: number, text: string, options?: Partial<import('../core/text-label').TextLabelOptions>): import('../core/text-label').TextLabel;
+  /** Add a text label anchored to a bar index and price. Use DataLayer.findIndex(timestamp) to convert a timestamp to a bar index. */
+  addTextLabel(barIndex: number, price: number, text: string, options?: Partial<import('../core/text-label').TextLabelOptions>): import('../core/text-label').TextLabel;
   /** Remove a text label. */
   removeTextLabel(label: import('../core/text-label').TextLabel): void;
   /** Get all text labels. */
@@ -1438,10 +1438,10 @@ class ChartApi implements IChartApi {
 
   // ── Text Labels ─────────────────────────────────────────────────────────
 
-  addTextLabel(time: number, price: number, text: string, options?: Partial<TextLabelOptions>): TextLabel {
+  addTextLabel(barIndex: number, price: number, text: string, options?: Partial<TextLabelOptions>): TextLabel {
     const id = `textlabel_${this._nextTextLabelId++}`;
     const label = new TextLabel(
-      id, time, price,
+      id, barIndex, price,
       { text, ...options },
       () => this.requestRepaint(InvalidationLevel.Light),
     );
@@ -2472,10 +2472,8 @@ class ChartApi implements IChartApi {
       this._drawAlertLines(ctx, chartW, primaryPriceToY, pixelRatio);
     }
 
-    // Text labels (main pane only)
+    // Text labels (main pane only) — reuse existing target and indexToX from above
     if (isMain && this._textLabels.length > 0) {
-      const target = this._createRenderTarget(pane.canvases.chartCanvas, ctx, chartW, chartH, pixelRatio);
-      const indexToX = (i: number) => this._timeScale.indexToX(i);
       for (const label of this._textLabels) {
         const view = label.createPaneView(indexToX, primaryPriceToY);
         const renderer = view.renderer();
