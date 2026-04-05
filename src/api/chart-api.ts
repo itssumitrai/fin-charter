@@ -17,6 +17,7 @@ import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../cor
 import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { AlertLine, type AlertLineOptions } from '../core/alert-line';
+import { TextLabel, type TextLabelOptions } from '../core/text-label';
 import { UndoRedoManager, type Command } from '../core/undo-redo';
 import {
   RangeSelectionHandler,
@@ -295,6 +296,13 @@ export interface IChartApi {
   removeAlertLine(alert: import('../core/alert-line').AlertLine): void;
   /** Get all alert lines. */
   getAlertLines(): import('../core/alert-line').AlertLine[];
+  // ── Text Labels ─────────────────────────────────────────────────────────
+  /** Add a text label anchored to a bar index and price. Use DataLayer.findIndex(timestamp) to convert a timestamp to a bar index. */
+  addTextLabel(barIndex: number, price: number, text: string, options?: Partial<import('../core/text-label').TextLabelOptions>): import('../core/text-label').TextLabel;
+  /** Remove a text label. */
+  removeTextLabel(label: import('../core/text-label').TextLabel): void;
+  /** Get all text labels. */
+  getTextLabels(): import('../core/text-label').TextLabel[];
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -461,6 +469,10 @@ class ChartApi implements IChartApi {
   // Alert lines
   private _alertLines: AlertLine[] = [];
   private _nextAlertLineId = 0;
+
+  // Text labels
+  private _textLabels: TextLabel[] = [];
+  private _nextTextLabelId = 0;
 
   // Periodicity
   private _periodicity: Periodicity = { interval: 1, unit: 'day' };
@@ -1422,6 +1434,32 @@ class ChartApi implements IChartApi {
 
   getAlertLines(): AlertLine[] {
     return [...this._alertLines];
+  }
+
+  // ── Text Labels ─────────────────────────────────────────────────────────
+
+  addTextLabel(barIndex: number, price: number, text: string, options?: Partial<TextLabelOptions>): TextLabel {
+    const id = `textlabel_${this._nextTextLabelId++}`;
+    const label = new TextLabel(
+      id, barIndex, price,
+      { text, ...options },
+      () => this.requestRepaint(InvalidationLevel.Light),
+    );
+    this._textLabels.push(label);
+    this.requestRepaint(InvalidationLevel.Light);
+    return label;
+  }
+
+  removeTextLabel(label: TextLabel): void {
+    const idx = this._textLabels.indexOf(label);
+    if (idx >= 0) {
+      this._textLabels.splice(idx, 1);
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  getTextLabels(): TextLabel[] {
+    return [...this._textLabels];
   }
 
   // ── Feature 5: Indicator API ────────────────────────────────────────────
@@ -2432,6 +2470,15 @@ class ChartApi implements IChartApi {
     // Alert lines (main pane only)
     if (isMain && this._alertLines.length > 0) {
       this._drawAlertLines(ctx, chartW, primaryPriceToY, pixelRatio);
+    }
+
+    // Text labels (main pane only) — reuse existing target and indexToX from above
+    if (isMain && this._textLabels.length > 0) {
+      for (const label of this._textLabels) {
+        const view = label.createPaneView(indexToX, primaryPriceToY);
+        const renderer = view.renderer();
+        renderer?.draw(target);
+      }
     }
 
     // Last close price line (main pane only)

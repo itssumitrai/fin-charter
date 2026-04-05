@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Text Labels ────────────────────────────────────────────────────
+export { TextLabel, createTextLabels } from './core/text-label';
+export type { TextLabelOptions } from './core/text-label';
+
 // ─── Plugin API ─────────────────────────────────────────────────────
 export { PluginManager } from './core/plugin';
 export type { IPlugin, PluginChartApi, PluginPaintContext } from './core/plugin';
