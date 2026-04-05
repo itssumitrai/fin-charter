@@ -26,7 +26,7 @@ export class AreaRenderer {
   }
 
   options(): AreaRendererOptions {
-    return this._options;
+    return { ...this._options };
   }
 
   draw(

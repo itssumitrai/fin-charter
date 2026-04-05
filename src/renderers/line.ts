@@ -24,7 +24,7 @@ export class LineRenderer {
   }
 
   options(): LineRendererOptions {
-    return this._options;
+    return { ...this._options };
   }
 
   draw(

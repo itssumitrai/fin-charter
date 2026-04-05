@@ -51,7 +51,8 @@ interface GLResources {
  * GPU-accelerated line renderer.
  *
  * Draws the close-price polyline as a screen-space ribbon: each line segment
- * is expanded into a quad (2 triangles) in the vertex shader direction,
+ * is expanded into a quad (2 triangles) on the CPU when building the vertex
+ * buffer, and the vertex shader transforms those positions to clip space,
  * giving a consistent pixel-width line regardless of zoom level.
  */
 export class LineWebGLRenderer {
@@ -61,12 +62,15 @@ export class LineWebGLRenderer {
   // Pre-allocated typed array, grown as needed
   private _posData: Float32Array = new Float32Array(0);
 
-  // Cached parsed color
+  // Cached parsed color — only reparsed when value actually changes
   private _parsedColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.color);
 
   applyOptions(options: Partial<LineWebGLOptions>): void {
+    const previousColor = this._options.color;
     this._options = { ...this._options, ...options };
-    this._parsedColor = parseColor(this._options.color);
+    if (options.color !== undefined && options.color !== previousColor) {
+      this._parsedColor = parseColor(options.color);
+    }
   }
 
   private _getResources(gl: WebGL2RenderingContext): GLResources {

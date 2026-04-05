@@ -32,7 +32,7 @@ export class CandlestickRenderer {
   }
 
   options(): CandlestickRendererOptions {
-    return this._options;
+    return { ...this._options };
   }
 
   draw(

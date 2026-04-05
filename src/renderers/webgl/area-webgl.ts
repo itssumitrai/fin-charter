@@ -122,10 +122,16 @@ export class AreaWebGLRenderer {
   private _lineColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.lineColor);
 
   applyOptions(options: Partial<AreaWebGLOptions>): void {
+    if (options.topColor !== undefined && options.topColor !== this._options.topColor) {
+      this._topColor = parseColor(options.topColor);
+    }
+    if (options.bottomColor !== undefined && options.bottomColor !== this._options.bottomColor) {
+      this._bottomColor = parseColor(options.bottomColor);
+    }
+    if (options.lineColor !== undefined && options.lineColor !== this._options.lineColor) {
+      this._lineColor = parseColor(options.lineColor);
+    }
     this._options = { ...this._options, ...options };
-    this._topColor = parseColor(this._options.topColor);
-    this._bottomColor = parseColor(this._options.bottomColor);
-    this._lineColor = parseColor(this._options.lineColor);
   }
 
   private _getResources(gl: WebGL2RenderingContext): GLResources {

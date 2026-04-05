@@ -60,12 +60,13 @@ interface GLResources {
 }
 
 /**
- * GPU-accelerated candlestick renderer using instanced rectangle drawing.
+ * GPU-accelerated candlestick renderer using per-vertex rectangle geometry.
  *
- * Each candle is composed of two rectangles (wick + body) drawn as two
- * triangles (6 vertices) per rect. The vertex buffer is rebuilt each frame
- * from the visible range — fast enough for 500k+ bars because only the
- * visible subset is uploaded.
+ * Each candle is composed of two rectangles (wick + body), with each
+ * rectangle emitted as two triangles (6 vertices) into typed arrays.
+ * The vertex buffer is rebuilt each frame from the visible range — fast
+ * enough for 500k+ bars because only the visible subset is generated and
+ * uploaded.
  */
 export class CandlestickWebGLRenderer {
   private _options: CandlestickWebGLOptions = { ...DEFAULT_OPTIONS };
@@ -75,18 +76,26 @@ export class CandlestickWebGLRenderer {
   private _posData: Float32Array = new Float32Array(0);
   private _colorData: Float32Array = new Float32Array(0);
 
-  // Cached parsed colors (updated in applyOptions)
+  // Cached parsed colors — only reparsed when values actually change
   private _upColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.upColor);
   private _downColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.downColor);
   private _wickUpColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.wickUpColor);
   private _wickDownColor: [number, number, number, number] = parseColor(DEFAULT_OPTIONS.wickDownColor);
 
   applyOptions(options: Partial<CandlestickWebGLOptions>): void {
+    if (options.upColor !== undefined && options.upColor !== this._options.upColor) {
+      this._upColor = parseColor(options.upColor);
+    }
+    if (options.downColor !== undefined && options.downColor !== this._options.downColor) {
+      this._downColor = parseColor(options.downColor);
+    }
+    if (options.wickUpColor !== undefined && options.wickUpColor !== this._options.wickUpColor) {
+      this._wickUpColor = parseColor(options.wickUpColor);
+    }
+    if (options.wickDownColor !== undefined && options.wickDownColor !== this._options.wickDownColor) {
+      this._wickDownColor = parseColor(options.wickDownColor);
+    }
     this._options = { ...this._options, ...options };
-    this._upColor = parseColor(this._options.upColor);
-    this._downColor = parseColor(this._options.downColor);
-    this._wickUpColor = parseColor(this._options.wickUpColor);
-    this._wickDownColor = parseColor(this._options.wickDownColor);
   }
 
   private _getResources(gl: WebGL2RenderingContext): GLResources {

@@ -87,41 +87,48 @@ export class Pane {
 
     // Optionally create a WebGL canvas layered between chart and overlay
     if (useWebGL) {
-      const webglCanvas = document.createElement('canvas');
-      webglCanvas.style.position = 'absolute';
-      webglCanvas.style.left = '0';
-      webglCanvas.style.top = '0';
-      webglCanvas.style.zIndex = '2';
-      // Insert before overlay so stacking order is: chart(1) < webgl(2) < overlay(3)
-      this.row.insertBefore(webglCanvas, overlayCanvas);
-
-      const glCtx = webglCanvas.getContext('webgl2', {
+      const webglContextAttributes: WebGLContextAttributes = {
         alpha: true,
         premultipliedAlpha: false,
         antialias: true,
         preserveDrawingBuffer: false,
-      });
+      };
 
-      // Handle context loss gracefully
-      webglCanvas.addEventListener('webglcontextlost', (e) => {
-        e.preventDefault();
-        this.canvases.webglCtx = undefined;
-      });
-      webglCanvas.addEventListener('webglcontextrestored', () => {
-        const restored = webglCanvas.getContext('webgl2', {
-          alpha: true,
-          premultipliedAlpha: false,
-          antialias: true,
-          preserveDrawingBuffer: false,
+      const attachWebGLCanvas = (): void => {
+        const webglCanvas = document.createElement('canvas');
+        webglCanvas.style.position = 'absolute';
+        webglCanvas.style.left = '0';
+        webglCanvas.style.top = '0';
+        webglCanvas.style.zIndex = '2';
+        // Insert before overlay so stacking order is: chart(1) < webgl(2) < overlay(3)
+        this.row.insertBefore(webglCanvas, overlayCanvas);
+
+        const glCtx = webglCanvas.getContext('webgl2', webglContextAttributes);
+
+        // Handle context loss gracefully. A lost WebGL context invalidates all
+        // GPU resources, so drop references and recreate a fresh canvas/context
+        // on restoration to avoid reusing stale per-context renderer caches.
+        webglCanvas.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault();
+          this.canvases.webglCtx = undefined;
+          this.canvases.webglCanvas = undefined;
         });
-        if (restored) {
-          this.canvases.webglCtx = restored;
+        webglCanvas.addEventListener('webglcontextrestored', () => {
+          if (webglCanvas.parentNode === this.row) {
+            this.row.removeChild(webglCanvas);
+          }
+          attachWebGLCanvas();
+        });
+
+        if (glCtx) {
+          canvases.webglCanvas = webglCanvas;
+          canvases.webglCtx = glCtx;
+        } else if (webglCanvas.parentNode === this.row) {
+          this.row.removeChild(webglCanvas);
         }
-      });
-      if (glCtx) {
-        canvases.webglCanvas = webglCanvas;
-        canvases.webglCtx = glCtx;
-      }
+      };
+
+      attachWebGLCanvas();
     }
 
     this.canvases = canvases;

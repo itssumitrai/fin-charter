@@ -43,21 +43,28 @@ export function createProgram(
   const vs = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
   const fs = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
   const program = gl.createProgram();
-  if (!program) throw new Error('Failed to create program');
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const info = gl.getProgramInfoLog(program);
-    gl.deleteProgram(program);
-    throw new Error(`Program linking failed: ${info}`);
+  if (!program) {
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    throw new Error('Failed to create program');
   }
-  // Shaders can be detached after linking
-  gl.detachShader(program, vs);
-  gl.detachShader(program, fs);
-  gl.deleteShader(vs);
-  gl.deleteShader(fs);
-  return program;
+
+  try {
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const info = gl.getProgramInfoLog(program);
+      gl.deleteProgram(program);
+      throw new Error(`Program linking failed: ${info}`);
+    }
+    return program;
+  } finally {
+    gl.detachShader(program, vs);
+    gl.detachShader(program, fs);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+  }
 }
 
 /**
@@ -76,16 +83,17 @@ export function parseColor(color: string): [number, number, number, number] {
       rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1,
     ];
   }
-  // Handle #RRGGBB or #RGB
+  // Handle #RGB, #RRGGBB, or #RRGGBBAA
   if (color.startsWith('#')) {
     let hex = color.slice(1);
     if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-    return [
-      parseInt(hex.slice(0, 2), 16) / 255,
-      parseInt(hex.slice(2, 4), 16) / 255,
-      parseInt(hex.slice(4, 6), 16) / 255,
-      1,
-    ];
+    if (hex.length !== 6 && hex.length !== 8) return [1, 1, 1, 1]; // unsupported format
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+    if (isNaN(r) || isNaN(g) || isNaN(b) || isNaN(a)) return [1, 1, 1, 1];
+    return [r / 255, g / 255, b / 255, a];
   }
   // Fallback
   return [1, 1, 1, 1];

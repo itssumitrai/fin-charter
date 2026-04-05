@@ -119,6 +119,9 @@ export interface ChartOptions {
    * Rendering backend. `'webgl'` uses WebGL2 for supported series types
    * (candlestick, line, area) and falls back to Canvas 2D for the rest.
    * Automatically falls back to `'canvas2d'` when WebGL is unavailable.
+   *
+   * **Note:** Only honored at chart creation time; cannot be changed via
+   * `applyOptions()` after the chart is created.
    */
   renderer?: RendererType;
 }
