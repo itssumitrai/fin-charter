@@ -522,6 +522,8 @@ class ChartApi implements IChartApi {
     // Create main pane
     const mainPaneHeight = this._height - TIME_AXIS_HEIGHT;
     const mainPane = new Pane(this._mainPaneId, mainPaneHeight, this._useWebGL);
+    if (options.rightPriceScale?.mode) mainPane.priceScale.setMode(options.rightPriceScale.mode);
+    if (options.leftPriceScale?.mode) mainPane.leftPriceScale.setMode(options.leftPriceScale.mode);
     this._paneMap.set(this._mainPaneId, mainPane);
     this._paneOrder.push(this._mainPaneId);
     this._paneContainer.appendChild(mainPane.row);
@@ -969,6 +971,18 @@ class ChartApi implements IChartApi {
 
     if (options.timeScale) {
       this._timeScale.setOptions(this._options.timeScale);
+    }
+
+    // Sync price scale modes
+    if (options.rightPriceScale?.mode) {
+      for (const pane of this._paneMap.values()) {
+        pane.priceScale.setMode(this._options.rightPriceScale.mode ?? 'linear');
+      }
+    }
+    if (options.leftPriceScale?.mode) {
+      for (const pane of this._paneMap.values()) {
+        pane.leftPriceScale.setMode(this._options.leftPriceScale.mode ?? 'linear');
+      }
     }
 
     // Re-layout canvases if scale visibility changed

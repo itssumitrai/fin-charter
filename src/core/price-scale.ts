@@ -1,3 +1,5 @@
+export type PriceScaleMode = 'linear' | 'logarithmic';
+
 export interface PriceRange {
   min: number;
   max: number;
@@ -41,9 +43,20 @@ export class PriceScale {
   /** When true, setRange() was called manually and autoScale() will not override it. */
   private _manualRange: boolean = false;
   private _comparisonMode: boolean = false;
+  private _mode: PriceScaleMode = 'linear';
 
   constructor(position: 'left' | 'right') {
     this.position = position;
+  }
+
+  /** Get the current scale mode. */
+  get mode(): PriceScaleMode {
+    return this._mode;
+  }
+
+  /** Set the scale mode (linear or logarithmic). */
+  setMode(mode: PriceScaleMode): void {
+    this._mode = mode;
   }
 
   setHeight(height: number): void {
@@ -160,12 +173,10 @@ export class PriceScale {
   }
 
   /**
-   * Map a price to a y-pixel coordinate using TV's formula:
-   *   topPx = height * TOP_MARGIN
-   *   bottomPx = height * BOTTOM_MARGIN
-   *   innerHeight = height - topPx - bottomPx
-   *   invCoord = bottomPx + (innerHeight - 1) * (price - min) / (max - min)
-   *   y = height - 1 - invCoord
+   * Map a price to a y-pixel coordinate.
+   *
+   * In linear mode: equal vertical distance for equal price change.
+   * In logarithmic mode: equal vertical distance for equal percentage change.
    */
   priceToY(price: number): number {
     if (this._height === 0 || this._max === this._min) return 0;
@@ -174,7 +185,16 @@ export class PriceScale {
     const bottomPx = this._height * BOTTOM_MARGIN;
     const innerHeight = this._height - topPx - bottomPx;
 
-    const invCoord = bottomPx + (innerHeight - 1) * (price - this._min) / (this._max - this._min);
+    let ratio: number;
+    if (this._mode === 'logarithmic' && this._min > 0 && price > 0) {
+      const logMin = Math.log(this._min);
+      const logMax = Math.log(this._max);
+      ratio = (Math.log(price) - logMin) / (logMax - logMin);
+    } else {
+      ratio = (price - this._min) / (this._max - this._min);
+    }
+
+    const invCoord = bottomPx + (innerHeight - 1) * ratio;
     return this._height - 1 - invCoord;
   }
 
@@ -186,10 +206,15 @@ export class PriceScale {
     const bottomPx = this._height * BOTTOM_MARGIN;
     const innerHeight = this._height - topPx - bottomPx;
 
-    // y = height - 1 - invCoord  =>  invCoord = height - 1 - y
     const invCoord = this._height - 1 - y;
-    // invCoord = bottomPx + (innerHeight - 1) * (price - min) / (max - min)
     const ratio = (invCoord - bottomPx) / (innerHeight - 1);
+
+    if (this._mode === 'logarithmic' && this._min > 0) {
+      const logMin = Math.log(this._min);
+      const logMax = Math.log(this._max);
+      return Math.exp(logMin + ratio * (logMax - logMin));
+    }
+
     return this._min + ratio * (this._max - this._min);
   }
 
