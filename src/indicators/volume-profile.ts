@@ -9,7 +9,7 @@ export interface VolumeProfileBin {
   high: number;
   /** Total volume in this bin. */
   volume: number;
-  /** Buy volume (close > open). */
+  /** Buy volume (close >= open). */
   buyVolume: number;
   /** Sell volume (close < open). */
   sellVolume: number;
@@ -44,8 +44,10 @@ export function computeVolumeProfile(
   toIdx: number,
   options: VolumeProfileOptions = {},
 ): VolumeProfileResult {
-  const binCount = options.binCount ?? 24;
-  const valueAreaPercent = options.valueAreaPercent ?? 0.7;
+  const rawBinCount = options.binCount ?? 24;
+  const binCount = (!isFinite(rawBinCount) || rawBinCount < 1) ? 24 : Math.round(rawBinCount);
+  const rawVAP = options.valueAreaPercent ?? 0.7;
+  const valueAreaPercent = Math.max(0, Math.min(1, isFinite(rawVAP) ? rawVAP : 0.7));
 
   fromIdx = Math.max(0, fromIdx);
   toIdx = Math.min(store.length - 1, toIdx);

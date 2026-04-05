@@ -77,4 +77,22 @@ describe('computeVolumeProfile', () => {
     expect(result.bins.length).toBe(24);
     expect(result.totalVolume).toBe(store.volume[0]);
   });
+
+  it('clamps invalid binCount to default', () => {
+    const store = makeStore(50);
+    const r1 = computeVolumeProfile(store, 0, 49, { binCount: 0 });
+    expect(r1.bins.length).toBe(24); // fallback to default
+    const r2 = computeVolumeProfile(store, 0, 49, { binCount: NaN });
+    expect(r2.bins.length).toBe(24);
+    const r3 = computeVolumeProfile(store, 0, 49, { binCount: -5 });
+    expect(r3.bins.length).toBe(24);
+  });
+
+  it('clamps valueAreaPercent to [0, 1]', () => {
+    const store = makeStore(50);
+    const r1 = computeVolumeProfile(store, 0, 49, { valueAreaPercent: 2 });
+    expect(r1.bins.length).toBe(24); // should not crash
+    const r2 = computeVolumeProfile(store, 0, 49, { valueAreaPercent: -0.5 });
+    expect(r2.bins.length).toBe(24);
+  });
 });
