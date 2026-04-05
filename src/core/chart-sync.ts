@@ -58,8 +58,11 @@ export class ChartSyncGroup {
   private _timeScaleSyncing = false;
   private _disposed = false;
 
-  /** Guard flag to prevent re-entrant sync loops. */
-  private _broadcasting = false;
+  /** Guard flag to prevent re-entrant crosshair sync loops. */
+  private _broadcastingCrosshair = false;
+
+  /** Guard flag to prevent re-entrant time-scale sync loops. */
+  private _broadcastingTimeScale = false;
 
   private _crosshairCallbacks: CrosshairSyncCallback[] = [];
   private _timeScaleCallbacks: TimeScaleSyncCallback[] = [];
@@ -121,9 +124,25 @@ export class ChartSyncGroup {
     this._crosshairCallbacks.push(callback);
   }
 
+  /** Unsubscribe from crosshair sync events for custom handling. */
+  offCrosshairSync(callback: CrosshairSyncCallback): void {
+    const index = this._crosshairCallbacks.indexOf(callback);
+    if (index >= 0) {
+      this._crosshairCallbacks.splice(index, 1);
+    }
+  }
+
   /** Subscribe to time-scale sync events for custom handling. */
   onTimeScaleSync(callback: TimeScaleSyncCallback): void {
     this._timeScaleCallbacks.push(callback);
+  }
+
+  /** Unsubscribe from time-scale sync events for custom handling. */
+  offTimeScaleSync(callback: TimeScaleSyncCallback): void {
+    const index = this._timeScaleCallbacks.indexOf(callback);
+    if (index >= 0) {
+      this._timeScaleCallbacks.splice(index, 1);
+    }
   }
 
   /** Get the number of charts in the group. */
@@ -160,20 +179,20 @@ export class ChartSyncGroup {
   // ── Internal handlers ──────────────────────────────────────────────────
 
   private _onCrosshairMove(source: ISyncableChart, state: SyncCrosshairState | null): void {
-    if (this._broadcasting || !this._crosshairSyncing) return;
-    this._broadcasting = true;
+    if (this._broadcastingCrosshair || !this._crosshairSyncing) return;
+    this._broadcastingCrosshair = true;
     try {
       for (const cb of this._crosshairCallbacks) {
         cb(source, state);
       }
     } finally {
-      this._broadcasting = false;
+      this._broadcastingCrosshair = false;
     }
   }
 
   private _onVisibleRangeChange(source: ISyncableChart, range: { from: number; to: number } | null): void {
-    if (this._broadcasting || !this._timeScaleSyncing || !range) return;
-    this._broadcasting = true;
+    if (this._broadcastingTimeScale || !this._timeScaleSyncing || !range) return;
+    this._broadcastingTimeScale = true;
     try {
       for (const entry of this._entries) {
         if (entry.chart !== source) {
@@ -184,7 +203,7 @@ export class ChartSyncGroup {
         cb(source, range);
       }
     } finally {
-      this._broadcasting = false;
+      this._broadcastingTimeScale = false;
     }
   }
 }
