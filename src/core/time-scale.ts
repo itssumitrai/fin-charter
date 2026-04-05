@@ -78,6 +78,28 @@ export class TimeScale {
     return this._barSpacing;
   }
 
+  get minBarSpacing(): number {
+    return this._options.minBarSpacing;
+  }
+
+  get maxBarSpacing(): number {
+    return this._options.maxBarSpacing;
+  }
+
+  /** Set bar spacing directly (clamped to min/max). */
+  setBarSpacing(spacing: number): void {
+    this._barSpacing = Math.max(
+      this._options.minBarSpacing,
+      Math.min(this._options.maxBarSpacing, spacing),
+    );
+    this.correctOffset();
+  }
+
+  /** Scroll by pixels (positive = scroll right, negative = scroll left). */
+  scrollBy(deltaX: number): void {
+    this.scrollByPixels(deltaX);
+  }
+
   get rightOffset(): number {
     return this._rightOffset;
   }

@@ -58,6 +58,10 @@ export type { PriceLineOptions } from './core/price-line';
 export { WebSocketAdapter, PollingAdapter, TickBuffer } from './core/streaming-adapter';
 export type { IStreamingAdapter, WebSocketAdapterOptions, PollingAdapterOptions } from './core/streaming-adapter';
 
+// ─── Touch Gestures ─────────────────────────────────────────────────
+export { TouchGestureHandler } from './interactions/touch-gestures';
+export type { TouchGestureOptions } from './interactions/touch-gestures';
+
 // ─── RTL ────────────────────────────────────────────────────────────
 export { detectDirection, mirrorX, resolveTextAlign } from './core/rtl';
 export type { TextDirection } from './core/rtl';
