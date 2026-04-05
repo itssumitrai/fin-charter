@@ -63,24 +63,25 @@ export class SimpleSymbolResolver implements ISymbolResolver {
   }
 
   async resolveSymbol(ticker: string): Promise<SymbolInfo> {
-    const upper = ticker.toUpperCase();
+    const upper = ticker.trim().toUpperCase();
     const info = this._symbols.get(upper);
     if (!info) {
-      throw new Error(`Symbol not found: ${ticker}`);
+      throw new Error(`Symbol not found: ${upper}`);
     }
     return { ...info };
   }
 
   async searchSymbols(query: string, type?: string): Promise<SymbolInfo[]> {
-    if (!query) return [];
+    const q = query.trim();
+    if (!q) return [];
 
     const results: Array<{ info: SymbolInfo; score: number }> = [];
 
     for (const info of this._symbols.values()) {
       if (type && info.type !== type) continue;
 
-      const symbolScore = fuzzyScore(query, info.symbol);
-      const nameScore = fuzzyScore(query, info.name);
+      const symbolScore = fuzzyScore(q, info.symbol);
+      const nameScore = fuzzyScore(q, info.name);
       const bestScore = Math.max(symbolScore, nameScore);
 
       if (bestScore > 0) {
