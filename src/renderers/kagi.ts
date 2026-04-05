@@ -10,8 +10,8 @@ export interface KagiRendererOptions {
 
 const DEFAULT_OPTIONS: KagiRendererOptions = {
   reversalAmount: 1,
-  yangColor: '#22AB94',
-  yinColor: '#F7525F',
+  yangColor: '#00E396',
+  yinColor: '#FF3B5C',
   yangWidth: 3,
   yinWidth: 1,
 };

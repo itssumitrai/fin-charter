@@ -65,7 +65,7 @@ compSeries.setData(msftData);`,
       return item;
     };
 
-    legendEl.appendChild(makeLegendItem('AAPL', '#22AB94'));
+    legendEl.appendChild(makeLegendItem('AAPL', '#00E396'));
 
     toolbar.appendChild(toggleBtn);
     toolbar.appendChild(legendEl);
@@ -74,12 +74,12 @@ compSeries.setData(msftData);`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const mainSeries = chart.addSeries({ type: 'candlestick',
-      upColor: '#22AB94',
-      downColor: '#F7525F',
-      borderUpColor: '#22AB94',
-      borderDownColor: '#F7525F',
-      wickUpColor: '#22AB94',
-      wickDownColor: '#F7525F',
+      upColor: '#00E396',
+      downColor: '#FF3B5C',
+      borderUpColor: '#00E396',
+      borderDownColor: '#FF3B5C',
+      wickUpColor: '#00E396',
+      wickDownColor: '#FF3B5C',
     });
     mainSeries.setData(AAPL_DAILY);
 
@@ -94,7 +94,7 @@ compSeries.setData(msftData);`,
       if (compEnabled) {
         toggleBtn.textContent = 'Disable Comparison';
         toggleBtn.style.background = '#4a1a1a';
-        toggleBtn.style.borderColor = '#F7525F';
+        toggleBtn.style.borderColor = '#FF3B5C';
 
         // Add two comparison series with different price seeds
         const comp1Data = generateOHLCV(AAPL_DAILY.length, 150, AAPL_DAILY[0].time);

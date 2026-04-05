@@ -40,7 +40,7 @@ series.setEvents([
   },
   {
     time: earningsDate, position: 'aboveBar', shape: 'arrowDown',
-    color: '#F7525F', text: 'E', eventType: 'earnings',
+    color: '#FF3B5C', text: 'E', eventType: 'earnings',
     title: 'Q1 Earnings', value: 'Beat estimates',
   },
 ]);`,
@@ -69,7 +69,7 @@ series.setEvents([
         time: AAPL_DAILY[40].time,
         position: 'aboveBar',
         shape: 'arrowDown',
-        color: '#F7525F',
+        color: '#FF3B5C',
         text: 'E',
         eventType: 'earnings',
         title: 'Q1 2024 Earnings',
@@ -102,7 +102,7 @@ series.setEvents([
         time: AAPL_DAILY[130].time,
         position: 'aboveBar',
         shape: 'arrowDown',
-        color: '#F7525F',
+        color: '#FF3B5C',
         text: 'E',
         eventType: 'earnings',
         title: 'Q2 2024 Earnings',
@@ -144,7 +144,7 @@ series.setEvents([
   },
   {
     time: earningsDate, position: 'aboveBar', shape: 'arrowDown',
-    color: '#F7525F', text: 'E', eventType: 'earnings',
+    color: '#FF3B5C', text: 'E', eventType: 'earnings',
     title: 'Q1 Earnings', value: 'Beat estimates',
   },
   {

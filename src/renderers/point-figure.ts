@@ -10,8 +10,8 @@ export interface PointFigureRendererOptions {
 const DEFAULT_OPTIONS: PointFigureRendererOptions = {
   boxSize: 1,
   reversalBoxes: 3,
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 };
 
 /** A column of Xs (rising) or Os (falling). */

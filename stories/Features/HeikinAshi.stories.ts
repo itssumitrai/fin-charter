@@ -30,8 +30,8 @@ export const HeikinAshiChart: Story = {
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'heikin-ashi',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 });
 series.setData(data);`,
       },
@@ -42,12 +42,12 @@ series.setData(data);`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 
     const series = chart.addSeries({ type: 'heikin-ashi',
-      upColor: '#22AB94',
-      downColor: '#F7525F',
-      borderUpColor: '#22AB94',
-      borderDownColor: '#F7525F',
-      wickUpColor: '#22AB94',
-      wickDownColor: '#F7525F',
+      upColor: '#00E396',
+      downColor: '#FF3B5C',
+      borderUpColor: '#00E396',
+      borderDownColor: '#FF3B5C',
+      wickUpColor: '#00E396',
+      wickDownColor: '#FF3B5C',
     });
 
     series.setData(AAPL_DAILY);
@@ -62,8 +62,8 @@ import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'heikin-ashi',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 });
 series.setData(data);
       `,

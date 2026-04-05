@@ -70,21 +70,35 @@ const pdfBlob = chart.exportPDF({ title: 'AAPL Chart' });`,
     const series = chart.addSeries({ type: 'candlestick' });
     series.setData(AAPL_DAILY);
 
+    function triggerDownload(blob: Blob, filename: string): void {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     const csvBtn = makeButton('Export CSV', () => {
       const csv = chart.exportCSV({ separator: ',' });
-      output.textContent = csv.slice(0, 2000) + (csv.length > 2000 ? '\n...(truncated)' : '');
+      triggerDownload(new Blob([csv], { type: 'text/csv' }), 'AAPL-chart.csv');
+      output.textContent = `CSV downloaded: ${csv.length} characters`;
       output.style.display = 'block';
     });
 
     const svgBtn = makeButton('Export SVG', () => {
       const svg = chart.exportSVG();
-      output.textContent = svg.slice(0, 2000) + (svg.length > 2000 ? '\n...(truncated)' : '');
+      triggerDownload(new Blob([svg], { type: 'image/svg+xml' }), 'AAPL-chart.svg');
+      output.textContent = `SVG downloaded: ${svg.length} characters`;
       output.style.display = 'block';
     });
 
     const pdfBtn = makeButton('Export PDF', () => {
       const blob = chart.exportPDF({ title: 'AAPL Daily Chart' });
-      output.textContent = `PDF Blob created: ${blob.size} bytes, type: ${blob.type}`;
+      triggerDownload(blob, 'AAPL-chart.pdf');
+      output.textContent = `PDF downloaded: ${blob.size} bytes`;
       output.style.display = 'block';
     });
 

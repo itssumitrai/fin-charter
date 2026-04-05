@@ -20,6 +20,7 @@ interface YahooMeta {
   currency?: string;
   exchangeName?: string;
   exchangeTimezoneName?: string;
+  firstTradeDate?: number;
 }
 
 export interface QuoteMeta {
@@ -28,6 +29,7 @@ export interface QuoteMeta {
   currency: string;
   exchange: string;
   timezone: string;
+  firstTradeDate: number;
 }
 
 const INTERVAL_MAP: Record<string, { interval: string; range: string }> = {
@@ -41,32 +43,41 @@ const INTERVAL_MAP: Record<string, { interval: string; range: string }> = {
   '1M':  { interval: '1mo', range: 'max' },
 };
 
+const ONE_DAY = 86400;
+
 /**
  * Yahoo Finance API absolute limits: max seconds from NOW for each interval.
- * Requests with period1 older than now - limit will fail.
+ * Requests with period1 older than now - limit will return errors or empty data.
+ * These mirror the limits enforced by finance-cosaic's validateRangeForInterval().
  */
 const YAHOO_MAX_AGE: Record<string, number> = {
-  '1m':  7 * 86400,         // ~7 days
-  '5m':  60 * 86400,        // 60 days
-  '15m': 60 * 86400,        // 60 days
-  '1h':  730 * 86400,       // ~2 years
-  '4h':  730 * 86400,       // same as 1h (fetches 1h then aggregates)
-  '1D':  0,                 // unlimited (0 = no limit)
-  '1W':  0,                 // unlimited
-  '1M':  0,                 // unlimited
+  '1m':  7 * ONE_DAY,         // ~7 days (finance-cosaic uses 8 days)
+  '5m':  60 * ONE_DAY,        // 60 days
+  '15m': 60 * ONE_DAY,        // 60 days
+  '1h':  730 * ONE_DAY,       // ~2 years
+  '4h':  730 * ONE_DAY,       // same as 1h (fetches 1h then aggregates)
+  '1D':  0,                   // unlimited (0 = no limit)
+  '1W':  0,                   // unlimited
+  '1M':  0,                   // unlimited
 };
 
 /** Per-request chunk size (seconds) to stay within Yahoo's per-request limits. */
 const REQUEST_CHUNK: Record<string, number> = {
-  '1m':  0,                // no extra history for 1m
-  '5m':  30 * 86400,       // 30 days per chunk
-  '15m': 30 * 86400,       // 30 days per chunk
-  '1h':  90 * 86400,       // 90 days per chunk
-  '4h':  180 * 86400,      // 180 days per chunk
-  '1D':  365 * 86400,      // 1 year per chunk
-  '1W':  5 * 365 * 86400,  // 5 years per chunk
-  '1M':  10 * 365 * 86400, // 10 years per chunk
+  '1m':  0,                   // no extra history for 1m (too limited)
+  '5m':  30 * ONE_DAY,        // 30 days per chunk
+  '15m': 30 * ONE_DAY,        // 30 days per chunk
+  '1h':  90 * ONE_DAY,        // 90 days per chunk
+  '4h':  180 * ONE_DAY,       // 180 days per chunk
+  '1D':  365 * ONE_DAY,       // 1 year per chunk
+  '1W':  5 * 365 * ONE_DAY,   // 5 years per chunk
+  '1M':  10 * 365 * ONE_DAY,  // 10 years per chunk
 };
+
+/**
+ * Track the fetched range per symbol+interval so we don't re-request the same data.
+ * Key: `${symbol}:${intervalKey}`, Value: { period1, period2, lastRequest }
+ */
+const fetchedRanges = new Map<string, { period1: number; period2: number; lastRequest: number }>();
 
 function periodicityToKey(p: Periodicity): string {
   const map: Record<string, string> = {
@@ -75,12 +86,54 @@ function periodicityToKey(p: Periodicity): string {
   return `${p.interval}${map[p.unit] ?? p.unit}`;
 }
 
+/**
+ * Validate and clamp period1 to Yahoo Finance's per-interval limits.
+ * Mirrors finance-cosaic's validateRangeForInterval() logic.
+ */
+function validateTimestamps(
+  key: string,
+  period1: number,
+  period2: number,
+  firstTradeDate?: number,
+): { period1: number; period2: number; valid: boolean } {
+  const now = Math.floor(Date.now() / 1000);
+
+  // Don't fetch into the future
+  if (period2 > now) {
+    period2 = now;
+  }
+
+  // Don't fetch before the stock's first trade date
+  if (firstTradeDate && firstTradeDate > 0 && period1 < firstTradeDate) {
+    period1 = firstTradeDate;
+  }
+
+  // Clamp to Yahoo's max age for this interval
+  const maxAge = YAHOO_MAX_AGE[key] ?? 0;
+  if (maxAge > 0) {
+    const absoluteFloor = now - maxAge;
+    if (period1 < absoluteFloor) {
+      period1 = absoluteFloor;
+    }
+  }
+
+  // Invalid if period1 >= period2 (no range to fetch)
+  if (period1 >= period2) {
+    return { period1, period2, valid: false };
+  }
+
+  return { period1, period2, valid: true };
+}
+
 export async function fetchBars(
   symbol: string,
   periodicity: Periodicity,
 ): Promise<{ bars: Bar[]; meta: QuoteMeta }> {
   const key = periodicityToKey(periodicity);
   const config = INTERVAL_MAP[key] ?? INTERVAL_MAP['1D'];
+
+  // Clear cached range when loading fresh data for a symbol+interval
+  fetchedRanges.delete(`${symbol}:${key}`);
 
   const url = `/api/yahoo/${encodeURIComponent(symbol)}?interval=${config.interval}&range=${config.range}`;
   let resp: Response;
@@ -142,7 +195,17 @@ export async function fetchBars(
     currency: yahooMeta.currency ?? 'USD',
     exchange: yahooMeta.exchangeName ?? '',
     timezone: yahooMeta.exchangeTimezoneName ?? 'UTC',
+    firstTradeDate: yahooMeta.firstTradeDate ?? 0,
   };
+
+  // Cache the fetched range
+  if (finalBars.length > 0) {
+    fetchedRanges.set(`${symbol}:${key}`, {
+      period1: finalBars[0].time,
+      period2: finalBars[finalBars.length - 1].time,
+      lastRequest: Date.now(),
+    });
+  }
 
   return { bars: finalBars, meta };
 }
@@ -194,43 +257,59 @@ async function fetchChunk(
   return bars;
 }
 
+export interface FetchMoreResult {
+  bars: Bar[];
+  moreAvailable: boolean;
+}
+
 /**
  * Fetch older bars that precede `beforeTimestamp`.
  *
- * Respects Yahoo Finance API limits per interval and makes multiple chunked
- * requests when the desired range exceeds a single request's capacity.
- * Returns an empty array if the periodicity doesn't support further history.
+ * Respects Yahoo Finance API limits per interval, validates timestamps
+ * (mirrors finance-cosaic's validateRangeForInterval), deduplicates against
+ * cached ranges, and returns `moreAvailable` to signal whether further
+ * history can be loaded.
  */
 export async function fetchMoreBars(
   symbol: string,
   periodicity: Periodicity,
   beforeTimestamp: number,
-): Promise<Bar[]> {
+  firstTradeDate?: number,
+): Promise<FetchMoreResult> {
   const key = periodicityToKey(periodicity);
   const chunkSize = REQUEST_CHUNK[key] ?? 0;
-  if (chunkSize === 0) return [];
+  if (chunkSize === 0) return { bars: [], moreAvailable: false };
 
   const yahooInterval = (INTERVAL_MAP[key] ?? INTERVAL_MAP['1D']).interval;
+  const rangeKey = `${symbol}:${key}`;
 
-  // Clamp the target period1 to Yahoo's absolute limit from now
-  const maxAge = YAHOO_MAX_AGE[key] ?? 0;
-  const now = Math.floor(Date.now() / 1000);
-  const absoluteFloor = maxAge > 0 ? now - maxAge : 0;
-
-  // The farthest back we want to go in this load
-  let targetPeriod1 = beforeTimestamp - chunkSize;
-  if (absoluteFloor > 0 && targetPeriod1 < absoluteFloor) {
-    targetPeriod1 = absoluteFloor;
+  // Check if we already have this range cached (debounce within 30s)
+  const cached = fetchedRanges.get(rangeKey);
+  if (cached) {
+    const requestAge = Date.now() - cached.lastRequest;
+    if (requestAge < 30000 && cached.period1 <= (beforeTimestamp - chunkSize)) {
+      // We already fetched this far back recently
+      return { bars: [], moreAvailable: false };
+    }
   }
 
-  // Nothing to fetch if we've already reached the API limit
-  if (targetPeriod1 >= beforeTimestamp) return [];
+  // Compute the target range
+  let targetPeriod1 = beforeTimestamp - chunkSize;
+  const targetPeriod2 = beforeTimestamp;
 
-  // Break the total range into sub-chunks.
-  // Each sub-chunk stays within Yahoo's per-request granularity limits.
+  // Validate and clamp timestamps to Yahoo's limits
+  const validated = validateTimestamps(key, targetPeriod1, targetPeriod2, firstTradeDate);
+  if (!validated.valid) {
+    return { bars: [], moreAvailable: false };
+  }
+  targetPeriod1 = validated.period1;
+
+  // Break the total range into sub-chunks
+  const maxAge = YAHOO_MAX_AGE[key] ?? 0;
   const subChunkSize = maxAge > 0 ? Math.min(chunkSize, maxAge) : chunkSize;
   const allBars: Bar[] = [];
   let currentEnd = beforeTimestamp;
+  let moreAvailable = true;
 
   while (currentEnd > targetPeriod1) {
     const currentStart = Math.max(currentEnd - subChunkSize, targetPeriod1);
@@ -241,12 +320,23 @@ export async function fetchMoreBars(
       allBars.unshift(...chunk);
     } else {
       // API returned nothing — no more history available
+      moreAvailable = false;
       break;
     }
 
     currentEnd = currentStart;
     // Avoid infinite loop if the chunk didn't move the window
     if (currentEnd >= beforeTimestamp) break;
+  }
+
+  // Check if we've reached the absolute floor for this interval
+  const now = Math.floor(Date.now() / 1000);
+  if (maxAge > 0 && targetPeriod1 <= (now - maxAge + ONE_DAY)) {
+    moreAvailable = false;
+  }
+  // Check if we've reached the first trade date
+  if (firstTradeDate && firstTradeDate > 0 && targetPeriod1 <= firstTradeDate) {
+    moreAvailable = false;
   }
 
   // Deduplicate by timestamp (in case chunks overlap)
@@ -257,7 +347,24 @@ export async function fetchMoreBars(
     return true;
   });
 
-  return key === '4h' ? aggregate4h(deduped) : deduped;
+  const finalBars = key === '4h' ? aggregate4h(deduped) : deduped;
+
+  // Update cached range
+  if (finalBars.length > 0) {
+    const existingRange = fetchedRanges.get(rangeKey);
+    fetchedRanges.set(rangeKey, {
+      period1: Math.min(finalBars[0].time, existingRange?.period1 ?? Infinity),
+      period2: Math.max(beforeTimestamp, existingRange?.period2 ?? 0),
+      lastRequest: Date.now(),
+    });
+  }
+
+  return { bars: finalBars, moreAvailable };
+}
+
+/** Clear cached fetch ranges (call on symbol/periodicity change). */
+export function clearFetchCache(): void {
+  fetchedRanges.clear();
 }
 
 // Fallback data for static builds (no proxy available)
@@ -285,7 +392,7 @@ function generateFallbackData(symbol: string): { bars: Bar[]; meta: QuoteMeta } 
   }
   return {
     bars,
-    meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York' },
+    meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York', firstTradeDate: 0 },
   };
 }
 

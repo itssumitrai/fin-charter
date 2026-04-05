@@ -58,8 +58,8 @@ export const Light: Story = {
         code: `const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
 chart.applyOptions(LIGHT_THEME);
 chart.addSeries({ type: 'candlestick',
-  upColor: '#22AB94', downColor: '#F7525F',
-  wickUpColor: '#22AB94', wickDownColor: '#F7525F',
+  upColor: '#00E396', downColor: '#FF3B5C',
+  wickUpColor: '#00E396', wickDownColor: '#FF3B5C',
 });`,
       },
     },
@@ -69,10 +69,10 @@ chart.addSeries({ type: 'candlestick',
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL', theme: 'light' });
     chart.applyOptions(LIGHT_THEME);
     const series = chart.addSeries({ type: 'candlestick',
-      upColor: '#22AB94',
-      downColor: '#F7525F',
-      wickUpColor: '#22AB94',
-      wickDownColor: '#F7525F',
+      upColor: '#00E396',
+      downColor: '#FF3B5C',
+      wickUpColor: '#00E396',
+      wickDownColor: '#FF3B5C',
     });
     series.setData(AAPL_DAILY);
     return withDocs(container, {

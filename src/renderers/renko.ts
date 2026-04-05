@@ -8,8 +8,8 @@ export interface RenkoRendererOptions {
 
 const DEFAULT_OPTIONS: RenkoRendererOptions = {
   boxSize: 1,
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 };
 
 interface RenkoBrick {

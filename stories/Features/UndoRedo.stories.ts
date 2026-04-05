@@ -94,7 +94,7 @@ chart.redo();`,
           { time: AAPL_DAILY[startIdx].time, price: AAPL_DAILY[startIdx].low },
           { time: AAPL_DAILY[Math.min(endIdx, AAPL_DAILY.length - 1)].time, price: AAPL_DAILY[Math.min(endIdx, AAPL_DAILY.length - 1)].high },
         ],
-        { color: '#22AB94', lineWidth: 2 },
+        { color: '#00E396', lineWidth: 2 },
       );
       drawingCount++;
       status.textContent = `Added trendline (${drawingCount} drawing${drawingCount !== 1 ? 's' : ''})`;

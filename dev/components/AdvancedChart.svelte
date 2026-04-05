@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { createChart } from '@itssumitrai/fin-charter';
   import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from '@itssumitrai/fin-charter';
-  import { fetchBars, fetchMoreBars } from '../data/yahoo-finance';
+  import { fetchBars, fetchMoreBars, clearFetchCache } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
   import type { ChartTypeLabel } from '../data/store.svelte.ts';
   import { chartContext } from '../data/chart-context.svelte.ts';
@@ -23,6 +23,8 @@
   let prevChartType: ChartTypeLabel = 'Candlestick';
   let loadRequestId = 0;
   let isFetchingHistory = false;
+  let historyExhausted = false;
+  let firstTradeDate = 0;
   let allBars: import('@itssumitrai/fin-charter').Bar[] = [];
 
   function createSeries(c: IChartApi, type: ChartTypeLabel): ISeriesApi<SeriesType> {
@@ -37,11 +39,14 @@
     if (!chart || !mainSeries) return;
     const reqId = ++loadRequestId;
     appStore.loading = true;
+    historyExhausted = false;
+    clearFetchCache();
     try {
       const { bars, meta } = await fetchBars(appStore.symbol, appStore.periodicity);
       // Guard against stale responses from concurrent requests
       if (reqId !== loadRequestId) return;
       appStore.meta = meta;
+      firstTradeDate = meta.firstTradeDate;
 
       chart.applyOptions({
         timezone: appStore.resolvedTimezone,
@@ -170,16 +175,19 @@
 
     // Auto-load historical data when scrolling to the left edge
     c.subscribeVisibleRangeChange(async (range) => {
-      if (!range || isFetchingHistory || allBars.length === 0 || !mainSeries) return;
+      if (!range || isFetchingHistory || historyExhausted || allBars.length === 0 || !mainSeries) return;
       const firstBarTime = allBars[0].time;
       if (range.from <= firstBarTime) {
         isFetchingHistory = true;
         try {
-          const olderBars = await fetchMoreBars(appStore.symbol, appStore.periodicity, firstBarTime);
+          const result = await fetchMoreBars(appStore.symbol, appStore.periodicity, firstBarTime, firstTradeDate);
           // Guard: only apply if symbol/periodicity haven't changed while fetching
-          if (olderBars.length > 0 && mainSeries && allBars.length > 0 && allBars[0].time === firstBarTime) {
-            allBars = [...olderBars, ...allBars];
+          if (result.bars.length > 0 && mainSeries && allBars.length > 0 && allBars[0].time === firstBarTime) {
+            allBars = [...result.bars, ...allBars];
             mainSeries.setData(allBars);
+          }
+          if (!result.moreAvailable) {
+            historyExhausted = true;
           }
         } catch (err) {
           console.error('Failed to load historical data:', err);

@@ -241,9 +241,9 @@ describe('ColoredLineRenderer', () => {
       renderer.draw(mock.target, store, range, indexToX, priceToY);
 
       // Segment 0->1: close drops 105->98 => downColor
-      expect(strokeStyles[0]).toBe('#F7525F');
+      expect(strokeStyles[0]).toBe('#FF3B5C');
       // Segment 1->2: close rises 98->102 => upColor
-      expect(strokeStyles[1]).toBe('#22AB94');
+      expect(strokeStyles[1]).toBe('#00E396');
     });
   });
 
@@ -329,9 +329,9 @@ describe('ColoredMountainRenderer', () => {
       renderer.draw(mock.target, store, range, indexToX, priceToY);
 
       // Segment 0->1: close drops 105->98 => downFillColor
-      expect(fillStyles[0]).toBe('rgba(247, 82, 95, 0.28)');
+      expect(fillStyles[0]).toBe('rgba(255, 59, 92, 0.28)');
       // Segment 1->2: close rises 98->102 => upFillColor
-      expect(fillStyles[1]).toBe('rgba(34, 171, 148, 0.28)');
+      expect(fillStyles[1]).toBe('rgba(0, 227, 150, 0.28)');
     });
 
     it('closes fill path to chart bottom', () => {
@@ -427,8 +427,8 @@ describe('HLCAreaRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY);
 
-      expect(strokeStyles[0]).toBe('#22AB94'); // highLineColor
-      expect(strokeStyles[1]).toBe('#F7525F'); // lowLineColor
+      expect(strokeStyles[0]).toBe('#00E396'); // highLineColor
+      expect(strokeStyles[1]).toBe('#FF3B5C'); // lowLineColor
     });
 
     it('uses the fill area between high and low points', () => {
@@ -615,7 +615,7 @@ describe('ColumnRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      expect(fillStyles[0]).toBe('#22AB94');
+      expect(fillStyles[0]).toBe('#00E396');
     });
 
     it('uses downColor when close < open', () => {
@@ -630,7 +630,7 @@ describe('ColumnRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      expect(fillStyles[0]).toBe('#F7525F');
+      expect(fillStyles[0]).toBe('#FF3B5C');
     });
 
     it('draws columns from close price to chart bottom', () => {
@@ -746,10 +746,10 @@ describe('VolumeCandleRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      // Bar 0 (up): wick=#22AB94, body=#22AB94
-      // Bar 1 (down): wick=#F7525F, body=#F7525F
-      expect(bodyFillStyles[1]).toBe('#22AB94'); // bar 0 body (up)
-      expect(bodyFillStyles[3]).toBe('#F7525F'); // bar 1 body (down)
+      // Bar 0 (up): wick=#00E396, body=#00E396
+      // Bar 1 (down): wick=#FF3B5C, body=#FF3B5C
+      expect(bodyFillStyles[1]).toBe('#00E396'); // bar 0 body (up)
+      expect(bodyFillStyles[3]).toBe('#FF3B5C'); // bar 1 body (down)
     });
   });
 
@@ -943,7 +943,7 @@ describe('RenkoRenderer', () => {
 
       // All bricks should be up (100 -> 115)
       for (const style of fillStyles) {
-        expect(style).toBe('#22AB94');
+        expect(style).toBe('#00E396');
       }
     });
   });
@@ -1041,7 +1041,7 @@ describe('KagiRenderer', () => {
 
       // Uptrend should produce yang (green) segments
       if (strokeStyles.length > 0) {
-        expect(strokeStyles[0]).toBe('#22AB94');
+        expect(strokeStyles[0]).toBe('#00E396');
       }
     });
   });
@@ -1134,7 +1134,7 @@ describe('LineBreakRenderer', () => {
 
       // First block: 105->98 = down => downColor
       if (fillStyles.length > 0) {
-        expect(fillStyles[0]).toBe('#F7525F');
+        expect(fillStyles[0]).toBe('#FF3B5C');
       }
     });
   });
@@ -1252,7 +1252,7 @@ describe('PointFigureRenderer', () => {
 
       // Up column should use upColor
       if (strokeStyles.length > 0) {
-        expect(strokeStyles[0]).toBe('#22AB94');
+        expect(strokeStyles[0]).toBe('#00E396');
       }
     });
   });

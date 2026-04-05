@@ -175,12 +175,12 @@ const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.setMarkers([
-  { time: '2024-03-15', position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy' },
-  { time: '2024-05-10', position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell' },
+  { time: '2024-03-15', position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy' },
+  { time: '2024-05-10', position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell' },
 ]);
 
 series.createPriceLine({
-  price: 150, color: '#22AB94', lineWidth: 1, lineStyle: 'dashed', title: 'Support',
+  price: 150, color: '#00E396', lineWidth: 1, lineStyle: 'dashed', title: 'Support',
 });
 `.trim(),
       },
@@ -194,19 +194,19 @@ series.createPriceLine({
     series.setData(AAPL_DAILY);
 
     series.setMarkers([
-      { time: AAPL_DAILY[20].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy', size: 1.5 },
-      { time: AAPL_DAILY[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell', size: 1.5 },
+      { time: AAPL_DAILY[20].time, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy', size: 1.5 },
+      { time: AAPL_DAILY[50].time, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell', size: 1.5 },
       { time: AAPL_DAILY[80].time, position: 'inBar', shape: 'circle', color: '#2962FF', text: 'Info' },
     ]);
 
     series.createPriceLine({
-      price: AAPL_DAILY[20].close, color: '#22AB94', lineWidth: 1, lineStyle: 'dashed',
+      price: AAPL_DAILY[20].close, color: '#00E396', lineWidth: 1, lineStyle: 'dashed',
       title: 'Support', axisLabelVisible: true,
     });
     series.createPriceLine({
-      price: AAPL_DAILY[50].close, color: '#F7525F', lineWidth: 1, lineStyle: 'dotted',
+      price: AAPL_DAILY[50].close, color: '#FF3B5C', lineWidth: 1, lineStyle: 'dotted',
       title: 'Resistance', axisLabelVisible: true,
-      axisLabelColor: '#F7525F', axisLabelTextColor: '#ffffff',
+      axisLabelColor: '#FF3B5C', axisLabelTextColor: '#ffffff',
     });
 
     return withDocs(container, {
@@ -217,15 +217,15 @@ series.createPriceLine({
       code: `
 // Add trading signal markers
 series.setMarkers([
-  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy' },
-  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell' },
+  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy' },
+  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell' },
   { time: t3, position: 'inBar', shape: 'circle', color: '#2962FF', text: 'Info' },
 ]);
 
 // Add support / resistance price lines
 series.createPriceLine({
   price: 150,
-  color: '#22AB94',
+  color: '#00E396',
   lineWidth: 1,
   lineStyle: 'dashed',
   title: 'Support',

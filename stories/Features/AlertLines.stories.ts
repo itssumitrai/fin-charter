@@ -129,10 +129,10 @@ export const MultipleTriggerModes: Story = {
     docs: {
       source: {
         code: `chart.addAlertLine(185, {
-  triggerMode: 'crossing-up', color: '#22AB94', title: 'Cross Up',
+  triggerMode: 'crossing-up', color: '#00E396', title: 'Cross Up',
 });
 chart.addAlertLine(195, {
-  triggerMode: 'crossing-down', color: '#F7525F', title: 'Cross Down',
+  triggerMode: 'crossing-down', color: '#FF3B5C', title: 'Cross Down',
 });
 chart.addAlertLine(190, {
   triggerMode: 'crossing-either', color: '#FF9800', title: 'Cross Either',
@@ -147,7 +147,7 @@ chart.addAlertLine(190, {
     series.setData(AAPL_DAILY);
 
     chart.addAlertLine(185, {
-      color: '#22AB94',
+      color: '#00E396',
       lineStyle: 'dashed',
       title: 'Cross Up',
       triggerMode: 'crossing-up',
@@ -155,7 +155,7 @@ chart.addAlertLine(190, {
     });
 
     chart.addAlertLine(195, {
-      color: '#F7525F',
+      color: '#FF3B5C',
       lineStyle: 'dashed',
       title: 'Cross Down',
       triggerMode: 'crossing-down',
@@ -172,10 +172,10 @@ chart.addAlertLine(190, {
 
     const description = 'Alert lines support three <strong>trigger modes</strong>: <code>crossing-up</code> fires only when price crosses upward, <code>crossing-down</code> fires only on downward crosses, and <code>crossing-either</code> fires in both directions. Combine multiple alert lines at different levels for comprehensive price monitoring.';
     const code = `chart.addAlertLine(185, {
-  triggerMode: 'crossing-up', color: '#22AB94', title: 'Cross Up',
+  triggerMode: 'crossing-up', color: '#00E396', title: 'Cross Up',
 });
 chart.addAlertLine(195, {
-  triggerMode: 'crossing-down', color: '#F7525F', title: 'Cross Down',
+  triggerMode: 'crossing-down', color: '#FF3B5C', title: 'Cross Down',
 });
 chart.addAlertLine(190, {
   triggerMode: 'crossing-either', color: '#FF9800', title: 'Cross Either',

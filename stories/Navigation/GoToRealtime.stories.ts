@@ -70,7 +70,7 @@ chart.scrollToRealTime();`,
     rtBtn.textContent = 'Go to Realtime';
     rtBtn.style.cssText =
       'cursor:pointer;padding:4px 14px;border-radius:3px;border:none;font-size:12px;' +
-      'font-family:monospace;background:#22AB94;color:#fff;';
+      'font-family:monospace;background:#00E396;color:#fff;';
     rtBtn.addEventListener('click', () => chart.scrollToRealTime());
 
     const hint = document.createElement('span');

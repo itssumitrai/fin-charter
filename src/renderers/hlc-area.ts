@@ -8,8 +8,8 @@ export interface HLCAreaRendererOptions {
 }
 
 const DEFAULT_OPTIONS: HLCAreaRendererOptions = {
-  highLineColor: '#22AB94',
-  lowLineColor: '#F7525F',
+  highLineColor: '#00E396',
+  lowLineColor: '#FF3B5C',
   fillColor: 'rgba(33, 150, 243, 0.2)',
   lineWidth: 2,
 };

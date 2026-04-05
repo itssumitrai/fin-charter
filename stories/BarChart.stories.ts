@@ -64,8 +64,8 @@ export const CustomColors: Story = {
         code: `
 const series = chart.addSeries({
   type: 'bar',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 });
 series.setData(data);
 `.trim(),
@@ -76,8 +76,8 @@ series.setData(data);
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addSeries({ type: 'bar',
-      upColor: '#22AB94',
-      downColor: '#F7525F',
+      upColor: '#00E396',
+      downColor: '#FF3B5C',
     });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
@@ -87,8 +87,8 @@ series.setData(data);
       code: `
 const series = chart.addSeries({
   type: 'bar',
-  upColor: '#22AB94',   // Bullish bars
-  downColor: '#F7525F', // Bearish bars
+  upColor: '#00E396',   // Bullish bars
+  downColor: '#FF3B5C', // Bearish bars
 });
 series.setData(data);
       `,

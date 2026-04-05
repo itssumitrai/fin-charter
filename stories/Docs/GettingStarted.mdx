@@ -39,12 +39,12 @@ The `time` field is a Unix timestamp (seconds). All other fields are numbers.
 
 ```ts
 const series = chart.addSeries({ type: 'candlestick',
-  upColor:        '#26a69a',
-  downColor:      '#ef5350',
-  wickUpColor:    '#26a69a',
-  wickDownColor:  '#ef5350',
-  borderUpColor:  '#26a69a',
-  borderDownColor:'#ef5350',
+  upColor:        '#00E396',
+  downColor:      '#FF3B5C',
+  wickUpColor:    '#00E396',
+  wickDownColor:  '#FF3B5C',
+  borderUpColor:  '#00E396',
+  borderDownColor:'#FF3B5C',
 });
 ```
 
@@ -78,8 +78,8 @@ Close-price line with a vertical gradient fill beneath it.
 
 ```ts
 const series = chart.addSeries({ type: 'bar',
-  upColor:   '#26a69a',
-  downColor: '#ef5350',
+  upColor:   '#00E396',
+  downColor: '#FF3B5C',
   lineWidth: 1,
 });
 ```
@@ -91,10 +91,10 @@ Traditional OHLC bar chart: vertical high/low line with left open tick and right
 ```ts
 const series = chart.addSeries({ type: 'baseline',
   basePrice:       150,
-  topLineColor:    '#26a69a',
-  topFillColor:    'rgba(38, 166, 154, 0.28)',
-  bottomLineColor: '#ef5350',
-  bottomFillColor: 'rgba(239, 83, 80, 0.28)',
+  topLineColor:    '#00E396',
+  topFillColor:    'rgba(0, 227, 150, 0.28)',
+  bottomLineColor: '#FF3B5C',
+  bottomFillColor: 'rgba(255, 59, 92, 0.28)',
   lineWidth:       2,
 });
 ```
@@ -105,8 +105,8 @@ Splits the price line at `basePrice`. Prices above are coloured in green, prices
 
 ```ts
 const series = chart.addSeries({ type: 'hollow-candle',
-  upColor:   '#26a69a',
-  downColor: '#ef5350',
+  upColor:   '#00E396',
+  downColor: '#FF3B5C',
   wickColor: '#737375',
 });
 ```
@@ -117,8 +117,8 @@ Up candles are hollow (outline only); down candles are filled solid.
 
 ```ts
 const series = chart.addSeries({ type: 'histogram',
-  upColor:   'rgba(38, 166, 154, 0.5)',
-  downColor: 'rgba(239, 83, 80, 0.5)',
+  upColor:   'rgba(0, 227, 150, 0.5)',
+  downColor: 'rgba(255, 59, 92, 0.5)',
 });
 ```
 
