@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Plugin API ─────────────────────────────────────────────────────
+export { PluginManager } from './core/plugin';
+export type { IPlugin, PluginChartApi, PluginPaintContext } from './core/plugin';
+
 // ─── Storage & Persistence ──────────────────────────────────────────
 export { LocalStorageAdapter, IndexedDBAdapter, DrawingPersistence } from './core/storage-adapter';
 export type { IStorageAdapter } from './core/storage-adapter';
