@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Data Feed ──────────────────────────────────────────────────────
+export { DataFeedManager } from './core/data-feed';
+export type { IDataFeed, DataFeedManagerOptions } from './core/data-feed';
+
 // ─── Price Scale ────────────────────────────────────────────────────
 export type { PriceScaleMode } from './core/price-scale';
 
