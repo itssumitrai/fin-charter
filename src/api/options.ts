@@ -117,6 +117,8 @@ export interface ChartOptions {
   locale?: string;       // BCP 47 locale tag, e.g. 'en-US', 'de-DE'
   timezone?: string;     // IANA timezone, e.g. 'America/New_York', 'UTC'
   currency?: string;     // ISO 4217 currency code, e.g. 'USD', 'EUR'
+  /** Text direction: 'ltr' (default) or 'rtl'. Set to 'auto' to detect from locale. */
+  direction?: import('../core/rtl').TextDirection | 'auto';
   /**
    * Rendering backend. `'webgl'` uses WebGL2 for supported series types
    * (candlestick, line, area) and falls back to Canvas 2D for the rest.

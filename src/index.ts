@@ -54,6 +54,14 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── RTL ────────────────────────────────────────────────────────────
+export { detectDirection, mirrorX, textAlign as rtlTextAlign } from './core/rtl';
+export type { TextDirection } from './core/rtl';
+
+// ─── Volume Profile ─────────────────────────────────────────────────
+export { computeVolumeProfile } from './indicators/volume-profile';
+export type { VolumeProfileBin, VolumeProfileResult, VolumeProfileOptions } from './indicators/volume-profile';
+
 // ─── Replay ─────────────────────────────────────────────────────────
 export { ReplayManager } from './core/replay';
 export type { ReplaySpeed, ReplayEvent, ReplayBarEvent, ReplayControlEvent, ReplayEventCallback, ReplayOptions } from './core/replay';
