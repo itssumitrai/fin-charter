@@ -31,7 +31,8 @@
 - **Event markers** — `series.setEvents()` places interactive earnings/dividend/news markers on bars
 - **Periodicity model** — `setPeriodicity()` / `subscribePeriodicityChange()` for interval switching with data-reload hooks
 - **OHLC aggregation** — `aggregateOHLC(store, intervalSec)` for client-side timeframe resampling
-- **Screenshot export** — `chart.takeScreenshot()` composites all panes to a canvas
+- **Auto-fit on load** — chart automatically fits all data to the viewport on first paint, filling edge-to-edge with no gaps
+- **Screenshot export** — `chart.takeScreenshot()` composites all panes to a canvas with the chart's background color, matching the live appearance
 - **TypeScript-first** — full type definitions included
 
 ## Installation
@@ -92,6 +93,25 @@ series.setData([
 |---|---|
 | `@itssumitrai/fin-charter` (core) | ~13.8 KB |
 | Full bundle (all chart types + indicators) | ~35.9 KB |
+
+## Bundle Size Comparison
+
+How does fin-charter compare to other financial charting libraries with technical indicator support?
+
+| Library | Min+Gzip | Indicators | # Indicators | Tree-shakeable | License |
+|---|---|---|---|---|---|
+| **fin-charter** | **~35.9 KB** (full) | **Built-in** | **30** | **Yes** | MIT |
+| [klinecharts](https://github.com/klinecharts/KLineChart) | 52.6 KB | Built-in | ~27 | No | Apache-2.0 |
+| [lightweight-charts](https://github.com/nicehash/lightweight-charts) | 57.1 KB | No (plugin needed) | 0 | No | Apache-2.0 |
+| [chart.js + financial](https://github.com/chartjs/chartjs-chart-financial) | ~70.1 KB | No (charts only) | 0 | Yes | MIT |
+| [highcharts](https://www.highcharts.com/products/stock/) (core + stock) | ~150 KB+ | Built-in | 65 | No | Commercial |
+| [d3](https://github.com/d3/d3) + [d3fc](https://github.com/d3fc/d3fc) | ~125.6 KB | Basic set | ~8 | Yes | MIT / MIT |
+| [apexcharts](https://github.com/apexcharts/apexcharts.js) | 134.7 KB | Via add-on | ~15 | Partial | MIT |
+| [echarts](https://github.com/apache/echarts) | 353.4 KB (full) | Minimal | ~1 | Yes | Apache-2.0 |
+| [plotly.js](https://github.com/plotly/plotly.js) (finance) | 398.5 KB | No | 0 | No | MIT |
+| [anychart](https://github.com/AnyChart/AnyChart) | 731.4 KB | Built-in | 20+ | No | Commercial |
+
+> Sizes measured via [bundlephobia](https://bundlephobia.com) (minified + gzipped). Only libraries with at least some financial charting capability are included. fin-charter's full bundle includes all 20 chart types and 30 indicators.
 
 ## Documentation
 

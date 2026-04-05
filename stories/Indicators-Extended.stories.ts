@@ -98,7 +98,7 @@ export const StochasticOscillator: Story = {
         code: `chart.addIndicator('stochastic', {
   source: candleSeries,
   params: { kPeriod: 14, dPeriod: 3 },
-  color: '#22AB94',
+  color: '#00E396',
   label: 'Stoch 14,3',
 });`,
       },
@@ -115,7 +115,7 @@ export const StochasticOscillator: Story = {
     chart.addIndicator('stochastic', {
       source: candleSeries,
       params: { kPeriod: 14, dPeriod: 3 },
-      color: '#22AB94',
+      color: '#00E396',
       label: 'Stoch 14,3',
     });
 
@@ -125,7 +125,7 @@ export const StochasticOscillator: Story = {
       code: `chart.addIndicator('stochastic', {
   source: candleSeries,
   params: { kPeriod: 14, dPeriod: 3 },
-  color: '#22AB94',
+  color: '#00E396',
   label: 'Stoch 14,3',
 });`,
     });
@@ -142,7 +142,7 @@ export const ATRIndicator: Story = {
         code: `chart.addIndicator('atr', {
   source: candleSeries,
   params: { period: 14 },
-  color: '#F7525F',
+  color: '#FF3B5C',
   label: 'ATR 14',
 });`,
       },
@@ -159,7 +159,7 @@ export const ATRIndicator: Story = {
     chart.addIndicator('atr', {
       source: candleSeries,
       params: { period: 14 },
-      color: '#F7525F',
+      color: '#FF3B5C',
       label: 'ATR 14',
     });
 
@@ -169,7 +169,7 @@ export const ATRIndicator: Story = {
       code: `chart.addIndicator('atr', {
   source: candleSeries,
   params: { period: 14 },
-  color: '#F7525F',
+  color: '#FF3B5C',
   label: 'ATR 14',
 });`,
     });

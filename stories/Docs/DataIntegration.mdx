@@ -117,7 +117,7 @@ Normalises all series to percentage change from the first visible bar's close.
 ```ts
 const chart = createChart(container, { autoSize: true });
 
-const appl = chart.addSeries({ type: 'candlestick', upColor: '#26a69a', downColor: '#ef5350' });
+const appl = chart.addSeries({ type: 'candlestick', upColor: '#00E396', downColor: '#FF3B5C' });
 appl.setData(await fetchBars('AAPL'));
 
 const msft = chart.addSeries({ type: 'line', color: '#2196F3', lineWidth: 2 });
@@ -145,7 +145,7 @@ chart.setComparisonMode(true);
 import type { ChartEvent } from '@itssumitrai/fin-charter';
 
 const events: ChartEvent[] = [
-  { time: 1700000000, type: 'earnings', label: 'Q3 EPS Beat', color: '#26a69a' },
+  { time: 1700000000, type: 'earnings', label: 'Q3 EPS Beat', color: '#00E396' },
   { time: 1700172800, type: 'dividend', label: '$0.23', color: '#2196F3' },
 ];
 

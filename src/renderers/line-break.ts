@@ -8,8 +8,8 @@ export interface LineBreakRendererOptions {
 
 const DEFAULT_OPTIONS: LineBreakRendererOptions = {
   breakCount: 3,
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 };
 
 interface LineBreakBlock {

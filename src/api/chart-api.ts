@@ -404,6 +404,7 @@ class ChartApi implements IChartApi {
   private _rafId: number | null = null;
   private _resizeObserver: ResizeObserver | null = null;
   private _removed: boolean = false;
+  private _hasAutoFit: boolean = false;
 
   private _crosshairMoveCallbacks: CrosshairMoveCallback[] = [];
   private _clickCallbacks: ClickCallback[] = [];
@@ -1255,6 +1256,10 @@ class ChartApi implements IChartApi {
     offscreen.height = totalH;
     const ctx = offscreen.getContext('2d')!;
 
+    // Fill with chart background color so the screenshot matches the live chart
+    ctx.fillStyle = this._options.layout.backgroundColor;
+    ctx.fillRect(0, 0, totalW, totalH);
+
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const chartW = this._chartWidth;
@@ -1495,8 +1500,8 @@ class ChartApi implements IChartApi {
     const color = options.color ?? '#2962ff';
     const lineWidth = options.lineWidth ?? 2;
     const customColors = options.colors;
-    const histUpColor = options.histogramUpColor ?? 'rgba(34, 171, 148, 0.4)';
-    const histDownColor = options.histogramDownColor ?? 'rgba(247, 82, 95, 0.4)';
+    const histUpColor = options.histogramUpColor ?? 'rgba(0, 227, 150, 0.4)';
+    const histDownColor = options.histogramDownColor ?? 'rgba(255, 59, 92, 0.4)';
 
     const indicator = new IndicatorApi(id, type, options, paneId, () => {
       this.removeIndicator(indicator);
@@ -1683,8 +1688,8 @@ class ChartApi implements IChartApi {
     primaryColor: string,
     lineWidth: number,
     customColors?: Record<string, string>,
-    histUpColor: string = 'rgba(34, 171, 148, 0.4)',
-    histDownColor: string = 'rgba(247, 82, 95, 0.4)',
+    histUpColor: string = 'rgba(0, 227, 150, 0.4)',
+    histDownColor: string = 'rgba(255, 59, 92, 0.4)',
   ): void {
     const type = indicator.indicatorType();
 
@@ -1742,23 +1747,23 @@ class ChartApi implements IChartApi {
   ): Record<string, string> {
     switch (type) {
       case 'macd':
-        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#22AB94' };
+        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#00E396' };
       case 'bollinger':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'stochastic':
         return { k: primaryColor, d: '#ff6d00' };
       case 'adx':
-        return { adx: primaryColor, plusDI: '#22AB94', minusDI: '#F7525F' };
+        return { adx: primaryColor, plusDI: '#00E396', minusDI: '#FF3B5C' };
       case 'ichimoku':
-        return { tenkan: '#2962ff', kijun: '#F7525F', senkouA: '#22AB94', senkouB: '#ee6823', chikou: '#9c27b0' };
+        return { tenkan: '#2962ff', kijun: '#FF3B5C', senkouA: '#00E396', senkouB: '#ee6823', chikou: '#9c27b0' };
       case 'keltner':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'donchian':
         return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
       case 'pivot-points':
-        return { pp: primaryColor, r1: '#F7525F', r2: '#F7525F', r3: '#F7525F', s1: '#22AB94', s2: '#22AB94', s3: '#22AB94' };
+        return { pp: primaryColor, r1: '#FF3B5C', r2: '#FF3B5C', r3: '#FF3B5C', s1: '#00E396', s2: '#00E396', s3: '#00E396' };
       case 'aroon':
-        return { up: '#22AB94', down: '#F7525F' };
+        return { up: '#00E396', down: '#FF3B5C' };
       case 'trix':
         return { trix: primaryColor, signal: '#ff6d00' };
       default:
@@ -2172,6 +2177,12 @@ class ChartApi implements IChartApi {
     if (this._series.length > 0) {
       const primaryStore = this._series[0].api.getDataLayer().store;
       this._timeScale.setDataLength(primaryStore.length);
+
+      // Auto-fit content on first paint with data so the chart fills the viewport
+      if (!this._hasAutoFit && primaryStore.length > 0 && this._chartWidth > 0) {
+        this._hasAutoFit = true;
+        this._timeScale.fitContent();
+      }
     }
 
     for (const paneId of this._paneOrder) {
@@ -2486,7 +2497,7 @@ class ChartApi implements IChartApi {
       const lastClose = primaryStore.close[primaryStore.length - 1];
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
-      const lineColor = isUp ? '#22AB94' : '#F7525F';
+      const lineColor = isUp ? '#00E396' : '#FF3B5C';
       const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
 
       ctx.save();
@@ -2896,7 +2907,7 @@ class ChartApi implements IChartApi {
         const lastClose = store.close[store.length - 1];
         const lastOpen = store.open[store.length - 1];
         const isUp = lastClose >= lastOpen;
-        const bgColor = isUp ? '#22AB94' : '#F7525F';
+        const bgColor = isUp ? '#00E396' : '#FF3B5C';
         // In comparison mode, map last close to percent space for Y position
         let labelY: number;
         let priceText: string;
@@ -3452,7 +3463,7 @@ class ChartApi implements IChartApi {
       const dateStr = this._timeFormat(timestamp, tooltipTickType, true);
 
       const isUp = c >= o;
-      const color = isUp ? '#22AB94' : '#F7525F';
+      const color = isUp ? '#00E396' : '#FF3B5C';
 
       this._tooltipDateEl.textContent = dateStr;
       this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
@@ -3536,15 +3547,15 @@ class ChartApi implements IChartApi {
       case 'candlestick':
       case 'bar':
       case 'hollow-candle':
-        return (options.upColor as string) ?? '#22AB94';
+        return (options.upColor as string) ?? '#00E396';
       case 'line':
         return (options.color as string) ?? '#2196F3';
       case 'area':
         return (options.lineColor as string) ?? '#2196F3';
       case 'baseline':
-        return (options.topLineColor as string) ?? '#22AB94';
+        return (options.topLineColor as string) ?? '#00E396';
       case 'histogram':
-        return (options.upColor as string) ?? '#22AB94';
+        return (options.upColor as string) ?? '#00E396';
       default:
         return '#2196F3';
     }
@@ -3592,8 +3603,8 @@ class ChartApi implements IChartApi {
     const fields: SettingsField[] = [];
     switch (type) {
       case 'candlestick':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#00E396' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#FF3B5C' });
         break;
       case 'line':
         fields.push({ key: 'color', label: 'Color', type: 'color', value: (options.color as string) ?? '#2196F3' });
@@ -3606,16 +3617,16 @@ class ChartApi implements IChartApi {
         break;
       case 'bar':
       case 'hollow-candle':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#00E396' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#FF3B5C' });
         break;
       case 'histogram':
-        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#22AB94' });
-        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#F7525F' });
+        fields.push({ key: 'upColor', label: 'Up Color', type: 'color', value: (options.upColor as string) ?? '#00E396' });
+        fields.push({ key: 'downColor', label: 'Down Color', type: 'color', value: (options.downColor as string) ?? '#FF3B5C' });
         break;
       case 'baseline':
-        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#22AB94' });
-        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#F7525F' });
+        fields.push({ key: 'topLineColor', label: 'Top Color', type: 'color', value: (options.topLineColor as string) ?? '#00E396' });
+        fields.push({ key: 'bottomLineColor', label: 'Bottom Color', type: 'color', value: (options.bottomLineColor as string) ?? '#FF3B5C' });
         fields.push({ key: 'basePrice', label: 'Base Price', type: 'number', value: (options.basePrice as number) ?? 0, step: 0.01 });
         break;
     }

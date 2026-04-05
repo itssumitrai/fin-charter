@@ -9,10 +9,10 @@ export interface VolumeCandleRendererOptions {
 }
 
 const DEFAULT_OPTIONS: VolumeCandleRendererOptions = {
-  upColor: '#22AB94',
-  downColor: '#F7525F',
-  wickUpColor: '#22AB94',
-  wickDownColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
+  wickUpColor: '#00E396',
+  wickDownColor: '#FF3B5C',
   maxBarWidthMultiplier: 3,
 };
 

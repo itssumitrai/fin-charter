@@ -241,7 +241,7 @@ describe('BarOHLCRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      expect(mock.ctx.strokeStyle).toBe('#22AB94');
+      expect(mock.ctx.strokeStyle).toBe('#00E396');
     });
 
     it('uses downColor when close < open', () => {
@@ -251,7 +251,7 @@ describe('BarOHLCRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      expect(mock.ctx.strokeStyle).toBe('#F7525F');
+      expect(mock.ctx.strokeStyle).toBe('#FF3B5C');
     });
   });
 
@@ -445,7 +445,7 @@ describe('HistogramRenderer', () => {
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
       // fillStyle should have been set to the default upColor
-      expect(mock.ctx.fillStyle).toBe('rgba(34, 171, 148, 0.5)');
+      expect(mock.ctx.fillStyle).toBe('rgba(0, 227, 150, 0.5)');
     });
 
     it('uses downColor when close < open', () => {
@@ -455,7 +455,7 @@ describe('HistogramRenderer', () => {
 
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
-      expect(mock.ctx.fillStyle).toBe('rgba(247, 82, 95, 0.5)');
+      expect(mock.ctx.fillStyle).toBe('rgba(255, 59, 92, 0.5)');
     });
   });
 
@@ -556,7 +556,7 @@ describe('HollowCandleRenderer', () => {
       renderer.draw(mock.target, store, range, indexToX, priceToY, 8);
 
       // strokeStyle should be upColor for the hollow body
-      expect(mock.ctx.strokeStyle).toBe('#22AB94');
+      expect(mock.ctx.strokeStyle).toBe('#00E396');
       expect(mock.ctx.strokeRect).toHaveBeenCalledTimes(1);
     });
 

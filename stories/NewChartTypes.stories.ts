@@ -59,7 +59,7 @@ export const ColoredLine: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const series = chart.addSeries({ type: 'colored-line', upColor: '#22AB94', downColor: '#F7525F' });
+        code: `const series = chart.addSeries({ type: 'colored-line', upColor: '#00E396', downColor: '#FF3B5C' });
 series.setData(data);`,
       },
     },
@@ -67,7 +67,7 @@ series.setData(data);`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addSeries({ type: 'colored-line', upColor: '#22AB94', downColor: '#F7525F' });
+    const series = chart.addSeries({ type: 'colored-line', upColor: '#00E396', downColor: '#FF3B5C' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -82,8 +82,8 @@ const chart = createChart(container, {
 });
 const series = chart.addSeries({
   type: 'colored-line',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 });
 series.setData(data);
       `,
@@ -98,10 +98,10 @@ export const ColoredMountain: Story = {
       source: {
         code: `const series = chart.addSeries({
   type: 'colored-mountain',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
-  upFillColor: 'rgba(34,171,148,0.3)',
-  downFillColor: 'rgba(247,82,95,0.3)',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
+  upFillColor: 'rgba(0,227,150,0.3)',
+  downFillColor: 'rgba(255,59,92,0.3)',
 });
 series.setData(data);`,
       },
@@ -112,10 +112,10 @@ series.setData(data);`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addSeries({
       type: 'colored-mountain',
-      upColor: '#22AB94',
-      downColor: '#F7525F',
-      upFillColor: 'rgba(34,171,148,0.3)',
-      downFillColor: 'rgba(247,82,95,0.3)',
+      upColor: '#00E396',
+      downColor: '#FF3B5C',
+      upFillColor: 'rgba(0,227,150,0.3)',
+      downFillColor: 'rgba(255,59,92,0.3)',
     });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
@@ -131,10 +131,10 @@ const chart = createChart(container, {
 });
 const series = chart.addSeries({
   type: 'colored-mountain',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
-  upFillColor: 'rgba(34,171,148,0.3)',
-  downFillColor: 'rgba(247,82,95,0.3)',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
+  upFillColor: 'rgba(0,227,150,0.3)',
+  downFillColor: 'rgba(255,59,92,0.3)',
 });
 series.setData(data);
       `,
@@ -149,8 +149,8 @@ export const HLCArea: Story = {
       source: {
         code: `const series = chart.addSeries({
   type: 'hlc-area',
-  highLineColor: '#22AB94',
-  lowLineColor: '#F7525F',
+  highLineColor: '#00E396',
+  lowLineColor: '#FF3B5C',
   fillColor: 'rgba(41,98,255,0.15)',
 });
 series.setData(data);`,
@@ -162,8 +162,8 @@ series.setData(data);`,
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
     const series = chart.addSeries({
       type: 'hlc-area',
-      highLineColor: '#22AB94',
-      lowLineColor: '#F7525F',
+      highLineColor: '#00E396',
+      lowLineColor: '#FF3B5C',
       fillColor: 'rgba(41,98,255,0.15)',
     });
     series.setData(AAPL_DAILY);
@@ -180,8 +180,8 @@ const chart = createChart(container, {
 });
 const series = chart.addSeries({
   type: 'hlc-area',
-  highLineColor: '#22AB94',
-  lowLineColor: '#F7525F',
+  highLineColor: '#00E396',
+  lowLineColor: '#FF3B5C',
   fillColor: 'rgba(41,98,255,0.15)',
 });
 series.setData(data);
@@ -228,7 +228,7 @@ export const Column: Story = {
   parameters: {
     docs: {
       source: {
-        code: `const series = chart.addSeries({ type: 'column', upColor: '#22AB94', downColor: '#F7525F' });
+        code: `const series = chart.addSeries({ type: 'column', upColor: '#00E396', downColor: '#FF3B5C' });
 series.setData(data);`,
       },
     },
@@ -236,7 +236,7 @@ series.setData(data);`,
   render: () => {
     const container = createChartContainer();
     const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
-    const series = chart.addSeries({ type: 'column', upColor: '#22AB94', downColor: '#F7525F' });
+    const series = chart.addSeries({ type: 'column', upColor: '#00E396', downColor: '#FF3B5C' });
     series.setData(AAPL_DAILY);
     return withDocs(container, {
       description:
@@ -251,8 +251,8 @@ const chart = createChart(container, {
 });
 const series = chart.addSeries({
   type: 'column',
-  upColor: '#22AB94',
-  downColor: '#F7525F',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
 });
 series.setData(data);
       `,

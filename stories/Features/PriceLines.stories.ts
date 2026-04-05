@@ -32,10 +32,10 @@ const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.createPriceLine({
-  price: 185, color: '#22AB94', lineStyle: 'dashed', title: 'Support',
+  price: 185, color: '#00E396', lineStyle: 'dashed', title: 'Support',
 });
 series.createPriceLine({
-  price: 195, color: '#F7525F', lineStyle: 'dashed', title: 'Resistance',
+  price: 195, color: '#FF3B5C', lineStyle: 'dashed', title: 'Resistance',
 });`,
       },
     },
@@ -48,7 +48,7 @@ series.createPriceLine({
 
     series.createPriceLine({
       price: 185,
-      color: '#22AB94',
+      color: '#00E396',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Support',
@@ -57,7 +57,7 @@ series.createPriceLine({
 
     series.createPriceLine({
       price: 195,
-      color: '#F7525F',
+      color: '#FF3B5C',
       lineWidth: 1,
       lineStyle: 'dashed',
       title: 'Resistance',
@@ -67,7 +67,7 @@ series.createPriceLine({
     const description = '<strong>Price lines</strong> are horizontal lines anchored to a fixed price level. Use <code>series.createPriceLine(options)</code> to add support/resistance levels, stop-loss markers, or target prices. Each line can be styled with custom colors, line styles (<code>solid</code>, <code>dashed</code>, <code>dotted</code>), and optional axis labels.';
     const code = `series.createPriceLine({
   price: 185,
-  color: '#22AB94',
+  color: '#00E396',
   lineWidth: 1,
   lineStyle: 'dashed',
   title: 'Support',
@@ -76,7 +76,7 @@ series.createPriceLine({
 
 series.createPriceLine({
   price: 195,
-  color: '#F7525F',
+  color: '#FF3B5C',
   lineWidth: 1,
   lineStyle: 'dashed',
   title: 'Resistance',
@@ -96,12 +96,12 @@ export const TradeLevels: Story = {
   price: 190, color: '#2196F3', lineStyle: 'solid', title: 'Entry',
 });
 series.createPriceLine({
-  price: 182, color: '#F7525F', lineStyle: 'dotted', title: 'Stop Loss',
-  axisLabelVisible: true, axisLabelColor: '#F7525F',
+  price: 182, color: '#FF3B5C', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#FF3B5C',
 });
 series.createPriceLine({
-  price: 210, color: '#22AB94', lineStyle: 'dotted', title: 'Target',
-  axisLabelVisible: true, axisLabelColor: '#22AB94',
+  price: 210, color: '#00E396', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#00E396',
 });`,
       },
     },
@@ -125,24 +125,24 @@ series.createPriceLine({
     // Stop loss
     series.createPriceLine({
       price: 182,
-      color: '#F7525F',
+      color: '#FF3B5C',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Stop Loss',
       axisLabelVisible: true,
-      axisLabelColor: '#F7525F',
+      axisLabelColor: '#FF3B5C',
       axisLabelTextColor: '#ffffff',
     });
 
     // Target
     series.createPriceLine({
       price: 210,
-      color: '#22AB94',
+      color: '#00E396',
       lineWidth: 1,
       lineStyle: 'dotted',
       title: 'Target',
       axisLabelVisible: true,
-      axisLabelColor: '#22AB94',
+      axisLabelColor: '#00E396',
       axisLabelTextColor: '#ffffff',
     });
 
@@ -152,12 +152,12 @@ series.createPriceLine({
   axisLabelVisible: true,
 });
 series.createPriceLine({
-  price: 182, color: '#F7525F', lineStyle: 'dotted', title: 'Stop Loss',
-  axisLabelVisible: true, axisLabelColor: '#F7525F',
+  price: 182, color: '#FF3B5C', lineStyle: 'dotted', title: 'Stop Loss',
+  axisLabelVisible: true, axisLabelColor: '#FF3B5C',
 });
 series.createPriceLine({
-  price: 210, color: '#22AB94', lineStyle: 'dotted', title: 'Target',
-  axisLabelVisible: true, axisLabelColor: '#22AB94',
+  price: 210, color: '#00E396', lineStyle: 'dotted', title: 'Target',
+  axisLabelVisible: true, axisLabelColor: '#00E396',
 });`;
 
     return withDocs(container, { description, code });

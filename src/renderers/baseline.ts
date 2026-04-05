@@ -11,10 +11,10 @@ export interface BaselineRendererOptions {
 
 const DEFAULT_OPTIONS: BaselineRendererOptions = {
   basePrice: 0,
-  topLineColor: '#22AB94',
-  topFillColor: 'rgba(34, 171, 148, 0.28)',
-  bottomLineColor: '#F7525F',
-  bottomFillColor: 'rgba(247, 82, 95, 0.28)',
+  topLineColor: '#00E396',
+  topFillColor: 'rgba(0, 227, 150, 0.28)',
+  bottomLineColor: '#FF3B5C',
+  bottomFillColor: 'rgba(255, 59, 92, 0.28)',
   lineWidth: 2,
 };
 

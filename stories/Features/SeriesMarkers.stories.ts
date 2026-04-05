@@ -32,8 +32,8 @@ const series = chart.addSeries({ type: 'candlestick' });
 series.setData(data);
 
 series.setMarkers([
-  { time: buyTime, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy' },
-  { time: sellTime, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell' },
+  { time: buyTime, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy' },
+  { time: sellTime, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell' },
 ]);`,
       },
     },
@@ -49,14 +49,14 @@ series.setMarkers([
         time: AAPL_DAILY[50].time,
         position: 'belowBar',
         shape: 'arrowUp',
-        color: '#22AB94',
+        color: '#00E396',
         text: 'Buy',
       },
       {
         time: AAPL_DAILY[100].time,
         position: 'aboveBar',
         shape: 'arrowDown',
-        color: '#F7525F',
+        color: '#FF3B5C',
         text: 'Sell',
       },
       {
@@ -71,9 +71,9 @@ series.setMarkers([
     const description = '<strong>Series markers</strong> annotate specific bars with buy/sell signals or other labels. Call <code>series.setMarkers(array)</code> with objects specifying <code>time</code>, <code>position</code> (<code>belowBar</code>, <code>aboveBar</code>, <code>inBar</code>), <code>shape</code> (<code>arrowUp</code>, <code>arrowDown</code>, <code>circle</code>), <code>color</code>, and <code>text</code>.';
     const code = `series.setMarkers([
   { time: buyTime, position: 'belowBar', shape: 'arrowUp',
-    color: '#22AB94', text: 'Buy' },
+    color: '#00E396', text: 'Buy' },
   { time: sellTime, position: 'aboveBar', shape: 'arrowDown',
-    color: '#F7525F', text: 'Sell' },
+    color: '#FF3B5C', text: 'Sell' },
   { time: signalTime, position: 'belowBar', shape: 'circle',
     color: '#2196F3', text: 'Signal' },
 ]);`;
@@ -88,8 +88,8 @@ export const MultipleMarkers: Story = {
     docs: {
       source: {
         code: `series.setMarkers([
-  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 1' },
-  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 1' },
+  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy 1' },
+  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell 1' },
   { time: t3, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
 ]);`,
       },
@@ -102,18 +102,18 @@ export const MultipleMarkers: Story = {
     series.setData(AAPL_DAILY);
 
     series.setMarkers([
-      { time: AAPL_DAILY[10].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 1' },
-      { time: AAPL_DAILY[30].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 1' },
-      { time: AAPL_DAILY[60].time, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 2' },
+      { time: AAPL_DAILY[10].time, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy 1' },
+      { time: AAPL_DAILY[30].time, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell 1' },
+      { time: AAPL_DAILY[60].time, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy 2' },
       { time: AAPL_DAILY[90].time, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
-      { time: AAPL_DAILY[120].time, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 2' },
+      { time: AAPL_DAILY[120].time, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell 2' },
       { time: AAPL_DAILY[160].time, position: 'belowBar', shape: 'circle', color: '#2196F3', text: 'Signal' },
     ]);
 
     const description = 'Place <strong>multiple markers</strong> across the chart to highlight a sequence of trading signals. Markers are sorted by <code>time</code> automatically. Mix different shapes and positions to convey distinct signal types at a glance.';
     const code = `series.setMarkers([
-  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#22AB94', text: 'Buy 1' },
-  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#F7525F', text: 'Sell 1' },
+  { time: t1, position: 'belowBar', shape: 'arrowUp', color: '#00E396', text: 'Buy 1' },
+  { time: t2, position: 'aboveBar', shape: 'arrowDown', color: '#FF3B5C', text: 'Sell 1' },
   { time: t3, position: 'inBar', shape: 'circle', color: '#FF9800', text: 'Alert' },
 ]);`;
 

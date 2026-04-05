@@ -11,10 +11,10 @@ export interface BaselineDeltaMountainRendererOptions {
 
 const DEFAULT_OPTIONS: BaselineDeltaMountainRendererOptions = {
   basePrice: 0,
-  topLineColor: '#22AB94',
-  topFillColor: 'rgba(34, 171, 148, 0.56)',
-  bottomLineColor: '#F7525F',
-  bottomFillColor: 'rgba(247, 82, 95, 0.56)',
+  topLineColor: '#00E396',
+  topFillColor: 'rgba(0, 227, 150, 0.56)',
+  bottomLineColor: '#FF3B5C',
+  bottomFillColor: 'rgba(255, 59, 92, 0.56)',
   lineWidth: 2,
 };
 

@@ -34,7 +34,7 @@ series.setData(data);
 chart.addIndicator('aroon', {
   source: series,
   params: { period: 25 },
-  color: '#22AB94',
+  color: '#00E396',
   label: 'Aroon(25)',
 });`,
       },
@@ -51,7 +51,7 @@ chart.addIndicator('aroon', {
     chart.addIndicator('aroon', {
       source: series,
       params: { period: 25 },
-      color: '#22AB94',
+      color: '#00E396',
       label: 'Aroon(25)',
     });
 
@@ -61,7 +61,7 @@ chart.addIndicator('aroon', {
       code: `chart.addIndicator('aroon', {
   source: series,
   params: { period: 25 },
-  color: '#22AB94',
+  color: '#00E396',
   label: 'Aroon(25)',
 });`,
     });

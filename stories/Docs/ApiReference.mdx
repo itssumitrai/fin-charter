@@ -172,7 +172,7 @@ Fires whenever the visible bar-index range changes. Used for infinite-history pa
 fitContent(): void
 ```
 
-Adjusts bar spacing so all loaded bars fit within the chart width.
+Adjusts bar spacing so all loaded bars fit within the chart width. This is called automatically on the first paint after data is loaded, so charts fill the viewport by default with no gaps on left or right.
 
 #### `scrollToRealTime()`
 
@@ -204,7 +204,7 @@ Sets the visible range by bar indices.
 takeScreenshot(): HTMLCanvasElement
 ```
 
-Composites all panes into a single canvas and returns it.
+Composites all panes into a single canvas and returns it. The canvas is pre-filled with the chart's `layout.backgroundColor`, so the screenshot matches the live chart appearance (including dark themes).
 
 ```ts
 const canvas = chart.takeScreenshot();
@@ -500,8 +500,8 @@ interface ChartOptions {
 
 ```ts
 interface LayoutOptions {
-  backgroundColor: string;  // default: '#ffffff'
-  textColor:       string;  // default: '#333333'
+  backgroundColor: string;  // default: '#1a1a2e'
+  textColor:       string;  // default: '#d1d4dc'
   fontSize:        number;  // default: 11
   fontFamily:      string;  // default: system font stack
 }
@@ -513,7 +513,7 @@ interface LayoutOptions {
 interface TimeScaleApiOptions {
   barSpacing:    number;  // default: 6
   rightOffset:   number;  // default: 0
-  minBarSpacing: number;  // default: 1
+  minBarSpacing: number;  // default: 4
   maxBarSpacing: number;  // default: 50
 }
 ```

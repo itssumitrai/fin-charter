@@ -89,7 +89,7 @@ chart.addIndicator('rsi', {
     chart.addDrawing(
       'horizontal-line',
       [{ time: data[50].time, price: data[50].close }],
-      { color: '#26a69a', lineWidth: 1, lineStyle: 'dashed' },
+      { color: '#00E396', lineWidth: 1, lineStyle: 'dashed' },
     );
 
     // RSI pane — right-click the pane header for indicator options

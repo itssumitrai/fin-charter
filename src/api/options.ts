@@ -221,8 +221,8 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   },
   volume: {
     visible: false,
-    upColor: 'rgba(34,171,148,0.24)',
-    downColor: 'rgba(247,82,95,0.24)',
+    upColor: 'rgba(0,227,150,0.24)',
+    downColor: 'rgba(255,59,92,0.24)',
     scaleMarginTop: 0.7,
   },
   rightPriceScale: {

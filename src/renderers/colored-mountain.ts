@@ -9,10 +9,10 @@ export interface ColoredMountainRendererOptions {
 }
 
 const DEFAULT_OPTIONS: ColoredMountainRendererOptions = {
-  upColor: '#22AB94',
-  downColor: '#F7525F',
-  upFillColor: 'rgba(34, 171, 148, 0.28)',
-  downFillColor: 'rgba(247, 82, 95, 0.28)',
+  upColor: '#00E396',
+  downColor: '#FF3B5C',
+  upFillColor: 'rgba(0, 227, 150, 0.28)',
+  downFillColor: 'rgba(255, 59, 92, 0.28)',
   lineWidth: 2,
 };
 
