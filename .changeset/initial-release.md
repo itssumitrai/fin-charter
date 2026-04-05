@@ -2,7 +2,7 @@
 "@itssumitrai/fin-charter": minor
 ---
 
-Initial feature-complete release with 20+ features:
+Add 20+ features to the charting library:
 
 - WebGL rendering backend for large datasets (100k+ bars)
 - CSV, SVG, and PDF export
