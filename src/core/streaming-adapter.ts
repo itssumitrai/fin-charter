@@ -76,6 +76,8 @@ export class WebSocketAdapter implements IStreamingAdapter {
   }
 
   connect(): void {
+    this._clearReconnectTimer();
+    this._reconnectAttempts = 0;
     this._intentionalClose = false;
     this._createConnection();
   }
@@ -102,8 +104,10 @@ export class WebSocketAdapter implements IStreamingAdapter {
 
   private _createConnection(): void {
     if (this._ws) {
+      this._intentionalClose = true;
       this._ws.close();
       this._ws = null;
+      this._intentionalClose = false;
     }
 
     const ws = new WebSocket(this._options.url);
@@ -145,6 +149,7 @@ export class WebSocketAdapter implements IStreamingAdapter {
   }
 
   private _scheduleReconnect(): void {
+    this._clearReconnectTimer();
     const { maxReconnectAttempts, reconnectDelay, maxReconnectDelay } = this._options;
     if (maxReconnectAttempts > 0 && this._reconnectAttempts >= maxReconnectAttempts) {
       return;
@@ -188,6 +193,7 @@ export class PollingAdapter implements IStreamingAdapter {
   private _interval: number;
   private _timers: Map<string, ReturnType<typeof setInterval>> = new Map();
   private _subscriptions: Map<string, BarCallback> = new Map();
+  private _fetching: Set<string> = new Set();
 
   constructor(options: PollingAdapterOptions) {
     this._options = options;
@@ -210,10 +216,22 @@ export class PollingAdapter implements IStreamingAdapter {
     const key = `${symbol}:${resolution}`;
     this._subscriptions.set(key, onBar);
 
+    // Clear existing timer for this key to prevent leaking intervals
+    const existingTimer = this._timers.get(key);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+    }
+
     const timer = setInterval(async () => {
-      const bar = await this._options.fetchBar(symbol, resolution);
-      const cb = this._subscriptions.get(key);
-      if (bar && cb) cb(bar);
+      if (this._fetching.has(key)) return;
+      this._fetching.add(key);
+      try {
+        const bar = await this._options.fetchBar(symbol, resolution);
+        const cb = this._subscriptions.get(key);
+        if (bar && cb) cb(bar);
+      } finally {
+        this._fetching.delete(key);
+      }
     }, this._interval);
 
     this._timers.set(key, timer);
@@ -244,7 +262,6 @@ export class TickBuffer {
   /** Register a flush callback for a symbol:resolution key. */
   register(key: string, onFlush: BarCallback): void {
     this._flushCallbacks.set(key, onFlush);
-    if (this._rafId === null) this._startLoop();
   }
 
   /** Unregister and stop flushing for a key. */
@@ -257,15 +274,25 @@ export class TickBuffer {
   /** Push a tick into the buffer (latest tick wins per key). */
   push(key: string, bar: Bar): void {
     this._buffer.set(key, bar);
+    // Schedule flush if not already running
+    if (this._rafId === null && this._flushCallbacks.size > 0) {
+      this._startLoop();
+    }
   }
 
   private _startLoop(): void {
     const flush = () => {
-      for (const [key, bar] of this._buffer) {
+      if (this._buffer.size === 0) {
+        this._rafId = null;
+        return;
+      }
+      const buffer = this._buffer;
+      this._buffer = new Map();
+
+      for (const [key, bar] of buffer) {
         const cb = this._flushCallbacks.get(key);
         if (cb) cb(bar);
       }
-      this._buffer.clear();
       this._rafId = requestAnimationFrame(flush);
     };
     this._rafId = requestAnimationFrame(flush);
