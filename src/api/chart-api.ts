@@ -16,6 +16,7 @@ import type { SeriesMarker } from '../core/series-markers';
 import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../core/chart-state';
 import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
+import { AlertLine, type AlertLineOptions } from '../core/alert-line';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
@@ -257,6 +258,13 @@ export interface IChartApi {
   exportSVG(): string;
   /** Export the current chart view as a PDF Blob. */
   exportPDF(options?: import('./export').PDFExportOptions): Blob;
+  // ── Alert Lines ──────────────────────────────────────────────────────────
+  /** Add an alert line at the given price level. */
+  addAlertLine(price: number, options?: Partial<import('../core/alert-line').AlertLineOptions>): import('../core/alert-line').AlertLine;
+  /** Remove an alert line. */
+  removeAlertLine(alert: import('../core/alert-line').AlertLine): void;
+  /** Get all alert lines. */
+  getAlertLines(): import('../core/alert-line').AlertLine[];
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -411,6 +419,10 @@ class ChartApi implements IChartApi {
   private _drawingApis: Map<string, DrawingApiImpl> = new Map();
   private _drawingHandler: DrawingHandler | null = null;
   private _nextDrawingId = 0;
+
+  // Alert lines
+  private _alertLines: AlertLine[] = [];
+  private _nextAlertLineId = 0;
 
   // Periodicity
   private _periodicity: Periodicity = { interval: 1, unit: 'day' };
@@ -1238,6 +1250,32 @@ class ChartApi implements IChartApi {
     return exportPDFFn(canvas, options);
   }
 
+  // ── Alert Lines ─────────────────────────────────────────────────────────
+
+  addAlertLine(price: number, options?: Partial<AlertLineOptions>): AlertLine {
+    const id = `alert_${this._nextAlertLineId++}`;
+    const alert = new AlertLine(
+      id,
+      { ...options, price } as AlertLineOptions,
+      () => this.requestRepaint(InvalidationLevel.Light),
+    );
+    this._alertLines.push(alert);
+    this.requestRepaint(InvalidationLevel.Light);
+    return alert;
+  }
+
+  removeAlertLine(alert: AlertLine): void {
+    const idx = this._alertLines.indexOf(alert);
+    if (idx >= 0) {
+      this._alertLines.splice(idx, 1);
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  getAlertLines(): AlertLine[] {
+    return [...this._alertLines];
+  }
+
   // ── Feature 5: Indicator API ────────────────────────────────────────────
 
   addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi {
@@ -1982,6 +2020,17 @@ class ChartApi implements IChartApi {
       this._emitVisibleRangeChange();
     }
 
+    // Check alert line crossings against current price
+    if (this._alertLines.length > 0 && this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      if (store.length > 0) {
+        const currentPrice = store.close[store.length - 1];
+        for (const alert of this._alertLines) {
+          alert.checkCrossing(currentPrice);
+        }
+      }
+    }
+
     this._mask.reset();
 
     // Continue animation loop if any price scale or last bar is still animating
@@ -2230,6 +2279,11 @@ class ChartApi implements IChartApi {
           this._drawPriceLines(ctx, priceLines, chartW, primaryPriceToY, pixelRatio);
         }
       }
+    }
+
+    // Alert lines (main pane only)
+    if (isMain && this._alertLines.length > 0) {
+      this._drawAlertLines(ctx, chartW, primaryPriceToY, pixelRatio);
     }
 
     // Last close price line (main pane only)
@@ -3040,6 +3094,66 @@ class ChartApi implements IChartApi {
         ctx.fillText(pl.options.title, Math.round(4 * pixelRatio), y - Math.round(2 * pixelRatio));
       }
     }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  private _drawAlertLines(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    ctx.save();
+    const bellChar = '\u{1F514}'; // 🔔
+    const fontFamily = this._options.layout.fontFamily;
+
+    for (const alert of this._alertLines) {
+      const opts = alert.options;
+      const y = Math.round(priceToY(opts.price) * pixelRatio);
+      const isArmed = opts.armed;
+
+      // Line color: full opacity when armed, dim when disarmed
+      ctx.globalAlpha = isArmed ? 1 : 0.4;
+      ctx.strokeStyle = opts.color;
+      ctx.lineWidth = opts.lineWidth * pixelRatio;
+
+      switch (opts.lineStyle) {
+        case 'dashed':
+          ctx.setLineDash([6 * pixelRatio, 4 * pixelRatio]);
+          break;
+        case 'dotted':
+          ctx.setLineDash([2 * pixelRatio, 2 * pixelRatio]);
+          break;
+        default:
+          ctx.setLineDash([]);
+          break;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(Math.round(chartW * pixelRatio), y);
+      ctx.stroke();
+
+      // Bell icon on the right side
+      const iconSize = Math.round(10 * pixelRatio);
+      const iconX = Math.round(chartW * pixelRatio) - Math.round(16 * pixelRatio);
+      ctx.font = `${iconSize}px ${fontFamily}`;
+      ctx.fillStyle = opts.color;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(bellChar, iconX, y);
+
+      // Title text on the left
+      if (opts.title) {
+        ctx.font = `${Math.round(10 * pixelRatio)}px ${fontFamily}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(opts.title, Math.round(4 * pixelRatio), y - Math.round(2 * pixelRatio));
+      }
+    }
+
+    ctx.globalAlpha = 1;
     ctx.setLineDash([]);
     ctx.restore();
   }
