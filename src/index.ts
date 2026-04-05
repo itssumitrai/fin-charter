@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Alert lines ──────────────────────────────────────────────────────
+export { AlertLine } from './core/alert-line';
+export type { AlertLineOptions, AlertTriggerMode, AlertLineCallback } from './core/alert-line';
+
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
   ChartOptions,
