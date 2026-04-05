@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
@@ -24,7 +24,7 @@ export const Default: Story = {
     docs: {
       source: {
         code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'line' });
@@ -44,7 +44,7 @@ series.setData(data);
         'It is the simplest chart type and is ideal for showing price trends at a glance.\n' +
         'The chart uses the <code>close</code> field from each data point for the Y value.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), {
   autoSize: true,

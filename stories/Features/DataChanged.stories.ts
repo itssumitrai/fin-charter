@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
@@ -27,7 +27,7 @@ export const DataChangedCounter: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -101,7 +101,7 @@ series.update({ time, open, high, low, close, volume });`,
         'The callback fires each time data is updated via <code>series.update()</code> or <code>series.setData()</code>. ' +
         'This demo simulates real-time bar updates every second and counts the events.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

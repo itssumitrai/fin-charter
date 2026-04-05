@@ -23,13 +23,16 @@ const config: StorybookConfig = {
       },
       resolve: {
         alias: [
-          { find: 'fin-charter/indicators', replacement: resolve(__dirname, '../src/indicators/index.ts') },
-          { find: 'fin-charter/market', replacement: resolve(__dirname, '../src/market/index.ts') },
-          { find: 'fin-charter/formatting', replacement: resolve(__dirname, '../src/formatting/index.ts') },
-          { find: 'fin-charter/timezone', replacement: resolve(__dirname, '../src/timezone/index.ts') },
-          { find: 'fin-charter/currency', replacement: resolve(__dirname, '../src/currency/index.ts') },
-          { find: 'fin-charter/i18n', replacement: resolve(__dirname, '../src/i18n/index.ts') },
-          { find: 'fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
+          { find: '@itssumitrai/fin-charter/indicators', replacement: resolve(__dirname, '../src/indicators/index.ts') },
+          { find: '@itssumitrai/fin-charter/market', replacement: resolve(__dirname, '../src/market/index.ts') },
+          { find: '@itssumitrai/fin-charter/formatting', replacement: resolve(__dirname, '../src/formatting/index.ts') },
+          { find: '@itssumitrai/fin-charter/timezone', replacement: resolve(__dirname, '../src/timezone/index.ts') },
+          { find: '@itssumitrai/fin-charter/currency', replacement: resolve(__dirname, '../src/currency/index.ts') },
+          { find: '@itssumitrai/fin-charter/i18n', replacement: resolve(__dirname, '../src/i18n/index.ts') },
+          { find: '@itssumitrai/fin-charter/core/accessibility', replacement: resolve(__dirname, '../src/core/accessibility.ts') },
+          { find: '@itssumitrai/fin-charter/core/chart-sync', replacement: resolve(__dirname, '../src/core/chart-sync.ts') },
+          { find: '@itssumitrai/fin-charter/core/symbol-resolver', replacement: resolve(__dirname, '../src/core/symbol-resolver.ts') },
+          { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
         ],
       },
     });

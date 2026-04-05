@@ -114,7 +114,7 @@ The ES module structure ensures unused chart types are excluded:
 
 ```ts
 // Only LineRenderer is bundled
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 const chart  = createChart(container);
 const series = chart.addSeries({ type: 'line' });
 ```
@@ -123,7 +123,7 @@ Each renderer is a separate module. The package sets `"sideEffects": false` so t
 
 ```ts
 // Only sma.ts and ema.ts are included
-import { computeSMA, computeEMA } from 'fin-charter/indicators';
+import { computeSMA, computeEMA } from '@itssumitrai/fin-charter/indicators';
 ```
 
 ---

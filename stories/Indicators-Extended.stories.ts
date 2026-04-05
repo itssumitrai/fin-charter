@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import {
   computeVWAP,
   computeStochastic,
@@ -7,14 +7,14 @@ import {
   computeADX,
   computeOBV,
   computeWilliamsR,
-} from 'fin-charter/indicators';
+} from '@itssumitrai/fin-charter/indicators';
 import type { Bar } from '../src/core/types';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
-  title: 'Indicators/Extended Indicators',
+  title: 'Indicators/Trend & Volatility',
   parameters: {
     docs: {
       description: {
@@ -49,8 +49,8 @@ export const VWAPOverlay: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
-import { computeVWAP } from 'fin-charter/indicators';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
+import { computeVWAP } from '@itssumitrai/fin-charter/indicators';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -80,7 +80,7 @@ chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 }).setData(vwapBa
     return withDocs(container, {
       description:
         '<strong>VWAP (Volume-Weighted Average Price)</strong> — Measures the average price weighted by volume throughout the session. Computed via <code>computeVWAP(high, low, close, volume, length)</code>. Used as an overlay to identify whether the current price is trading above or below fair value.',
-      code: `import { computeVWAP } from 'fin-charter/indicators';
+      code: `import { computeVWAP } from '@itssumitrai/fin-charter/indicators';
 
 const vwap = computeVWAP(high, low, close, volume, bars.length);
 chart.addSeries({ type: 'line', color: '#ff9800', lineWidth: 2 }).setData(vwapBars);`,

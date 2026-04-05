@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
-import type { ISeriesApi } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
+import type { ISeriesApi } from '@itssumitrai/fin-charter';
 import { createChartContainer, generateOHLCV } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
 import { withDocs } from '../doc-renderer';
@@ -26,7 +26,7 @@ export const CompareSymbols: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const mainSeries = chart.addSeries({ type: 'candlestick' });
@@ -129,7 +129,7 @@ compSeries.setData(msftData);`,
         'Enable comparison mode with <code>chart.setComparisonMode(true)</code>, then add comparison series ' +
         'using <code>chart.addSeries({ type: &quot;line&quot; })</code>. The Y-axis automatically switches to show relative performance.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const mainSeries = chart.addSeries({ type: 'candlestick' });

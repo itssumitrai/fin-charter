@@ -58,12 +58,17 @@
       "types": "./dist/market/index.d.ts",
       "import": "./dist/market/index.js"
     },
+    "./core/*": {
+      "types": "./dist/core/*.d.ts",
+      "import": "./dist/core/*.js"
+    },
     "./gui/*": {
       "svelte": "./src/gui/*.svelte"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/gui"
   ],
   "scripts": {
     "dev": "vite --config dev/vite.config.ts",

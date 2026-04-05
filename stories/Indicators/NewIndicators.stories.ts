@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
-  title: 'Indicators/New Indicators',
+  title: 'Indicators/Momentum & Volume',
   parameters: {
     docs: {
       description: {
         component:
-          '12 new technical indicators: Aroon, Awesome Oscillator, Chaikin MF, Coppock, Elder Force, TRIX, Supertrend, VWMA, Choppiness, MFI, ROC, Linear Regression.',
+          'Momentum and volume indicators: Aroon, Awesome Oscillator, Chaikin MF, Coppock, Elder Force, TRIX, Supertrend, VWMA, Choppiness, MFI, ROC, Linear Regression.',
       },
     },
   },
@@ -25,7 +25,7 @@ export const AroonIndicator: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

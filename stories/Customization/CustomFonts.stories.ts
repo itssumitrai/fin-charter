@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 import { AAPL_DAILY } from '../sample-data';
@@ -25,7 +25,7 @@ export const Monospace: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -54,7 +54,7 @@ const chart = createChart(container, {
       description:
         '<strong>Custom Fonts</strong> — Customize chart fonts via <code>layout: { fontFamily, fontSize }</code>. ' +
         'Affects all text elements: price scale labels, time scale labels, legend, and tooltips.',
-      code: `import { createChart } from 'fin-charter';
+      code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

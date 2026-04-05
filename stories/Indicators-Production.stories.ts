@@ -1,17 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
-  title: 'Indicators/Production Indicators',
+  title: 'Indicators/Advanced',
   parameters: {
     docs: {
       description: {
         component:
-          'Demonstrates the 6 production-ready indicators added in the latest release: ' +
-          'Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, and Pivot Points.',
+          'Advanced indicators: Ichimoku Cloud, Parabolic SAR, Keltner Channel, Donchian Channel, CCI, and Pivot Points.',
       },
     },
   },
@@ -27,7 +26,7 @@ export const IchimokuCloud: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

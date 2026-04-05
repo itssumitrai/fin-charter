@@ -116,7 +116,7 @@ A horizontal price level line at a fixed price:
 import type {
   ISeriesPrimitive, IPaneView, IPaneRenderer,
   IRenderTarget, AttachedParams,
-} from 'fin-charter';
+} from '@itssumitrai/fin-charter';
 
 class PriceLevelRenderer implements IPaneRenderer {
   constructor(private readonly priceY: number, private readonly color: string) {}
@@ -170,7 +170,7 @@ level.setPrice(160);  // move the line
 Use `chart.addPane()` and `IPanePrimitive` to draw into a secondary pane:
 
 ```ts
-import type { IPanePrimitive, IPaneView, IPaneRenderer, IRenderTarget } from 'fin-charter';
+import type { IPanePrimitive, IPaneView, IPaneRenderer, IRenderTarget } from '@itssumitrai/fin-charter';
 
 class RSIRenderer implements IPaneRenderer {
   constructor(private readonly values: Float64Array) {}

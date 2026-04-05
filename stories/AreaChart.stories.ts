@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
@@ -24,7 +24,7 @@ export const Default: Story = {
     docs: {
       source: {
         code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'area' });
@@ -43,7 +43,7 @@ series.setData(data);
         'An <strong>area chart</strong> renders a line at the close price with a gradient fill extending down to the bottom of the chart. ' +
         'It provides a clear visual sense of magnitude and is often used for portfolio value or index tracking.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), {
   autoSize: true,

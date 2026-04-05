@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
@@ -25,7 +25,7 @@ export const Default: Story = {
     docs: {
       source: {
         code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'hollow-candle' });
@@ -45,7 +45,7 @@ series.setData(data);
         'and bearish bars as filled. This provides an additional visual dimension: the fill state indicates bullish vs bearish direction, ' +
         'while the color can encode a separate dimension such as trend continuation.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), {
   autoSize: true,

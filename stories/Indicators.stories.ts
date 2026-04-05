@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
-import { computeSMA, computeEMA } from 'fin-charter/indicators';
+import { createChart } from '@itssumitrai/fin-charter';
+import { computeSMA, computeEMA } from '@itssumitrai/fin-charter/indicators';
 import type { Bar } from '../src/core/types';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
@@ -39,8 +39,8 @@ export const SMAandEMA: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
-import { computeSMA, computeEMA } from 'fin-charter/indicators';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
+import { computeSMA, computeEMA } from '@itssumitrai/fin-charter/indicators';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -78,8 +78,8 @@ chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(emaLin
 
     return withDocs(container, {
       description:
-        '<strong>SMA 20 + EMA 20</strong> — Computes a <code>computeSMA()</code> and <code>computeEMA()</code> from close prices using <code>fin-charter/indicators</code>, then overlays both as line series on a candlestick chart. The <strong>SMA</strong> (yellow) equally weights the last 20 closes, while the <strong>EMA</strong> (cyan) gives more weight to recent prices.',
-      code: `import { computeSMA, computeEMA } from 'fin-charter/indicators';
+        '<strong>SMA 20 + EMA 20</strong> — Computes a <code>computeSMA()</code> and <code>computeEMA()</code> from close prices using <code>@itssumitrai/fin-charter/indicators</code>, then overlays both as line series on a candlestick chart. The <strong>SMA</strong> (yellow) equally weights the last 20 closes, while the <strong>EMA</strong> (cyan) gives more weight to recent prices.',
+      code: `import { computeSMA, computeEMA } from '@itssumitrai/fin-charter/indicators';
 
 const closes = new Float64Array(bars.map(b => b.close));
 const sma = computeSMA(closes, bars.length, 20);
@@ -120,7 +120,7 @@ smaSeries.setData(smaLineBars);`,
     return withDocs(container, {
       description:
         '<strong>SMA 50 Overlay</strong> — A 50-period <code>computeSMA()</code> showing the longer-term trend direction. Prices above the SMA 50 suggest a bullish trend; prices below suggest bearish.',
-      code: `import { computeSMA } from 'fin-charter/indicators';
+      code: `import { computeSMA } from '@itssumitrai/fin-charter/indicators';
 
 const closes = new Float64Array(bars.map(b => b.close));
 const sma50 = computeSMA(closes, bars.length, 50);
@@ -164,7 +164,7 @@ chart.addSeries({ type: 'line', color: '#00e5ff', lineWidth: 2 }).setData(ema26B
     return withDocs(container, {
       description:
         '<strong>Dual EMA Crossover (EMA 12 + EMA 26)</strong> — A classic signal generation strategy using <code>computeEMA()</code>. When the fast <strong>EMA 12</strong> (red) crosses above the slow <strong>EMA 26</strong> (cyan), it signals a potential buy; crossing below signals a potential sell.',
-      code: `import { computeEMA } from 'fin-charter/indicators';
+      code: `import { computeEMA } from '@itssumitrai/fin-charter/indicators';
 
 const closes = new Float64Array(bars.map(b => b.close));
 const ema12 = computeEMA(closes, bars.length, 12);

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 
@@ -26,7 +26,7 @@ export const HudCollapseDemo: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 // The HUD renders automatically when indicators are present.
 // Use the chevron button in the HUD header to collapse all rows at once.
@@ -106,7 +106,7 @@ chart.addIndicator('mfi', { source: series, params: { period: 14 }, color: '#E91
         'Click the <strong>chevron (^)</strong> in the top-right corner of the HUD to collapse all indicator rows at once. ' +
         'Individual rows can be toggled independently via the <strong>visibility eye icon</strong> in the HUD.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

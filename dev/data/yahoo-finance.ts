@@ -1,5 +1,5 @@
-import type { Bar } from 'fin-charter';
-import type { Periodicity } from 'fin-charter';
+import type { Bar } from '@itssumitrai/fin-charter';
+import type { Periodicity } from '@itssumitrai/fin-charter';
 
 interface YahooQuote {
   timestamp: number[];

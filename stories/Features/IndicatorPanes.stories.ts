@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from '../helpers';
 import { AAPL_DAILY } from '../sample-data';
 import { withDocs } from '../doc-renderer';
@@ -24,7 +24,7 @@ export const RSIAndMACD: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -79,7 +79,7 @@ chart.addIndicator('macd', {
         '<code>chart.addIndicator()</code>. Overlays like <strong>SMA</strong> render on the price pane, while ' +
         'oscillators like <strong>RSI</strong> and <strong>MACD</strong> get their own dedicated panes.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'candlestick' });

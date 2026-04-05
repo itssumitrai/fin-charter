@@ -36,8 +36,8 @@ interface SymbolInfo {
 An in-memory symbol resolver that uses fuzzy matching on both ticker symbols and human-readable names.
 
 ```ts
-import { SimpleSymbolResolver } from 'fin-charter/core/symbol-resolver';
-import type { SymbolInfo } from 'fin-charter/core/symbol-resolver';
+import { SimpleSymbolResolver } from '@itssumitrai/fin-charter/core/symbol-resolver';
+import type { SymbolInfo } from '@itssumitrai/fin-charter/core/symbol-resolver';
 
 const symbols = new Map<string, SymbolInfo>([
   ['AAPL', {
@@ -119,7 +119,7 @@ Results are sorted by score descending, so exact matches always appear first.
 Implement `ISymbolResolver` for your data backend:
 
 ```ts
-import type { ISymbolResolver, SymbolInfo } from 'fin-charter/core/symbol-resolver';
+import type { ISymbolResolver, SymbolInfo } from '@itssumitrai/fin-charter/core/symbol-resolver';
 
 class ApiSymbolResolver implements ISymbolResolver {
   constructor(private baseUrl: string) {}

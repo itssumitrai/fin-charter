@@ -1,4 +1,4 @@
-import type { Bar } from 'fin-charter';
+import type { Bar } from '@itssumitrai/fin-charter';
 
 /**
  * Generate random walk OHLCV data with daily bars.

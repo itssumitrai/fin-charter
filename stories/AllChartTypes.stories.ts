@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
 
@@ -55,7 +55,7 @@ export const Overview: Story = {
     docs: {
       source: {
         code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 
@@ -257,7 +257,7 @@ chart.addSeries({ type: 'point-figure', boxSize: 2, reversalBoxes: 3 }).setData(
         'Additional types include step-line, colored-line, colored-mountain, hlc-area, high-low, column, volume-candle, ' +
         'baseline-delta-mountain, renko, kagi, line-break, and point-figure.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
 

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
-import { computeSMA } from 'fin-charter/indicators';
+import { createChart } from '@itssumitrai/fin-charter';
+import { computeSMA } from '@itssumitrai/fin-charter/indicators';
 import type { Bar } from '../../src/core/types';
 import { createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
@@ -38,7 +38,7 @@ export const Default: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -76,7 +76,7 @@ chart.addSeries({ type: 'line', color: '#f4c430', priceScaleId: 'left' });`,
         '<strong>Dual Price Scales</strong> — Enable both left and right price scales simultaneously. ' +
         'Assign a series to a specific scale with <code>priceScaleId: \'left\'</code>. ' +
         'Useful for overlaying instruments with different price ranges.',
-      code: `import { createChart } from 'fin-charter';
+      code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

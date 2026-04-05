@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { createChartContainer } from './helpers';
 import { AAPL_DAILY } from './sample-data';
 import { withDocs } from './doc-renderer';
 
 const meta: Meta = {
-  title: 'Chart Types/New Chart Types',
+  title: 'Chart Types/Extended',
   parameters: {
     docs: {
       description: {
-        component: '12 additional chart types including step-line, colored variants, HLC area, volume candles, and Japanese charting styles.',
+        component: 'Extended chart types: step-line, colored line, colored mountain, HLC area, high-low, column, volume candles, baseline delta mountain, renko, kagi, line break, and point & figure.',
       },
     },
   },
@@ -23,7 +23,7 @@ export const StepLine: Story = {
   parameters: {
     docs: {
       source: {
-        code: `import { createChart } from 'fin-charter';
+        code: `import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(document.getElementById('chart'), { autoSize: true, symbol: 'AAPL' });
 const series = chart.addSeries({ type: 'step-line', color: '#00e5ff' });
@@ -41,7 +41,7 @@ series.setData(data);`,
         'The <strong>step line</strong> chart connects close prices with horizontal-then-vertical segments, ideal for discrete or rate data. ' +
         'Unlike a standard line chart that draws diagonal segments between points, the step line emphasizes that the value remains constant until the next change.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -74,7 +74,7 @@ series.setData(data);`,
         'The <strong>colored line</strong> chart changes color per segment based on price direction. ' +
         'Green segments indicate rising prices and red segments indicate falling prices, making trend direction immediately visible.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -123,7 +123,7 @@ series.setData(data);`,
         'The <strong>colored mountain</strong> (area) chart combines per-segment coloring with gradient fills. ' +
         'Rising segments use <code>upColor</code> / <code>upFillColor</code> and falling segments use <code>downColor</code> / <code>downFillColor</code>.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -172,7 +172,7 @@ series.setData(data);`,
         'The <strong>HLC Area</strong> chart draws the high-low range as a filled band with separate high and low lines. ' +
         'The area between the high line and low line is filled with a translucent color, clearly showing the price range for each period.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -210,7 +210,7 @@ series.setData(data);`,
         'The <strong>high-low</strong> bar chart shows only the price range per period without open/close marks. ' +
         'Each vertical bar spans from the low to the high price, providing a clean view of volatility and range.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -243,7 +243,7 @@ series.setData(data);`,
         'The <strong>column</strong> chart draws vertical bars from the chart bottom to the close price. ' +
         'Bars are colored green when the close is at or above the open and red when the close is below the open, giving an instant read on intrabar direction.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -280,7 +280,7 @@ series.setData(data);`,
         'The <strong>volume candle</strong> chart varies the candle body width based on trading volume. ' +
         'Higher-volume periods produce wider candles, letting you see at a glance which price moves were backed by significant trading activity.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -323,7 +323,7 @@ series.setData(data);`,
         'The <strong>baseline delta mountain</strong> chart fills the area between the price line and a reference price (<code>basePrice</code>). ' +
         'Areas above the baseline use <code>topFillColor</code> and areas below use <code>bottomFillColor</code>, clearly showing deviation from the reference.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -361,7 +361,7 @@ series.setData(data);`,
         'The <strong>Renko</strong> chart builds uniform bricks of a fixed <code>boxSize</code>, filtering out noise to show pure price trends. ' +
         'A new brick is drawn only when the price moves by the box size amount, ignoring time entirely.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -394,7 +394,7 @@ series.setData(data);`,
         'The <strong>Kagi</strong> chart draws thick (yang) and thin (yin) vertical lines based on price reversals. ' +
         'A reversal occurs when price moves by the <code>reversalAmount</code> in the opposite direction. Thick lines indicate demand, thin lines indicate supply.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -427,7 +427,7 @@ series.setData(data);`,
         'The <strong>line break</strong> chart draws boxes only when price breaks above or below the last N boxes (controlled by <code>breakCount</code>). ' +
         'With a break count of 3, a new reversal box appears only when price exceeds the high or low of the previous 3 boxes, filtering minor fluctuations.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,
@@ -460,7 +460,7 @@ series.setData(data);`,
         'The <strong>Point & Figure</strong> chart uses X columns (rising prices) and O columns (falling prices) to show price movement. ' +
         'Each X or O represents a <code>boxSize</code> price movement. A new column starts when price reverses by <code>reversalBoxes</code> boxes in the opposite direction.',
       code: `
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 
 const chart = createChart(container, {
   autoSize: true,

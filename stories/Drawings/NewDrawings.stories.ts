@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { createChart } from 'fin-charter';
+import { createChart } from '@itssumitrai/fin-charter';
 import { generateOHLCV, createChartContainer } from '../helpers';
 import { withDocs } from '../doc-renderer';
 
 const meta: Meta = {
-  title: 'Drawings/New Drawing Tools',
+  title: 'Drawing Tools/Advanced',
   parameters: {
     docs: {
       description: {
         component:
-          'New drawing tools: ray, arrow, channel, ellipse, pitchfork, fib projection, fib arc, fib fan, crossline, and measurement.',
+          'Advanced drawing tools: ray, arrow, channel, ellipse, pitchfork, fib projection, fib arc, fib fan, crossline, and measurement.',
       },
     },
   },
