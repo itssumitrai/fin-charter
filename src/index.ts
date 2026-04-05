@@ -54,6 +54,14 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Range Selection & Measure ───────────────────────────────────────
+export type {
+  RangeSelectionStats,
+  RangeSelectionCallback,
+  MeasureResult,
+  MeasureCallback,
+} from './interactions/range-selection';
+
 // ─── Alert lines ──────────────────────────────────────────────────────
 export { AlertLine } from './core/alert-line';
 export type { AlertLineOptions, AlertTriggerMode, AlertLineCallback } from './core/alert-line';

@@ -17,6 +17,12 @@ import { type ChartState, CHART_STATE_VERSION, validateChartState } from '../cor
 import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { AlertLine, type AlertLineOptions } from '../core/alert-line';
+import {
+  RangeSelectionHandler,
+  MeasureHandler,
+  type RangeSelectionCallback,
+  type MeasureCallback,
+} from '../interactions/range-selection';
 import { EventRouter } from '../interactions/event-router';
 import { PanZoomHandler } from '../interactions/pan-zoom';
 import { CrosshairHandler } from '../interactions/crosshair';
@@ -259,6 +265,20 @@ export interface IChartApi {
   /** Export the current chart view as a PDF Blob. */
   exportPDF(options?: import('./export').PDFExportOptions): Blob;
   // ── Alert Lines ──────────────────────────────────────────────────────────
+  // ── Range Selection & Measure ─────────────────────────────────────────
+  /** Activate the range selection mode (drag to highlight a time range). */
+  setRangeSelectionActive(active: boolean): void;
+  /** Subscribe to range selection results. */
+  onRangeSelected(callback: import('../interactions/range-selection').RangeSelectionCallback): void;
+  /** Unsubscribe from range selection results. */
+  offRangeSelected(callback: import('../interactions/range-selection').RangeSelectionCallback): void;
+  /** Activate the measure tool (click two points to see stats). */
+  setMeasureActive(active: boolean): void;
+  /** Subscribe to measure results. */
+  onMeasure(callback: import('../interactions/range-selection').MeasureCallback): void;
+  /** Unsubscribe from measure results. */
+  offMeasure(callback: import('../interactions/range-selection').MeasureCallback): void;
+  // ── Alert Lines ──────────────────────────────────────────────────────────
   /** Add an alert line at the given price level. */
   addAlertLine(price: number, options?: Partial<import('../core/alert-line').AlertLineOptions>): import('../core/alert-line').AlertLine;
   /** Remove an alert line. */
@@ -419,6 +439,10 @@ class ChartApi implements IChartApi {
   private _drawingApis: Map<string, DrawingApiImpl> = new Map();
   private _drawingHandler: DrawingHandler | null = null;
   private _nextDrawingId = 0;
+
+  // Range selection & measure handlers
+  private _rangeSelectionHandler: RangeSelectionHandler | null = null;
+  private _measureHandler: MeasureHandler | null = null;
 
   // Alert lines
   private _alertLines: AlertLine[] = [];
@@ -1248,6 +1272,64 @@ class ChartApi implements IChartApi {
   exportPDF(options?: PDFExportOptions): Blob {
     const canvas = this.takeScreenshot();
     return exportPDFFn(canvas, options);
+  }
+
+  // ── Range Selection & Measure ─────────────────────────────────────────
+
+  private _ensureRangeSelectionHandler(): RangeSelectionHandler {
+    if (!this._rangeSelectionHandler) {
+      this._rangeSelectionHandler = new RangeSelectionHandler(
+        this._timeScale,
+        this._mainPane.priceScale,
+        () => this._series.length > 0 ? this._series[0].api.getDataLayer().store : null,
+        () => this.requestRepaint(InvalidationLevel.Light),
+      );
+      this._eventRouter.addHandler(this._rangeSelectionHandler);
+    }
+    return this._rangeSelectionHandler;
+  }
+
+  private _ensureMeasureHandler(): MeasureHandler {
+    if (!this._measureHandler) {
+      this._measureHandler = new MeasureHandler(
+        this._timeScale,
+        this._mainPane.priceScale,
+        () => this._series.length > 0 ? this._series[0].api.getDataLayer().store : null,
+        () => this.requestRepaint(InvalidationLevel.Light),
+      );
+      this._eventRouter.addHandler(this._measureHandler);
+    }
+    return this._measureHandler;
+  }
+
+  setRangeSelectionActive(active: boolean): void {
+    const handler = this._ensureRangeSelectionHandler();
+    handler.active = active;
+    // Deactivate measure when range selection is active
+    if (active && this._measureHandler) this._measureHandler.active = false;
+  }
+
+  onRangeSelected(callback: RangeSelectionCallback): void {
+    this._ensureRangeSelectionHandler().onRangeSelected(callback);
+  }
+
+  offRangeSelected(callback: RangeSelectionCallback): void {
+    this._rangeSelectionHandler?.offRangeSelected(callback);
+  }
+
+  setMeasureActive(active: boolean): void {
+    const handler = this._ensureMeasureHandler();
+    handler.active = active;
+    // Deactivate range selection when measure is active
+    if (active && this._rangeSelectionHandler) this._rangeSelectionHandler.active = false;
+  }
+
+  onMeasure(callback: MeasureCallback): void {
+    this._ensureMeasureHandler().onMeasure(callback);
+  }
+
+  offMeasure(callback: MeasureCallback): void {
+    this._measureHandler?.offMeasure(callback);
   }
 
   // ── Alert Lines ─────────────────────────────────────────────────────────
@@ -2500,6 +2582,54 @@ class ChartApi implements IChartApi {
           const renderer = view.renderer();
           renderer?.draw(target);
         }
+      }
+    }
+
+    // Range selection overlay (main pane only)
+    if (isMain && this._rangeSelectionHandler?.selecting) {
+      const rsh = this._rangeSelectionHandler;
+      const sx = Math.round(Math.min(rsh.startX, rsh.endX) * pixelRatio);
+      const ex = Math.round(Math.max(rsh.startX, rsh.endX) * pixelRatio);
+      const selW = ex - sx;
+      ctx.save();
+      ctx.fillStyle = 'rgba(33, 150, 243, 0.15)';
+      ctx.fillRect(sx, 0, selW, Math.round(chartH * pixelRatio));
+      ctx.strokeStyle = 'rgba(33, 150, 243, 0.6)';
+      ctx.lineWidth = pixelRatio;
+      ctx.setLineDash([]);
+      ctx.strokeRect(sx, 0, selW, Math.round(chartH * pixelRatio));
+      ctx.restore();
+    }
+
+    // Measure tool overlay (main pane only)
+    if (isMain && this._measureHandler?.firstPoint) {
+      const mh = this._measureHandler;
+      const p1 = mh.firstPoint!;
+      const p2 = mh.secondPoint ?? (mh.hovering ? { x: mh.hoverX, y: mh.hoverY } : null);
+      if (p2) {
+        const x1 = Math.round(p1.x * pixelRatio);
+        const y1 = Math.round(p1.y * pixelRatio);
+        const x2 = Math.round(p2.x * pixelRatio);
+        const y2 = Math.round(p2.y * pixelRatio);
+        ctx.save();
+        ctx.strokeStyle = '#FF9800';
+        ctx.lineWidth = pixelRatio;
+        ctx.setLineDash([6 * pixelRatio, 4 * pixelRatio]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Draw endpoint dots
+        ctx.fillStyle = '#FF9800';
+        const dotR = 3 * pixelRatio;
+        ctx.beginPath();
+        ctx.arc(x1, y1, dotR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x2, y2, dotR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     }
 
