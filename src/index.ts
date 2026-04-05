@@ -120,9 +120,9 @@ export type {
 export { AlertLine } from './core/alert-line';
 export type { AlertLineOptions, AlertTriggerMode, AlertLineCallback } from './core/alert-line';
 
-// ─── Symbol Resolution ─────────────────────────────────────────────────────
-export { SimpleSymbolResolver } from './core/symbol-resolver';
-export type { SymbolInfo, ISymbolResolver } from './core/symbol-resolver';
+// ─── Chart Sync ────────────────────────────────────────────────────────────
+export { ChartSyncGroup } from './core/chart-sync';
+export type { ISyncableChart, SyncCrosshairState, CrosshairSyncCallback, TimeScaleSyncCallback } from './core/chart-sync';
 
 // ─── Option types ───────────────────────────────────────────────────────────
 export type {
