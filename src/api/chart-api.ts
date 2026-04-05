@@ -52,6 +52,16 @@ import { PointFigureRenderer } from '../renderers/point-figure';
 
 import { isWebGLAvailable, CandlestickWebGLRenderer, LineWebGLRenderer, AreaWebGLRenderer } from '../renderers/webgl/index';
 
+import {
+  exportCSV as exportCSVFn,
+  exportSVG as exportSVGFn,
+  exportPDF as exportPDFFn,
+  type CSVExportOptions,
+  type PDFExportOptions,
+  type SeriesInfo,
+  type IndicatorInfo,
+} from './export';
+
 import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
 import type { IPaneApi } from './pane-api';
@@ -240,6 +250,13 @@ export interface IChartApi {
   getMarketSessions(): MarketSession[];
   setSessionFilter(filter: 'regular' | 'extended' | 'all'): void;
   getSessionFilter(): string;
+  // ── Export ────────────────────────────────────────────────────────────────
+  /** Export visible OHLCV data (and optionally indicator values) as a CSV string. */
+  exportCSV(options?: import('./export').CSVExportOptions): string;
+  /** Export the current chart view as an SVG string (PNG image embedded in SVG wrapper). */
+  exportSVG(): string;
+  /** Export the current chart view as a PDF Blob. */
+  exportPDF(options?: import('./export').PDFExportOptions): Blob;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -1181,6 +1198,44 @@ class ChartApi implements IChartApi {
     ctx.drawImage(this._timeAxisCanvas, Math.round(leftScaleW * pixelRatio), yOffset);
 
     return offscreen;
+  }
+
+  // ── Export ───────────────────────────────────────────────────────────────
+
+  exportCSV(options?: CSVExportOptions): string {
+    const seriesInfos: SeriesInfo[] = this._series
+      .filter((e) => e.api.isVisible())
+      .map((e) => ({
+        label: (e.api.options() as { label?: string }).label ?? '',
+        store: e.api.getDataLayer().store,
+      }));
+
+    const indicatorInfos: IndicatorInfo[] = this._indicators
+      .filter((ind) => ind.isVisible())
+      .map((ind) => {
+        const outputs = new Map<string, Float64Array>();
+        for (const s of ind.internalSeries) {
+          const store = (s as unknown as { getDataLayer(): { store: ColumnStore } }).getDataLayer().store;
+          outputs.set(
+            (s.options() as { label?: string }).label ?? ind.indicatorType(),
+            store.close,
+          );
+        }
+        return { label: ind.indicatorType(), outputs };
+      });
+
+    const range = this._timeScale.visibleRange();
+    return exportCSVFn(seriesInfos, indicatorInfos, range, options);
+  }
+
+  exportSVG(): string {
+    const canvas = this.takeScreenshot();
+    return exportSVGFn(canvas);
+  }
+
+  exportPDF(options?: PDFExportOptions): Blob {
+    const canvas = this.takeScreenshot();
+    return exportPDFFn(canvas, options);
   }
 
   // ── Feature 5: Indicator API ────────────────────────────────────────────

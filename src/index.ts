@@ -25,6 +25,9 @@ export type { RendererType } from './api/options';
 // ─── WebGL ──────────────────────────────────────────────────────────
 export { isWebGLAvailable } from './renderers/webgl/index';
 
+// ─── Export ─────────────────────────────────────────────────────────
+export type { CSVExportOptions, PDFExportOptions } from './api/export';
+
 // ─── Periodicity ──────────────────────────────────────────────────────
 export type { Periodicity } from './core/periodicity';
 export { periodicityToSeconds, periodicityToLabel } from './core/periodicity';
