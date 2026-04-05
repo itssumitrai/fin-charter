@@ -42,9 +42,7 @@ jobs:
         run: npm version ${{ github.event.inputs.version }} --no-git-tag-version
 
       - name: Publish
-        run: npm publish --provenance --access public --tag ${{ github.event.inputs.tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --tag ${{ github.event.inputs.tag }}
 
       - name: Create Git tag
         run: |
