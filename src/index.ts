@@ -54,6 +54,9 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── CSS Theme ──────────────────────────────────────────────────────
+export { CSS_VARS, readCSSTheme, generateCSSTheme, applyCSSTheme } from './core/css-theme';
+
 // ─── Data Feed ──────────────────────────────────────────────────────
 export { DataFeedManager } from './core/data-feed';
 export type { IDataFeed, DataFeedManagerOptions } from './core/data-feed';
