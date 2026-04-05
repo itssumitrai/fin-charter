@@ -1,0 +1,233 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Plugin System" />
+
+# Plugin System
+
+fin-charter provides a formal plugin system through the `IPlugin` interface and `PluginManager`. Plugins can add custom series types, indicators, drawing tools, UI panels, and intercept chart events with full lifecycle management and dependency resolution.
+
+## `IPlugin` Interface
+
+```ts
+interface IPlugin {
+  readonly name: string;
+  readonly version?: string;
+  readonly dependencies?: string[];
+
+  install(chart: PluginChartApi): void;
+  uninstall?(): void;
+  onPaint?(context: PluginPaintContext): void;
+  onOptionsChange?(options: Record<string, unknown>): void;
+  onDataUpdate?(): void;
+}
+```
+
+### Lifecycle Hooks
+
+| Hook | When Called |
+|---|---|
+| `install(chart)` | When `chart.use(plugin)` is called |
+| `uninstall()` | When the plugin is removed or the chart is destroyed |
+| `onPaint(context)` | After each paint cycle, after all series are rendered |
+| `onOptionsChange(options)` | When `chart.applyOptions()` is called |
+| `onDataUpdate()` | When any series data changes |
+
+---
+
+## `PluginChartApi`
+
+The subset of the chart API exposed to plugins:
+
+```ts
+interface PluginChartApi {
+  getContainer(): HTMLElement;
+  requestRepaint(): void;
+  getSize(): { width: number; height: number };
+}
+```
+
+---
+
+## `PluginPaintContext`
+
+Context passed to the `onPaint` hook:
+
+```ts
+interface PluginPaintContext {
+  ctx: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  pixelRatio: number;
+}
+```
+
+---
+
+## `PluginManager`
+
+Manages plugin lifecycle, dependency resolution, and event dispatch.
+
+```ts
+import { PluginManager } from 'fin-charter';
+
+const manager = new PluginManager();
+manager.setChartApi(chartApi);
+```
+
+### Installing Plugins
+
+```ts
+manager.use(myPlugin);
+```
+
+Dependencies are resolved at install time. If a plugin declares dependencies, they must already be installed:
+
+```ts
+const basePlugin: IPlugin = {
+  name: 'base-plugin',
+  install(chart) { /* ... */ },
+};
+
+const dependentPlugin: IPlugin = {
+  name: 'dependent-plugin',
+  dependencies: ['base-plugin'],
+  install(chart) { /* ... */ },
+};
+
+manager.use(basePlugin);      // OK
+manager.use(dependentPlugin); // OK, base-plugin is installed
+
+// This would throw:
+// manager.use(dependentPlugin); // Error: depends on 'base-plugin' which is not installed
+```
+
+### Removing Plugins
+
+```ts
+manager.remove('my-plugin');
+```
+
+### Querying Plugins
+
+```ts
+manager.has('my-plugin');     // true/false
+manager.get('my-plugin');     // IPlugin | undefined
+manager.getAll();             // IPlugin[]
+```
+
+### Dispatching Events
+
+```ts
+// Called by the chart internally:
+manager.notifyPaint(paintContext);
+manager.notifyOptionsChange(options);
+manager.notifyDataUpdate();
+```
+
+### Cleanup
+
+```ts
+manager.dispose(); // Calls uninstall() on all plugins in reverse order
+```
+
+---
+
+## Example: Watermark Plugin
+
+```ts
+import type { IPlugin, PluginChartApi, PluginPaintContext } from 'fin-charter';
+
+class WatermarkPlugin implements IPlugin {
+  readonly name = 'watermark';
+  readonly version = '1.0.0';
+
+  private _text: string;
+  private _color: string;
+
+  constructor(text: string, color = 'rgba(255, 255, 255, 0.04)') {
+    this._text = text;
+    this._color = color;
+  }
+
+  install(chart: PluginChartApi): void {
+    chart.requestRepaint();
+  }
+
+  onPaint(context: PluginPaintContext): void {
+    const { ctx, width, height, pixelRatio } = context;
+    ctx.save();
+    ctx.fillStyle = this._color;
+    ctx.font = `${Math.round(48 * pixelRatio)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      this._text,
+      Math.round(width * pixelRatio / 2),
+      Math.round(height * pixelRatio / 2),
+    );
+    ctx.restore();
+  }
+
+  uninstall(): void {
+    // Clean up if needed
+  }
+}
+
+// Usage
+chart.use(new WatermarkPlugin('CONFIDENTIAL'));
+```
+
+---
+
+## Example: Analytics Plugin with Dependencies
+
+```ts
+class AnalyticsPlugin implements IPlugin {
+  readonly name = 'analytics';
+  readonly version = '1.0.0';
+  readonly dependencies = ['base-plugin'];
+
+  private _events: Array<{ type: string; timestamp: number }> = [];
+
+  install(_chart: PluginChartApi): void {
+    console.log('Analytics plugin installed');
+  }
+
+  onOptionsChange(options: Record<string, unknown>): void {
+    this._events.push({ type: 'options-change', timestamp: Date.now() });
+  }
+
+  onDataUpdate(): void {
+    this._events.push({ type: 'data-update', timestamp: Date.now() });
+  }
+
+  getEvents() {
+    return [...this._events];
+  }
+
+  uninstall(): void {
+    console.log(`Analytics: ${this._events.length} events recorded`);
+  }
+}
+```
+
+---
+
+## Relationship to Primitives
+
+The plugin system complements the existing `ISeriesPrimitive` and `IPanePrimitive` interfaces (documented in the [Plugins page](?path=/docs/docs-plugins--docs)):
+
+- **Primitives** are for rendering custom overlays attached to a specific series or pane
+- **Plugins** (IPlugin) are for broader chart extensions with lifecycle management, dependency tracking, and cross-cutting concerns
+
+A plugin can internally create and manage primitives:
+
+```ts
+class MyPlugin implements IPlugin {
+  readonly name = 'my-plugin';
+
+  install(chart: PluginChartApi): void {
+    // Create primitives, register event handlers, etc.
+  }
+}
+```

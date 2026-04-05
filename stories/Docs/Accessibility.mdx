@@ -1,0 +1,124 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Accessibility" />
+
+# Accessibility
+
+fin-charter includes built-in accessibility support through the `ChartAccessibility` class, providing ARIA live regions for screen-reader announcements and keyboard navigation for chart data.
+
+## `ChartAccessibility`
+
+```ts
+import { ChartAccessibility } from 'fin-charter/core/accessibility';
+
+const a11y = new ChartAccessibility();
+```
+
+### ARIA Live Region
+
+Create a hidden ARIA live region inside the chart container. Screen readers monitor this region and announce changes automatically.
+
+```ts
+const region = a11y.createAriaLiveRegion(chartContainer);
+// The region is a visually-hidden <div> with:
+//   role="status"
+//   aria-live="polite"
+//   aria-atomic="true"
+```
+
+The chart container also receives `role="img"` if no role is already set.
+
+### Price Announcements
+
+Announce the current price and change to screen readers:
+
+```ts
+// When crosshair moves to a new bar
+a11y.announcePrice(185.50, -2.30);
+// Screen reader: "Price 185.50, down 2.30"
+
+a11y.announcePrice(190.00, 4.50);
+// Screen reader: "Price 190.00, up 4.50"
+
+a11y.announcePrice(188.00, 0);
+// Screen reader: "Price 188.00, unchanged 0.00"
+```
+
+### Bar Data Announcements
+
+Announce full OHLCV data for the focused bar:
+
+```ts
+a11y.announceBar({
+  time: 1704067200,
+  open: 185.33,
+  high: 186.10,
+  low: 183.79,
+  close: 185.56,
+  volume: 45034200,
+});
+// Screen reader: "January 1, Open 185.33, High 186.10, Low 183.79, Close 185.56, Volume 45,034,200"
+```
+
+---
+
+## Keyboard Navigation
+
+The chart supports keyboard navigation for moving between bars:
+
+| Key | Action |
+|---|---|
+| `Left Arrow` | Move focus to previous bar |
+| `Right Arrow` | Move focus to next bar |
+| `Home` | Jump to first visible bar |
+| `End` | Jump to last visible bar |
+| `Escape` | Clear focus / exit selection mode |
+
+```ts
+// Set the total number of bars for keyboard navigation bounds
+a11y.setTotalBars(data.length);
+
+// Move focus to a specific bar
+a11y.setFocusedBar(50);
+
+// Get the currently focused bar index
+const idx = a11y.focusedBarIndex; // -1 if no bar is focused
+```
+
+---
+
+## Chart Description
+
+Set a descriptive label for the entire chart:
+
+```ts
+a11y.setDescription('AAPL daily candlestick chart showing 200 bars from January 2024');
+// Sets aria-label on the chart container
+```
+
+---
+
+## Lifecycle
+
+```ts
+// Create and attach
+const a11y = new ChartAccessibility();
+a11y.createAriaLiveRegion(container);
+
+// Use during chart lifetime
+a11y.announcePrice(currentPrice, change);
+
+// Clean up when chart is destroyed
+a11y.dispose();
+```
+
+After calling `dispose()`, all methods become no-ops and the ARIA live region is removed from the DOM.
+
+---
+
+## Best Practices
+
+- Always call `createAriaLiveRegion()` after the chart container is in the DOM
+- Use `announcePrice()` on crosshair move for real-time feedback
+- Set a meaningful `description` that includes the symbol, chart type, and time range
+- The `polite` aria-live setting ensures announcements do not interrupt the user

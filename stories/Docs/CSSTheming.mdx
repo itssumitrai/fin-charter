@@ -1,0 +1,136 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/CSS Theming" />
+
+# CSS Theming
+
+fin-charter supports runtime theming through CSS custom properties (CSS variables). This allows themes to be defined in CSS stylesheets and applied without JavaScript configuration.
+
+## CSS Custom Properties
+
+All properties are prefixed with `--fc-` to avoid collisions:
+
+```ts
+import { CSS_VARS } from 'fin-charter';
+```
+
+| Variable | CSS Property | Description |
+|---|---|---|
+| `bg` | `--fc-bg` | Chart background color |
+| `text` | `--fc-text` | Text color for labels |
+| `fontSize` | `--fc-font-size` | Font size (px) |
+| `fontFamily` | `--fc-font-family` | Font family |
+| `gridHorzColor` | `--fc-grid-horz-color` | Horizontal grid line color |
+| `gridVertColor` | `--fc-grid-vert-color` | Vertical grid line color |
+| `crosshairVertColor` | `--fc-crosshair-vert-color` | Crosshair vertical line color |
+| `crosshairHorzColor` | `--fc-crosshair-horz-color` | Crosshair horizontal line color |
+| `candleUpColor` | `--fc-candle-up` | Candle up (bullish) color |
+| `candleDownColor` | `--fc-candle-down` | Candle down (bearish) color |
+| `lineColor` | `--fc-line-color` | Line series color |
+| `areaTopColor` | `--fc-area-top` | Area gradient top color |
+| `areaBottomColor` | `--fc-area-bottom` | Area gradient bottom color |
+| `areaLineColor` | `--fc-area-line` | Area line color |
+| `volumeUpColor` | `--fc-volume-up` | Volume up bar color |
+| `volumeDownColor` | `--fc-volume-down` | Volume down bar color |
+| `watermarkColor` | `--fc-watermark-color` | Watermark text color |
+
+---
+
+## Defining a Theme in CSS
+
+```css
+.chart-dark {
+  --fc-bg: #1a1a2e;
+  --fc-text: #d1d4dc;
+  --fc-font-size: 11;
+  --fc-grid-horz-color: rgba(255, 255, 255, 0.06);
+  --fc-grid-vert-color: rgba(255, 255, 255, 0.06);
+  --fc-crosshair-vert-color: #9598A1;
+  --fc-crosshair-horz-color: #9598A1;
+  --fc-candle-up: #26a69a;
+  --fc-candle-down: #ef5350;
+  --fc-volume-up: rgba(38, 166, 154, 0.5);
+  --fc-volume-down: rgba(239, 83, 80, 0.5);
+  --fc-watermark-color: rgba(255, 255, 255, 0.04);
+}
+
+.chart-light {
+  --fc-bg: #ffffff;
+  --fc-text: #333333;
+  --fc-grid-horz-color: rgba(0, 0, 0, 0.06);
+  --fc-grid-vert-color: rgba(0, 0, 0, 0.06);
+  --fc-candle-up: #089981;
+  --fc-candle-down: #f23645;
+}
+```
+
+---
+
+## Reading a CSS Theme
+
+Use `readCSSTheme()` to read the computed CSS variables from a container element and convert them into `ChartOptions`:
+
+```ts
+import { readCSSTheme, createChart } from 'fin-charter';
+
+const container = document.getElementById('chart')!;
+container.classList.add('chart-dark');
+
+const themeOptions = readCSSTheme(container);
+const chart = createChart(container, {
+  autoSize: true,
+  ...themeOptions,
+});
+```
+
+Only variables that are defined in CSS are included in the result. Undefined variables are omitted so they do not override defaults.
+
+---
+
+## Generating CSS from Options
+
+Convert a `ChartOptions` object into a CSS custom properties string:
+
+```ts
+import { generateCSSTheme, DARK_THEME } from 'fin-charter';
+
+const css = generateCSSTheme(DARK_THEME);
+// Returns: "--fc-bg: #1a1a2e; --fc-text: #d1d4dc; ..."
+```
+
+---
+
+## Applying a CSS Theme at Runtime
+
+Apply CSS variables directly to a container element:
+
+```ts
+import { applyCSSTheme, LIGHT_THEME } from 'fin-charter';
+
+applyCSSTheme(container, LIGHT_THEME);
+// Sets all --fc-* properties on the container's style
+
+// Then re-read and apply to chart
+const opts = readCSSTheme(container);
+chart.applyOptions(opts);
+```
+
+---
+
+## Switching Themes Dynamically
+
+```ts
+function setTheme(theme: 'dark' | 'light') {
+  container.className = theme === 'dark' ? 'chart-dark' : 'chart-light';
+  const opts = readCSSTheme(container);
+  chart.applyOptions(opts);
+}
+
+// Toggle with a button
+document.getElementById('theme-toggle')!.addEventListener('click', () => {
+  const isDark = container.classList.contains('chart-dark');
+  setTheme(isDark ? 'light' : 'dark');
+});
+```
+
+This approach keeps theme definitions in CSS where designers can work with them, while the chart reads the computed values at runtime.

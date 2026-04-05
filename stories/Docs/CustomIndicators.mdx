@@ -1,0 +1,151 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Custom Indicators" />
+
+# Custom Indicators
+
+Register your own indicator types that appear alongside built-in indicators. Custom indicators receive raw `ColumnStore` data and return computed output arrays.
+
+## `CustomIndicatorRegistry`
+
+```ts
+import { CustomIndicatorRegistry } from 'fin-charter';
+
+const registry = new CustomIndicatorRegistry();
+
+registry.register({
+  name: 'vwap-bands',
+  label: 'VWAP Bands',
+  overlay: true,
+  params: [
+    { name: 'multiplier', defaultValue: 2, min: 0.5, max: 5, step: 0.5 },
+  ],
+  outputs: [
+    { name: 'vwap', color: '#FF9800', style: 'line' },
+    { name: 'upper', color: '#26a69a', style: 'line' },
+    { name: 'lower', color: '#ef5350', style: 'line' },
+  ],
+  compute: (store, params) => {
+    const len = store.length;
+    const vwap = new Float64Array(len);
+    const upper = new Float64Array(len);
+    const lower = new Float64Array(len);
+
+    let cumVolume = 0;
+    let cumTPV = 0;     // cumulative typical-price * volume
+    let cumTPV2 = 0;    // cumulative (typical-price^2) * volume
+
+    for (let i = 0; i < len; i++) {
+      const tp = (store.high[i] + store.low[i] + store.close[i]) / 3;
+      const vol = store.volume[i];
+      cumVolume += vol;
+      cumTPV += tp * vol;
+      cumTPV2 += tp * tp * vol;
+
+      const v = cumVolume > 0 ? cumTPV / cumVolume : tp;
+      const variance = cumVolume > 0
+        ? (cumTPV2 / cumVolume) - v * v
+        : 0;
+      const stdDev = Math.sqrt(Math.max(0, variance));
+
+      vwap[i] = v;
+      upper[i] = v + params.multiplier * stdDev;
+      lower[i] = v - params.multiplier * stdDev;
+    }
+
+    return new Map([
+      ['vwap', vwap],
+      ['upper', upper],
+      ['lower', lower],
+    ]);
+  },
+});
+```
+
+---
+
+## Interfaces
+
+### `CustomIndicatorDescriptor`
+
+```ts
+interface CustomIndicatorDescriptor {
+  name: string;           // Unique identifier
+  label: string;          // Display name for UI
+  overlay: boolean;       // true = overlays on price chart, false = separate pane
+  params: IndicatorParam[];
+  outputs: IndicatorOutput[];
+  compute: IndicatorComputeFn;
+}
+```
+
+### `IndicatorParam`
+
+```ts
+interface IndicatorParam {
+  name: string;
+  defaultValue: number;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+```
+
+### `IndicatorOutput`
+
+```ts
+interface IndicatorOutput {
+  name: string;
+  color?: string;
+  style?: 'line' | 'histogram' | 'dots' | 'area';
+}
+```
+
+### `IndicatorComputeFn`
+
+```ts
+type IndicatorComputeFn = (
+  store: ColumnStore,
+  params: Record<string, number>,
+) => Map<string, Float64Array>;
+```
+
+The compute function receives the full `ColumnStore` and a map of parameter name to value. It returns a `Map` where each key matches an output name and each value is a `Float64Array` aligned with the store's bar indices.
+
+---
+
+## Registry Methods
+
+```ts
+const registry = new CustomIndicatorRegistry();
+
+// Register a custom indicator
+registry.register(descriptor);
+
+// Unregister
+registry.unregister('vwap-bands');
+
+// Get a descriptor by name
+const desc = registry.get('vwap-bands');
+
+// List all registered indicators
+const all = registry.getAll();
+
+// Check if registered
+registry.has('vwap-bands'); // true
+```
+
+---
+
+## Using with the Chart
+
+Once registered, custom indicators can be added to charts like built-in indicators:
+
+```ts
+const chart = createChart(container, { autoSize: true });
+const series = chart.addSeries({ type: 'candlestick' });
+series.setData(data);
+
+// Add the custom indicator (assumes registry is configured on the chart)
+chart.addIndicator('vwap-bands', { multiplier: 2 });
+```

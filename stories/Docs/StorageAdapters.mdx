@@ -1,0 +1,147 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Storage Adapters" />
+
+# Storage Adapters
+
+fin-charter provides a pluggable storage layer for persisting chart drawings, state, and user preferences. Choose between `LocalStorageAdapter` for small data or `IndexedDBAdapter` for larger datasets.
+
+## `IStorageAdapter` Interface
+
+```ts
+interface IStorageAdapter {
+  save(key: string, state: unknown): Promise<void>;
+  load(key: string): Promise<unknown | null>;
+  delete(key: string): Promise<void>;
+}
+```
+
+All methods are async to support both synchronous (localStorage) and asynchronous (IndexedDB, REST) backends.
+
+---
+
+## `LocalStorageAdapter`
+
+Persists data to browser `localStorage` with an optional key prefix to avoid collisions.
+
+```ts
+import { LocalStorageAdapter } from 'fin-charter';
+
+const storage = new LocalStorageAdapter('fc-');
+
+await storage.save('my-key', { drawings: [...] });
+const data = await storage.load('my-key');
+await storage.delete('my-key');
+```
+
+### Constructor
+
+```ts
+new LocalStorageAdapter(prefix?: string)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `prefix` | `string` | `'fc-'` | Prefix added to all keys in localStorage |
+
+---
+
+## `IndexedDBAdapter`
+
+Persists data to browser `IndexedDB` for larger payloads that exceed localStorage limits.
+
+```ts
+import { IndexedDBAdapter } from 'fin-charter';
+
+const storage = new IndexedDBAdapter('fin-charter', 'chart-state');
+
+await storage.save('drawings:AAPL', serializedDrawings);
+const drawings = await storage.load('drawings:AAPL');
+await storage.delete('drawings:AAPL');
+```
+
+### Constructor
+
+```ts
+new IndexedDBAdapter(dbName?: string, storeName?: string)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dbName` | `string` | `'fin-charter'` | IndexedDB database name |
+| `storeName` | `string` | `'chart-state'` | Object store name |
+
+---
+
+## `DrawingPersistence`
+
+Manages auto-save and load of drawings per symbol with debouncing to avoid excessive writes.
+
+```ts
+import { DrawingPersistence, LocalStorageAdapter } from 'fin-charter';
+
+const adapter = new LocalStorageAdapter();
+const persistence = new DrawingPersistence(adapter, 500); // 500ms debounce
+
+// Auto-save drawings (debounced)
+persistence.saveDrawings('AAPL', chart.getDrawings());
+
+// Load drawings for a symbol
+const saved = await persistence.loadDrawings('AAPL');
+if (saved) {
+  chart.restoreDrawings(saved);
+}
+
+// Delete all drawings for a symbol
+await persistence.deleteDrawings('AAPL');
+
+// Force flush any pending save
+persistence.flush();
+```
+
+### Constructor
+
+```ts
+new DrawingPersistence(adapter: IStorageAdapter, debounceMs?: number)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `adapter` | `IStorageAdapter` | required | Storage backend |
+| `debounceMs` | `number` | `500` | Debounce delay for save operations |
+
+---
+
+## Custom Storage Backend
+
+Implement `IStorageAdapter` to save to any backend:
+
+```ts
+import type { IStorageAdapter } from 'fin-charter';
+
+class RestStorageAdapter implements IStorageAdapter {
+  constructor(private baseUrl: string) {}
+
+  async save(key: string, state: unknown): Promise<void> {
+    await fetch(`${this.baseUrl}/state/${key}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+    });
+  }
+
+  async load(key: string): Promise<unknown | null> {
+    const res = await fetch(`${this.baseUrl}/state/${key}`);
+    if (res.status === 404) return null;
+    return res.json();
+  }
+
+  async delete(key: string): Promise<void> {
+    await fetch(`${this.baseUrl}/state/${key}`, { method: 'DELETE' });
+  }
+}
+
+const persistence = new DrawingPersistence(
+  new RestStorageAdapter('https://api.example.com'),
+);
+```

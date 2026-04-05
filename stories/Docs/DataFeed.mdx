@@ -1,0 +1,161 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/Data Feed" />
+
+# Data Feed
+
+fin-charter provides a data feed abstraction for loading historical bars with pagination, caching, and real-time streaming.
+
+## `IDataFeed` Interface
+
+```ts
+interface IDataFeed {
+  getBars(
+    symbol: string,
+    resolution: string,
+    from: number,
+    to: number,
+  ): Promise<Bar[]>;
+}
+```
+
+Implement `getBars()` to fetch OHLCV data from your backend. The chart calls this when the user scrolls to the edge and more historical data is needed.
+
+---
+
+## `DataFeedManager`
+
+Wraps an `IDataFeed` with request deduplication, local caching, and loading state tracking.
+
+```ts
+import { DataFeedManager } from 'fin-charter';
+import type { IDataFeed } from 'fin-charter';
+
+class MyDataFeed implements IDataFeed {
+  async getBars(symbol: string, resolution: string, from: number, to: number) {
+    const response = await fetch(
+      `/api/bars?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}`
+    );
+    return response.json();
+  }
+}
+
+const manager = new DataFeedManager(new MyDataFeed(), {
+  maxCacheEntries: 100,
+});
+
+// Fetches from network on first call, serves from cache on subsequent calls
+const bars = await manager.getBars('AAPL', 'D', 1704067200, 1709078400);
+console.log('Loading:', manager.loading);
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `maxCacheEntries` | `number` | `100` | Max cached range entries per symbol+resolution |
+
+---
+
+## Streaming Adapters
+
+For real-time data, use the `IStreamingAdapter` interface:
+
+```ts
+interface IStreamingAdapter {
+  connect(): void;
+  disconnect(): void;
+  subscribeBars(symbol: string, resolution: string, onBar: (bar: Bar) => void): void;
+  unsubscribeBars(symbol: string, resolution: string): void;
+}
+```
+
+### `WebSocketAdapter`
+
+Streams bar data over WebSocket with automatic reconnection and exponential backoff.
+
+```ts
+import { WebSocketAdapter } from 'fin-charter';
+
+const ws = new WebSocketAdapter({
+  url: 'wss://stream.example.com/bars',
+  reconnect: true,
+  maxReconnectAttempts: 10,
+  reconnectDelay: 1000,
+  maxReconnectDelay: 30000,
+  parseMessage: (data) => {
+    const msg = JSON.parse(data as string);
+    return {
+      symbol: msg.s,
+      resolution: msg.r,
+      bar: { time: msg.t, open: msg.o, high: msg.h, low: msg.l, close: msg.c, volume: msg.v },
+    };
+  },
+});
+
+ws.connect();
+ws.subscribeBars('AAPL', 'D', (bar) => {
+  series.update(bar);
+});
+```
+
+### `PollingAdapter`
+
+Polls a REST endpoint at a fixed interval for environments without WebSocket support.
+
+```ts
+import { PollingAdapter } from 'fin-charter';
+
+const poller = new PollingAdapter({
+  url: 'https://api.example.com/latest',
+  interval: 5000, // 5 seconds
+  parseResponse: (data) => ({
+    symbol: data.symbol,
+    resolution: 'D',
+    bar: data.bar,
+  }),
+});
+
+poller.connect();
+poller.subscribeBars('AAPL', 'D', (bar) => series.update(bar));
+```
+
+### `TickBuffer`
+
+Buffers incoming ticks and flushes them as OHLCV bars at configurable intervals:
+
+```ts
+import { TickBuffer } from 'fin-charter';
+
+const buffer = new TickBuffer({
+  flushIntervalMs: 1000,
+  onBar: (bar) => series.update(bar),
+});
+
+// Push individual trades/ticks
+buffer.push({ price: 185.50, volume: 100 });
+buffer.push({ price: 185.55, volume: 200 });
+// After 1 second, a consolidated bar is flushed to onBar
+```
+
+---
+
+## Full Integration Example
+
+```ts
+import { createChart, DataFeedManager, WebSocketAdapter } from 'fin-charter';
+
+const feed = new DataFeedManager(myDataFeed);
+const ws = new WebSocketAdapter({ url: 'wss://...' });
+
+const chart = createChart(container, { autoSize: true, symbol: 'AAPL' });
+const series = chart.addSeries({ type: 'candlestick' });
+
+// Load historical data
+const bars = await feed.getBars('AAPL', 'D', from, to);
+series.setData(bars);
+
+// Stream real-time updates
+ws.connect();
+ws.subscribeBars('AAPL', 'D', (bar) => series.update(bar));
+```
