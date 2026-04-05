@@ -54,6 +54,10 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Undo/Redo ──────────────────────────────────────────────────────
+export { UndoRedoManager } from './core/undo-redo';
+export type { Command, UndoRedoChangeCallback } from './core/undo-redo';
+
 // ─── Segment Tree (large dataset optimization) ──────────────────────
 export { MinMaxSegmentTree } from './core/segment-tree';
 
