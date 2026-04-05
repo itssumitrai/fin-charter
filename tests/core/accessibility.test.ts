@@ -83,7 +83,7 @@ describe('ChartAccessibility', () => {
       const bar: BarData = { time: 1000, open: 100, high: 110, low: 95, close: 105, volume: 50000 };
       a11y.announceBar(bar);
       expect(a11y.liveRegion!.textContent).toBe(
-        'Open 100.00, High 110.00, Low 95.00, Close 105.00, Volume 50,000',
+        `Open 100.00, High 110.00, Low 95.00, Close 105.00, Volume ${bar.volume!.toLocaleString()}`,
       );
     });
 
@@ -151,10 +151,10 @@ describe('ChartAccessibility', () => {
       expect(a11y.focusNextBar()).toBe(2);
     });
 
-    it('focusNextBar stops at last bar', () => {
+    it('focusNextBar returns -1 at last bar', () => {
       a11y.focusLastBar();
       expect(a11y.focusedBarIndex).toBe(9);
-      expect(a11y.focusNextBar()).toBe(9);
+      expect(a11y.focusNextBar()).toBe(-1);
     });
 
     it('focusPreviousBar decrements', () => {
@@ -162,9 +162,9 @@ describe('ChartAccessibility', () => {
       expect(a11y.focusPreviousBar()).toBe(8);
     });
 
-    it('focusPreviousBar stops at first bar', () => {
+    it('focusPreviousBar returns -1 at first bar', () => {
       a11y.focusFirstBar();
-      expect(a11y.focusPreviousBar()).toBe(0);
+      expect(a11y.focusPreviousBar()).toBe(-1);
     });
 
     it('focusFirstBar goes to 0', () => {

@@ -29,6 +29,12 @@ export class ChartAccessibility {
   createAriaLiveRegion(container: HTMLElement): HTMLElement {
     if (this._disposed) throw new Error('ChartAccessibility has been disposed');
 
+    // Remove existing live region if present
+    if (this._liveRegion && this._liveRegion.parentNode) {
+      this._liveRegion.parentNode.removeChild(this._liveRegion);
+      this._liveRegion = null;
+    }
+
     this._container = container;
 
     // Ensure container has a role for accessibility
@@ -123,7 +129,14 @@ export class ChartAccessibility {
    * Set the total number of bars for keyboard navigation.
    */
   setTotalBars(count: number): void {
-    this._totalBars = count;
+    const normalizedCount = Math.max(0, count);
+    this._totalBars = normalizedCount;
+
+    if (this._totalBars === 0) {
+      this._focusedBarIndex = -1;
+    } else if (this._focusedBarIndex >= this._totalBars) {
+      this._focusedBarIndex = this._totalBars - 1;
+    }
   }
 
   /**
@@ -147,8 +160,9 @@ export class ChartAccessibility {
     if (this._totalBars <= 0) return -1;
     if (this._focusedBarIndex < this._totalBars - 1) {
       this._focusedBarIndex++;
+      return this._focusedBarIndex;
     }
-    return this._focusedBarIndex;
+    return -1;
   }
 
   /**
@@ -159,10 +173,12 @@ export class ChartAccessibility {
     if (this._totalBars <= 0) return -1;
     if (this._focusedBarIndex > 0) {
       this._focusedBarIndex--;
+      return this._focusedBarIndex;
     } else if (this._focusedBarIndex === -1 && this._totalBars > 0) {
       this._focusedBarIndex = 0;
+      return this._focusedBarIndex;
     }
-    return this._focusedBarIndex;
+    return -1;
   }
 
   /**
