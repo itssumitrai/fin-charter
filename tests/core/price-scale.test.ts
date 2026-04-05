@@ -120,4 +120,69 @@ describe('PriceScale', () => {
     expect(ps.position).toBe('right');
     expect(new PriceScale('left').position).toBe('left');
   });
+
+  // ── Logarithmic mode ──────────────────────────────────────────────────
+
+  describe('logarithmic mode', () => {
+    beforeEach(() => {
+      ps.setMode('logarithmic');
+    });
+
+    it('defaults to linear mode', () => {
+      const fresh = new PriceScale('right');
+      expect(fresh.mode).toBe('linear');
+    });
+
+    it('setMode changes the mode', () => {
+      expect(ps.mode).toBe('logarithmic');
+      ps.setMode('linear');
+      expect(ps.mode).toBe('linear');
+    });
+
+    it('priceToY maps equal percentage changes to equal pixel distances', () => {
+      ps.setRange(100, 10000);
+      // In log mode: 100 → 1000 is the same % change as 1000 → 10000 (10x each)
+      const y100 = ps.priceToY(100);
+      const y1000 = ps.priceToY(1000);
+      const y10000 = ps.priceToY(10000);
+      const dist1 = y100 - y1000;   // top to mid
+      const dist2 = y1000 - y10000; // mid to bottom
+      expect(dist1).toBeCloseTo(dist2, 0);
+    });
+
+    it('priceToY is NOT linear in log mode', () => {
+      ps.setRange(100, 10000);
+      const yMid = ps.priceToY(5050); // arithmetic midpoint
+      const yTop = ps.priceToY(10000);
+      const yBot = ps.priceToY(100);
+      const linearMid = (yTop + yBot) / 2;
+      // In log mode, the arithmetic midpoint should NOT be at the pixel midpoint
+      expect(Math.abs(yMid - linearMid)).toBeGreaterThan(5);
+    });
+
+    it('yToPrice is the inverse of priceToY in log mode', () => {
+      ps.setRange(10, 10000);
+      for (const price of [10, 100, 1000, 5000, 10000]) {
+        expect(ps.yToPrice(ps.priceToY(price))).toBeCloseTo(price, 0);
+      }
+    });
+
+    it('falls back to linear when min <= 0', () => {
+      ps.setRange(0, 100);
+      // Should not crash and should behave like linear
+      const yMid = ps.priceToY(50);
+      const yTop = ps.priceToY(100);
+      const yBot = ps.priceToY(0);
+      // Linear: midpoint at pixel center
+      const linearMid = (yTop + yBot) / 2;
+      expect(yMid).toBeCloseTo(linearMid, 0);
+    });
+
+    it('falls back to linear when price <= 0', () => {
+      ps.setRange(1, 100);
+      // Negative price in log mode: fall back to linear mapping
+      const y = ps.priceToY(-10);
+      expect(isFinite(y)).toBe(true);
+    });
+  });
 });

@@ -86,6 +86,8 @@ export interface VolumeOverlayOptions {
 
 export interface PriceScaleOptions {
   visible: boolean;
+  /** Scale mode: 'linear' (default) or 'logarithmic'. */
+  mode?: import('../core/price-scale').PriceScaleMode;
 }
 
 export interface TimeGapsOptions {
