@@ -13,6 +13,10 @@
   "bugs": {
     "url": "https://github.com/itssumitrai/fin-charter/issues"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -65,6 +69,9 @@
     "dev": "vite --config dev/vite.config.ts",
     "build": "vite build",
     "prepublishOnly": "npm run build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/",
@@ -84,6 +91,8 @@
     "lightweight"
   ],
   "devDependencies": {
+    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/cli": "^2.30.0",
     "@eslint/js": "^10.0.1",
     "@storybook/addon-docs": "^10.3.4",
     "@storybook/html": "^10.3.4",
