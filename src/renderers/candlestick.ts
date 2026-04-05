@@ -31,6 +31,10 @@ export class CandlestickRenderer {
     this._options = { ...this._options, ...options };
   }
 
+  options(): CandlestickRendererOptions {
+    return { ...this._options };
+  }
+
   draw(
     target: IRenderTarget,
     store: ColumnStore,

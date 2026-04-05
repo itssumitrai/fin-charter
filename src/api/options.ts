@@ -92,6 +92,8 @@ export interface TimeGapsOptions {
   visible: boolean;
 }
 
+export type RendererType = 'canvas2d' | 'webgl';
+
 export interface ChartOptions {
   symbol?: string;
   width: number;
@@ -113,6 +115,15 @@ export interface ChartOptions {
   locale?: string;       // BCP 47 locale tag, e.g. 'en-US', 'de-DE'
   timezone?: string;     // IANA timezone, e.g. 'America/New_York', 'UTC'
   currency?: string;     // ISO 4217 currency code, e.g. 'USD', 'EUR'
+  /**
+   * Rendering backend. `'webgl'` uses WebGL2 for supported series types
+   * (candlestick, line, area) and falls back to Canvas 2D for the rest.
+   * Automatically falls back to `'canvas2d'` when WebGL is unavailable.
+   *
+   * **Note:** Only honored at chart creation time; cannot be changed via
+   * `applyOptions()` after the chart is created.
+   */
+  renderer?: RendererType;
 }
 
 export const DARK_THEME: DeepPartial<ChartOptions> = {

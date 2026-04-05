@@ -25,6 +25,10 @@ export class AreaRenderer {
     this._options = { ...this._options, ...options };
   }
 
+  options(): AreaRendererOptions {
+    return { ...this._options };
+  }
+
   draw(
     target: IRenderTarget,
     store: ColumnStore,

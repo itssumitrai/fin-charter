@@ -20,6 +20,10 @@ export type { IPaneApi } from './api/pane-api';
 export type { IIndicatorApi } from './api/indicator-api';
 
 export { DARK_THEME, LIGHT_THEME, COLORFUL_THEME } from './api/options';
+export type { RendererType } from './api/options';
+
+// ─── WebGL ──────────────────────────────────────────────────────────
+export { isWebGLAvailable } from './renderers/webgl/index';
 
 // ─── Periodicity ──────────────────────────────────────────────────────
 export type { Periodicity } from './core/periodicity';

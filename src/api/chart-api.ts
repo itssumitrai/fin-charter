@@ -50,6 +50,8 @@ import { KagiRenderer } from '../renderers/kagi';
 import { LineBreakRenderer } from '../renderers/line-break';
 import { PointFigureRenderer } from '../renderers/point-figure';
 
+import { isWebGLAvailable, CandlestickWebGLRenderer, LineWebGLRenderer, AreaWebGLRenderer } from '../renderers/webgl/index';
+
 import type { ISeriesApi } from './series-api';
 import { SeriesApi } from './series-api';
 import type { IPaneApi } from './pane-api';
@@ -404,6 +406,12 @@ class ChartApi implements IChartApi {
   // Animation state for smooth streaming updates
   private _lastBarAnims: Map<SeriesApi<SeriesType>, LastBarAnimState> = new Map();
 
+  // WebGL rendering
+  private _useWebGL: boolean = false;
+  private _webglCandlestick: CandlestickWebGLRenderer | null = null;
+  private _webglLine: LineWebGLRenderer | null = null;
+  private _webglArea: AreaWebGLRenderer | null = null;
+
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -436,9 +444,17 @@ class ChartApi implements IChartApi {
     this._paneContainer.style.flexDirection = 'column';
     this._paneContainer.style.width = '100%';
 
+    // Determine WebGL availability
+    this._useWebGL = options.renderer === 'webgl' && isWebGLAvailable();
+    if (this._useWebGL) {
+      this._webglCandlestick = new CandlestickWebGLRenderer();
+      this._webglLine = new LineWebGLRenderer();
+      this._webglArea = new AreaWebGLRenderer();
+    }
+
     // Create main pane
     const mainPaneHeight = this._height - TIME_AXIS_HEIGHT;
-    const mainPane = new Pane(this._mainPaneId, mainPaneHeight);
+    const mainPane = new Pane(this._mainPaneId, mainPaneHeight, this._useWebGL);
     this._paneMap.set(this._mainPaneId, mainPane);
     this._paneOrder.push(this._mainPaneId);
     this._paneContainer.appendChild(mainPane.row);
@@ -703,7 +719,7 @@ class ChartApi implements IChartApi {
   addPane(options?: PaneOptions): IPaneApi {
     const id = `pane-${this._nextPaneId++}`;
     const defaultHeight = options?.height ?? 150;
-    const pane = new Pane(id, defaultHeight);
+    const pane = new Pane(id, defaultHeight, this._useWebGL);
     this._paneMap.set(id, pane);
     this._paneOrder.push(id);
 
@@ -953,6 +969,14 @@ class ChartApi implements IChartApi {
     this._chartTypeChangeCallbacks.length = 0;
     this._preferencesChangeCallbacks.length = 0;
     this._layoutChangeCallbacks.length = 0;
+
+    // Clean up WebGL renderers
+    this._webglCandlestick?.dispose();
+    this._webglLine?.dispose();
+    this._webglArea?.dispose();
+    this._webglCandlestick = null;
+    this._webglLine = null;
+    this._webglArea = null;
 
     this._wrapper.remove();
   }
@@ -2041,6 +2065,16 @@ class ChartApi implements IChartApi {
     // Clear chart canvas
     ctx.clearRect(0, 0, Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio));
 
+    // Clear WebGL canvas if present
+    const gl = pane.canvases.webglCtx ?? null;
+    if (gl) {
+      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
     if (seriesForPane.length === 0 && !isMain) return;
 
     // For the main pane (or any pane with series), find the primary series for data length & visible range
@@ -2181,6 +2215,11 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
+  /** Set of series types that have WebGL renderer implementations. */
+  private static readonly _WEBGL_SUPPORTED_TYPES = new Set<SeriesType>([
+    'candlestick', 'heikin-ashi', 'line', 'area',
+  ]);
+
   private _drawSeries(
     entry: SeriesEntry,
     target: IRenderTarget,
@@ -2212,6 +2251,42 @@ class ChartApi implements IChartApi {
       }
     }
 
+    // ── WebGL fast path for supported types ──────────────────────────────
+    const pane = this._paneMap.get(entry.paneId);
+    const gl = pane?.canvases.webglCtx ?? null;
+
+    if (gl && this._useWebGL && ChartApi._WEBGL_SUPPORTED_TYPES.has(entry.type)) {
+      const pixelRatio = target.pixelRatio;
+      const w = target.width;
+      const h = target.height;
+
+      switch (entry.type) {
+        case 'candlestick':
+        case 'heikin-ashi':
+          this._webglCandlestick!.applyOptions((entry.renderer as CandlestickRenderer).options());
+          this._webglCandlestick!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY, barWidth);
+          break;
+        case 'line':
+          this._webglLine!.applyOptions((entry.renderer as LineRenderer).options());
+          this._webglLine!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY);
+          break;
+        case 'area':
+          this._webglArea!.applyOptions((entry.renderer as AreaRenderer).options());
+          this._webglArea!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY);
+          break;
+      }
+
+      // Restore store if needed
+      if (saved !== null) {
+        store.open[lastIdx] = saved.o;
+        store.high[lastIdx] = saved.h;
+        store.low[lastIdx] = saved.l;
+        store.close[lastIdx] = saved.c;
+      }
+      return;
+    }
+
+    // ── Canvas 2D path ──────────────────────────────────────────────────
     switch (entry.type) {
       case 'candlestick':
       case 'heikin-ashi':
