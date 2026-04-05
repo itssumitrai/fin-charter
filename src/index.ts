@@ -54,6 +54,9 @@ export type {
 export { PriceLine } from './core/price-line';
 export type { PriceLineOptions } from './core/price-line';
 
+// ─── Segment Tree (large dataset optimization) ──────────────────────
+export { MinMaxSegmentTree } from './core/segment-tree';
+
 // ─── Range Selection & Measure ───────────────────────────────────────
 export type {
   RangeSelectionStats,

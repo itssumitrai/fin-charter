@@ -5,12 +5,15 @@ import {
   barsToColumnStore,
   createColumnStore,
 } from './types';
+import { MinMaxSegmentTree } from './segment-tree';
 
 export class DataLayer {
   public store: ColumnStore;
+  public readonly segmentTree: MinMaxSegmentTree;
 
   constructor() {
     this.store = createColumnStore(2048);
+    this.segmentTree = new MinMaxSegmentTree(2048);
   }
 
   /** Load data. Accepts either an array of Bar objects or a ColumnData (typed arrays). */
@@ -31,6 +34,7 @@ export class DataLayer {
       store.volume.set(data.volume);
       this.store = store;
     }
+    this.segmentTree.build(this.store.high, this.store.low, this.store.length);
   }
 
   /**
@@ -48,6 +52,7 @@ export class DataLayer {
       store.low[i] = bar.low;
       store.close[i] = bar.close;
       store.volume[i] = bar.volume ?? 0;
+      this.segmentTree.update(i, bar.high, bar.low);
     } else {
       // Guard: out-of-order bars would corrupt the binary search in findIndex()
       if (store.length > 0 && bar.time < store.time[store.length - 1]) {
@@ -67,6 +72,7 @@ export class DataLayer {
       this.store.close[i] = bar.close;
       this.store.volume[i] = bar.volume ?? 0;
       this.store.length += 1;
+      this.segmentTree.append(bar.high, bar.low);
     }
   }
 
@@ -172,6 +178,15 @@ export class DataLayer {
     }
 
     this.store = newStore;
+    this.segmentTree.build(this.store.high, this.store.low, this.store.length);
+  }
+
+  /**
+   * Query the min low and max high in the range [fromIdx, toIdx] (inclusive).
+   * O(log n) time via segment tree.
+   */
+  queryMinMax(fromIdx: number, toIdx: number): { min: number; max: number } {
+    return this.segmentTree.query(fromIdx, toIdx);
   }
 
   /** Double the capacity of the store, preserving existing data. */
