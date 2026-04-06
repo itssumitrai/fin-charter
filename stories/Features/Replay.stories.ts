@@ -56,6 +56,7 @@ export const BarReplay: Story = {
     docs: {
       source: {
         code: `import { createChart, ReplayManager } from '@itssumitrai/fin-charter';
+import { barsToColumnStore } from '@itssumitrai/fin-charter/core/types';
 
 const chart = createChart(container, { autoSize: true });
 const series = chart.addSeries({ type: 'candlestick' });
@@ -180,6 +181,20 @@ replay.start(store, 49, { speed: 2 });`,
     wrapper.appendChild(toolbar);
     wrapper.appendChild(container);
 
+    // Cleanup replay timer and chart when story unmounts
+    const observer = new MutationObserver(() => {
+      if (!wrapper.isConnected) {
+        observer.disconnect();
+        replay.stop();
+        chart.remove();
+      }
+    });
+    requestAnimationFrame(() => {
+      if (wrapper.isConnected) {
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    });
+
     return withDocs(wrapper, {
       description:
         'The <strong>ReplayManager</strong> steps through historical data bar-by-bar, simulating a live data feed. ' +
@@ -187,7 +202,7 @@ replay.start(store, 49, { speed: 2 });`,
         '<code>resume()</code>, <code>stepForward()</code>, <code>stepBackward()</code>, and <code>setSpeed()</code>. ' +
         'Speed tiers: <strong>1x</strong> (500ms/bar), <strong>2x</strong> (250ms), <strong>5x</strong> (100ms), <strong>10x</strong> (50ms).',
       code: `import { createChart, ReplayManager } from '@itssumitrai/fin-charter';
-import { barsToColumnStore } from '@itssumitrai/fin-charter';
+import { barsToColumnStore } from '@itssumitrai/fin-charter/core/types';
 
 const chart = createChart(container, { autoSize: true });
 const series = chart.addSeries({ type: 'candlestick' });
