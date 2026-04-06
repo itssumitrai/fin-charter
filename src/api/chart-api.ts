@@ -3993,8 +3993,9 @@ class ChartApi implements IChartApi {
     this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId });
 
     // Clear cached comparison basis when series data changes
-    api.subscribeDataChanged(() => {
-      this._basisPrices.delete(api as unknown as ISeriesApi<SeriesType>);
+    const seriesApi = api as SeriesApi<SeriesType>;
+    seriesApi.subscribeDataChanged(() => {
+      this._basisPrices.delete(seriesApi);
     });
 
     // Register HUD row for user-visible (non-internal) series
