@@ -2948,6 +2948,7 @@ class ChartApi implements IChartApi {
     pixelRatio: number,
   ): void {
     if (this._marketSessions.length === 0) return;
+    // Shading only serves as contrast against regular bars — skip when only one session type is shown
     if (this._sessionFilter === 'extended') return;
     if (this._sessionFilter === 'regular') return;
 
