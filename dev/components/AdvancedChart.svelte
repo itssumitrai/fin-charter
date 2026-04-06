@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { createChart } from '@itssumitrai/fin-charter';
+  import { createChart, US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
   import type { IChartApi, ISeriesApi, SeriesType, IndicatorType } from '@itssumitrai/fin-charter';
   import { fetchBars, fetchMoreBars, clearFetchCache } from '../data/yahoo-finance';
   import { appStore, CHART_TYPE_TO_SERIES } from '../data/store.svelte.ts';
@@ -173,6 +173,12 @@
     prevSymbol = appStore.symbol;
     prevPeriodicity = appStore.periodicityLabel;
 
+    // Set market sessions for intraday periodicities
+    const isIntraday = appStore.periodicity.unit === 'minute' || appStore.periodicity.unit === 'hour';
+    if (isIntraday) {
+      c.setMarketSessions(US_EQUITY_SESSIONS);
+    }
+
     // Auto-load historical data when scrolling to the left edge
     c.subscribeVisibleRangeChange(async (range) => {
       if (!range || isFetchingHistory || historyExhausted || allBars.length === 0 || !mainSeries) return;
@@ -233,6 +239,14 @@
     const label = appStore.periodicityLabel;
     if (label !== prevPeriodicity && chart) {
       prevPeriodicity = label;
+      // Update market sessions based on periodicity type
+      const isIntraday = appStore.periodicity.unit === 'minute' || appStore.periodicity.unit === 'hour';
+      if (isIntraday) {
+        chart.setMarketSessions(US_EQUITY_SESSIONS);
+      } else {
+        chart.setMarketSessions([]);
+        appStore.sessionFilter = 'all';
+      }
       // Need to reload data at new periodicity
       // Also reload comparisons
       for (const [s, api] of comparisonSeries) {
@@ -319,6 +333,12 @@
         removeComparison(sym);
       }
     }
+  });
+
+  // React to session filter changes
+  $effect(() => {
+    const filter = appStore.sessionFilter;
+    chart?.setSessionFilter(filter);
   });
 
   function handleFullscreen() {
