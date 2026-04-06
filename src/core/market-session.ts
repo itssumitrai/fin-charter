@@ -9,9 +9,9 @@ export interface MarketSession {
 }
 
 export const US_EQUITY_SESSIONS: MarketSession[] = [
-  { id: 'premarket', label: 'PRE', startMinute: 240, endMinute: 570, bgColor: 'rgba(255,235,59,0.05)' },
+  { id: 'premarket', label: 'PRE', startMinute: 240, endMinute: 570, bgColor: 'rgba(33,150,243,0.06)' },
   { id: 'regular', label: '', startMinute: 570, endMinute: 960, bgColor: 'transparent' },
-  { id: 'postmarket', label: 'POST', startMinute: 960, endMinute: 1200, bgColor: 'rgba(255,235,59,0.05)' },
+  { id: 'postmarket', label: 'POST', startMinute: 960, endMinute: 1200, bgColor: 'rgba(255,152,0,0.06)' },
 ];
 
 export function isInSession(minuteOfDay: number, session: MarketSession): boolean {

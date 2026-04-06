@@ -69,6 +69,7 @@ let _indicatorSettings = $state<Record<string, { params: Record<string, number>;
 let _activeDrawingTool = $state<string | null>(null);
 let _meta = $state<QuoteMeta | null>(null);
 let _loading = $state(false);
+let _sessionFilter = $state<'all' | 'regular' | 'extended'>('all');
 
 export const appStore = {
   get symbol() { return _symbol; },
@@ -118,6 +119,9 @@ export const appStore = {
 
   get loading() { return _loading; },
   set loading(v: boolean) { _loading = v; },
+
+  get sessionFilter() { return _sessionFilter; },
+  set sessionFilter(v: 'all' | 'regular' | 'extended') { _sessionFilter = v; },
 
   get resolvedTimezone(): string {
     if (_timezone === 'exchange' && _meta) return _meta.timezone;

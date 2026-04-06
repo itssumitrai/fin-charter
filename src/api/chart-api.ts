@@ -131,6 +131,7 @@ import { computeMFI } from '../indicators/mfi';
 import { computeROC } from '../indicators/roc';
 import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
+import { timestampToMinuteOfDay, getSessionForTime } from '../core/market-session';
 import type { MarketSession } from '../core/market-session';
 
 import { createPriceFormatter } from '../formatting/price-formatter';
@@ -2419,6 +2420,11 @@ class ChartApi implements IChartApi {
       this._drawGrid(ctx, chartW, chartH, range, primaryStore, pane.priceScale, pixelRatio);
     }
 
+    // Session background shading (after grid, before series)
+    if (this._marketSessions.length > 0 && primaryStore) {
+      this._paintSessionBackgrounds(ctx, chartW, chartH, range, primaryStore, pixelRatio);
+    }
+
     // Clip series rendering to chart area
     ctx.save();
     ctx.beginPath();
@@ -2447,6 +2453,21 @@ class ChartApi implements IChartApi {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
+    // Build session runs for opacity modulation and filtering
+    const sessionRuns = (this._marketSessions.length > 0 && primaryStore)
+      ? this._buildSessionRuns(primaryStore, range)
+      : [{ fromIdx: range.fromIdx, toIdx: Math.min(range.toIdx, (primaryStore?.length ?? 1) - 1), isExtended: false }];
+
+    // Filter runs based on session filter
+    const needsFiltering = this._marketSessions.length > 0 && this._sessionFilter !== 'all';
+    const filteredRuns = needsFiltering
+      ? sessionRuns.filter(run => {
+          if (this._sessionFilter === 'regular') return !run.isExtended;
+          if (this._sessionFilter === 'extended') return run.isExtended;
+          return true;
+        })
+      : sessionRuns;
+
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
@@ -2462,7 +2483,20 @@ class ChartApi implements IChartApi {
       } else {
         priceToY = (p: number) => pane.priceScale.priceToY(p);
       }
-      this._drawSeries(entry, target, store, range, indexToX, priceToY);
+
+      // Draw each session run with appropriate opacity
+      for (const run of filteredRuns) {
+        const runRange = { fromIdx: run.fromIdx, toIdx: run.toIdx };
+        const reduceAlpha = run.isExtended && this._sessionFilter === 'all';
+        if (reduceAlpha) {
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+        }
+        this._drawSeries(entry, target, store, runRange, indexToX, priceToY);
+        if (reduceAlpha) {
+          ctx.restore();
+        }
+      }
     }
 
     // Markers (main pane only)
@@ -2538,6 +2572,58 @@ class ChartApi implements IChartApi {
     ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio) - 1);
     ctx.stroke();
     ctx.restore();
+  }
+
+  /**
+   * Split the visible range into contiguous runs of bars in the same session category
+   * (regular vs extended). Returns an array of { fromIdx, toIdx, isExtended }.
+   */
+  private _buildSessionRuns(
+    store: ColumnStore,
+    range: VisibleRange,
+  ): Array<{ fromIdx: number; toIdx: number; isExtended: boolean }> {
+    if (this._marketSessions.length === 0) {
+      return [{ fromIdx: range.fromIdx, toIdx: range.toIdx, isExtended: false }];
+    }
+
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const to = Math.min(range.toIdx, store.length - 1);
+    const runs: Array<{ fromIdx: number; toIdx: number; isExtended: boolean }> = [];
+
+    let runStart = range.fromIdx;
+    let runExtended = false;
+
+    for (let i = range.fromIdx; i <= to; i++) {
+      const minute = timestampToMinuteOfDay(store.time[i], timezone);
+      const session = getSessionForTime(minute, this._marketSessions);
+      const isExt = session !== null && session.id !== 'regular';
+
+      if (i === range.fromIdx) {
+        runExtended = isExt;
+      } else if (isExt !== runExtended) {
+        runs.push({ fromIdx: runStart, toIdx: i - 1, isExtended: runExtended });
+        runStart = i;
+        runExtended = isExt;
+      }
+    }
+
+    runs.push({ fromIdx: runStart, toIdx: to, isExtended: runExtended });
+    return runs;
+  }
+
+  /**
+   * Returns true if the bar at `index` should be visible given the current session filter.
+   * When no sessions are configured or filter is 'all', every bar is visible.
+   */
+  private _isBarVisibleForFilter(store: ColumnStore, index: number): boolean {
+    if (this._marketSessions.length === 0 || this._sessionFilter === 'all') return true;
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const minute = timestampToMinuteOfDay(store.time[index], timezone);
+    const session = getSessionForTime(minute, this._marketSessions);
+    if (!session) return false;
+    if (this._sessionFilter === 'regular') return session.id === 'regular';
+    if (this._sessionFilter === 'extended') return session.id !== 'regular';
+    return true;
   }
 
   /** Set of series types that have WebGL renderer implementations. */
@@ -2851,6 +2937,57 @@ class ChartApi implements IChartApi {
     ctx.restore();
   }
 
+  // ── Session background shading ────────────────────────────────────────
+
+  private _paintSessionBackgrounds(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    chartH: number,
+    range: VisibleRange,
+    store: ColumnStore,
+    pixelRatio: number,
+  ): void {
+    if (this._marketSessions.length === 0) return;
+    // Shading only serves as contrast against regular bars — skip when only one session type is shown
+    if (this._sessionFilter === 'extended') return;
+    if (this._sessionFilter === 'regular') return;
+
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const { fromIdx, toIdx } = range;
+    const to = Math.min(toIdx, store.length - 1);
+    if (fromIdx > to) return;
+
+    ctx.save();
+
+    let runStart = fromIdx;
+    let runSession: MarketSession | null = null;
+
+    for (let i = fromIdx; i <= to + 1; i++) {
+      let session: MarketSession | null = null;
+      if (i <= to) {
+        const minute = timestampToMinuteOfDay(store.time[i], timezone);
+        session = getSessionForTime(minute, this._marketSessions);
+      }
+
+      const sessionId = session !== null ? session.id : undefined;
+      const runSessionId = runSession !== null ? runSession.id : undefined;
+      if (sessionId !== runSessionId || i > to) {
+        if (runSession && runSession.bgColor && runSession.bgColor !== 'transparent' && runSession.id !== 'regular') {
+          const barSpacing = this._timeScale.barSpacing;
+          const halfBar = barSpacing / 2;
+          const x0 = Math.round((this._timeScale.indexToX(runStart) - halfBar) * pixelRatio);
+          const x1 = Math.round((this._timeScale.indexToX(i - 1) + halfBar) * pixelRatio);
+          ctx.fillStyle = runSession.bgColor;
+          ctx.fillRect(x0, 0, x1 - x0, Math.round(chartH * pixelRatio));
+        }
+        runStart = i;
+        runSession = session;
+      }
+    }
+
+    ctx.restore();
+  }
+
   // ── Price axis per-pane ───────────────────────────────────────────────
 
   private _paintPanePriceAxis(pane: Pane, seriesForPane: SeriesEntry[]): void {
@@ -3108,6 +3245,7 @@ class ChartApi implements IChartApi {
         // In comparison mode we must scan in percent space (no segment tree shortcut)
         const basis = this._getBasisPrice(entry, range);
         for (let i = range.fromIdx; i <= to; i++) {
+          if (!this._isBarVisibleForFilter(store, i)) continue;
           const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
           const hiPct = basis === 0 ? 0 : ((store.high[i] - basis) / basis) * 100;
           if (isLeft) {
@@ -3121,7 +3259,9 @@ class ChartApi implements IChartApi {
       } else {
         // Use segment tree for O(log n) min/max when the store is the raw (non-transformed) one.
         // Heikin-Ashi and other transforms produce a different store, so fall back to linear scan.
-        if (store === rawStore && dataLayer.segmentTree.length === store.length) {
+        // Also skip segment tree when filtering by session (it would include filtered-out bars).
+        const useSegTree = store === rawStore && dataLayer.segmentTree.length === store.length && this._sessionFilter === 'all';
+        if (useSegTree) {
           const { min, max } = dataLayer.queryMinMax(range.fromIdx, to);
           if (isLeft) {
             if (min < leftMin) leftMin = min;
@@ -3131,8 +3271,9 @@ class ChartApi implements IChartApi {
             if (max > rightMax) rightMax = max;
           }
         } else {
-          // Linear scan fallback for transformed stores
+          // Linear scan fallback for transformed stores or when session filtering is active
           for (let i = range.fromIdx; i <= to; i++) {
+            if (!this._isBarVisibleForFilter(store, i)) continue;
             const lo = store.low[i];
             const hi = store.high[i];
             if (isLeft) {
@@ -3231,10 +3372,21 @@ class ChartApi implements IChartApi {
     const barWidth = this._timeScale.barSpacing * 0.8;
     const halfBar = Math.max(1, Math.round((barWidth * pixelRatio) / 2));
 
+    const hasSessionInfo = this._marketSessions.length > 0 && this._sessionFilter === 'all';
+    const volTimezone = this._options.timezone ?? 'America/New_York';
+
     ctx.save();
     for (let i = range.fromIdx; i <= to; i++) {
       const vol = primaryStore.volume[i];
       if (vol === 0) continue;
+      if (!this._isBarVisibleForFilter(primaryStore, i)) continue;
+
+      // Reduce opacity for extended hours volume bars
+      if (hasSessionInfo) {
+        const minute = timestampToMinuteOfDay(primaryStore.time[i], volTimezone);
+        const session = getSessionForTime(minute, this._marketSessions);
+        ctx.globalAlpha = (session && session.id !== 'regular') ? 0.4 : 1.0;
+      }
 
       const isUp = primaryStore.close[i] >= primaryStore.open[i];
       ctx.fillStyle = isUp ? volOpts.upColor : volOpts.downColor;
