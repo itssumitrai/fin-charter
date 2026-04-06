@@ -89,6 +89,10 @@ function periodicityToKey(p: Periodicity): string {
   return `${p.interval}${map[p.unit] ?? p.unit}`;
 }
 
+function isIntradayKey(key: string): boolean {
+  return key.endsWith('m') || key.endsWith('h');
+}
+
 /**
  * Validate and clamp period1 to Yahoo Finance's per-interval limits.
  * Mirrors finance-cosaic's validateRangeForInterval() logic.
@@ -138,7 +142,8 @@ export async function fetchBars(
   // Clear cached range when loading fresh data for a symbol+interval
   fetchedRanges.delete(`${symbol}:${key}`);
 
-  const url = `/api/yahoo/${encodeURIComponent(symbol)}?interval=${config.interval}&range=${config.range}`;
+  const prePost = isIntradayKey(key) ? '&includePrePost=true' : '';
+  const url = `/api/yahoo/${encodeURIComponent(symbol)}?interval=${config.interval}&range=${config.range}${prePost}`;
   let resp: Response;
   try {
     resp = await fetch(url);
@@ -222,10 +227,12 @@ async function fetchChunk(
   period1: number,
   period2: number,
   beforeTimestamp: number,
+  includePrePost: boolean = false,
 ): Promise<Bar[]> {
+  const prePost = includePrePost ? '&includePrePost=true' : '';
   const url =
     `/api/yahoo/${encodeURIComponent(symbol)}?interval=${yahooInterval}` +
-    `&period1=${Math.floor(period1)}&period2=${Math.floor(period2)}`;
+    `&period1=${Math.floor(period1)}&period2=${Math.floor(period2)}${prePost}`;
 
   let resp: Response;
   try {
@@ -333,7 +340,7 @@ export async function fetchMoreBars(
 
   while (currentEnd > targetPeriod1) {
     const currentStart = Math.max(currentEnd - subChunkSize, targetPeriod1);
-    const chunk = await fetchChunk(symbol, yahooInterval, currentStart, currentEnd, beforeTimestamp);
+    const chunk = await fetchChunk(symbol, yahooInterval, currentStart, currentEnd, beforeTimestamp, isIntradayKey(key));
 
     if (chunk.length > 0) {
       // Prepend this chunk (older data comes first)
