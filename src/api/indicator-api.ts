@@ -31,6 +31,12 @@ export class IndicatorApi implements IIndicatorApi {
   /** If we auto-created a pane for this indicator, track it for cleanup. */
   public autoCreatedPaneId: string | null = null;
 
+  /** Upper/lower band data for band-fill rendering (bollinger, keltner, donchian, ichimoku cloud). */
+  public bandData: { upper: Float64Array; lower: Float64Array } | null = null;
+
+  /** Fill color between upper and lower bands. */
+  public bandFillColor: string = '';
+
   /** Called by remove() to clean up via ChartApi. */
   public _removeCallback: () => void;
 

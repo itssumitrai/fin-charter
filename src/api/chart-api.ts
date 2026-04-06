@@ -1756,6 +1756,41 @@ class ChartApi implements IChartApi {
 
       indicator.internalSeries.push(series);
     }
+
+    // Store band data for fill rendering (bollinger, keltner, donchian, ichimoku cloud)
+    const BAND_INDICATORS = new Set<IndicatorType>(['bollinger', 'keltner', 'donchian']);
+    if (BAND_INDICATORS.has(type) && result.upper && result.lower) {
+      indicator.bandData = { upper: result.upper, lower: result.lower };
+      const bandColor = colorMap.upper ?? primaryColor;
+      const defaultFill = this._bandColorToFill(bandColor);
+      indicator.bandFillColor = indicator.options().bandFillColor ?? defaultFill;
+    } else if (type === 'ichimoku' && result.senkouA && result.senkouB) {
+      // Ichimoku cloud fill between senkou span A and B
+      indicator.bandData = { upper: result.senkouA, lower: result.senkouB };
+      const cloudColor = colorMap.senkouA ?? '#00E396';
+      const defaultFill = this._bandColorToFill(cloudColor);
+      indicator.bandFillColor = indicator.options().bandFillColor ?? defaultFill;
+    }
+  }
+
+  /** Convert a hex, rgb, or rgba color to a semi-transparent fill for band indicators. */
+  private _bandColorToFill(color: string): string {
+    // Hex color like #42a5f5
+    if (color.startsWith('#') && color.length === 7) {
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},0.08)`;
+    }
+    // rgba(r,g,b,a) — replace the alpha
+    if (color.startsWith('rgba')) {
+      return color.replace(/,\s*[\d.]+\s*\)$/, ',0.08)');
+    }
+    // rgb(r,g,b) — convert to rgba
+    if (color.startsWith('rgb')) {
+      return color.replace('rgb(', 'rgba(').replace(')', ',0.08)');
+    }
+    return color;
   }
 
   private _getIndicatorColorMap(
@@ -2453,6 +2488,11 @@ class ChartApi implements IChartApi {
         })()
       : (p: number) => pane.priceScale.priceToY(p);
 
+    // Band indicator fills (bollinger, keltner, donchian) — drawn before series so fill appears behind lines
+    if (primaryStore) {
+      this._paintBandFills(ctx, pane, range, primaryStore, indexToX, pixelRatio);
+    }
+
     // Volume overlay (main pane only) — drawn before series so it appears behind
     if (isMain && this._options.volume.visible) {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
@@ -2940,6 +2980,61 @@ class ChartApi implements IChartApi {
     }
 
     ctx.restore();
+  }
+
+  // ── Band indicator fills ──────────────────────────────────────────────
+
+  private _paintBandFills(
+    ctx: CanvasRenderingContext2D,
+    pane: Pane,
+    range: VisibleRange,
+    store: ColumnStore,
+    indexToX: (i: number) => number,
+    pixelRatio: number,
+  ): void {
+    for (const indicator of this._indicators) {
+      if (!indicator.isVisible() || !indicator.bandData || !indicator.bandFillColor) continue;
+      if (indicator.bandFillColor === 'transparent' || indicator.bandFillColor === '') continue;
+      if (indicator.paneId() !== pane.id) continue;
+
+      const { upper, lower } = indicator.bandData;
+      const { fromIdx, toIdx } = range;
+      const to = Math.min(toIdx, store.length - 1, upper.length - 1, lower.length - 1);
+      if (fromIdx > to) continue;
+
+      // In comparison mode, the price scale shows percentages — skip band fill
+      // since band values are absolute prices, not percentages
+      if (this._comparisonMode) continue;
+      const priceToY = (p: number) => pane.priceScale.priceToY(p);
+
+      // Build upper and lower point arrays, skipping NaN values
+      const upperPts: Array<{ x: number; y: number }> = [];
+      const lowerPts: Array<{ x: number; y: number }> = [];
+      for (let i = fromIdx; i <= to; i++) {
+        const u = upper[i];
+        const l = lower[i];
+        if (isNaN(u) || isNaN(l)) continue;
+        const x = Math.round(indexToX(i) * pixelRatio);
+        upperPts.push({ x, y: Math.round(priceToY(u) * pixelRatio) });
+        lowerPts.push({ x, y: Math.round(priceToY(l) * pixelRatio) });
+      }
+      if (upperPts.length < 2) continue;
+
+      // Draw filled area between upper and lower
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(upperPts[0].x, upperPts[0].y);
+      for (let i = 1; i < upperPts.length; i++) {
+        ctx.lineTo(upperPts[i].x, upperPts[i].y);
+      }
+      for (let i = lowerPts.length - 1; i >= 0; i--) {
+        ctx.lineTo(lowerPts[i].x, lowerPts[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = indicator.bandFillColor;
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   // ── Session background shading ────────────────────────────────────────
