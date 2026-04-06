@@ -131,6 +131,7 @@ import { computeMFI } from '../indicators/mfi';
 import { computeROC } from '../indicators/roc';
 import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
+import { timestampToMinuteOfDay, getSessionForTime } from '../core/market-session';
 import type { MarketSession } from '../core/market-session';
 
 import { createPriceFormatter } from '../formatting/price-formatter';
@@ -2419,6 +2420,11 @@ class ChartApi implements IChartApi {
       this._drawGrid(ctx, chartW, chartH, range, primaryStore, pane.priceScale, pixelRatio);
     }
 
+    // Session background shading (after grid, before series)
+    if (this._marketSessions.length > 0 && primaryStore) {
+      this._paintSessionBackgrounds(ctx, chartW, chartH, range, primaryStore, pixelRatio);
+    }
+
     // Clip series rendering to chart area
     ctx.save();
     ctx.beginPath();
@@ -2845,6 +2851,56 @@ class ChartApi implements IChartApi {
         ctx.moveTo(x, 0);
         ctx.lineTo(x, Math.round(h * pixelRatio));
         ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // ── Session background shading ────────────────────────────────────────
+
+  private _paintSessionBackgrounds(
+    ctx: CanvasRenderingContext2D,
+    chartW: number,
+    chartH: number,
+    range: VisibleRange,
+    store: ColumnStore,
+    pixelRatio: number,
+  ): void {
+    if (this._marketSessions.length === 0) return;
+    if (this._sessionFilter === 'extended') return;
+    if (this._sessionFilter === 'regular') return;
+
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const { fromIdx, toIdx } = range;
+    const to = Math.min(toIdx, store.length - 1);
+    if (fromIdx > to) return;
+
+    ctx.save();
+
+    let runStart = fromIdx;
+    let runSession: MarketSession | null = null;
+
+    for (let i = fromIdx; i <= to + 1; i++) {
+      let session: MarketSession | null = null;
+      if (i <= to) {
+        const minute = timestampToMinuteOfDay(store.time[i], timezone);
+        session = getSessionForTime(minute, this._marketSessions);
+      }
+
+      const sessionId = session !== null ? session.id : undefined;
+      const runSessionId = runSession !== null ? runSession.id : undefined;
+      if (sessionId !== runSessionId || i > to) {
+        if (runSession && runSession.bgColor && runSession.bgColor !== 'transparent' && runSession.id !== 'regular') {
+          const barSpacing = this._timeScale.barSpacing;
+          const halfBar = barSpacing / 2;
+          const x0 = Math.round((this._timeScale.indexToX(runStart) - halfBar) * pixelRatio);
+          const x1 = Math.round((this._timeScale.indexToX(i - 1) + halfBar) * pixelRatio);
+          ctx.fillStyle = runSession.bgColor;
+          ctx.fillRect(x0, 0, x1 - x0, Math.round(chartH * pixelRatio));
+        }
+        runStart = i;
+        runSession = session;
       }
     }
 
