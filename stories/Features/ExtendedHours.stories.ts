@@ -10,9 +10,9 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          'Demonstrates market session support. Sessions (pre-market, regular, post-market) can be ' +
-          'highlighted with background shading. Use setSessionFilter() to show only regular or ' +
-          'all extended hours data.',
+          'Pre/post market session support with visual differentiation. Extended hours bars are rendered ' +
+          'with reduced opacity (40%) and colored background shading (blue for pre-market, orange for post-market). ' +
+          'Use setSessionFilter() to toggle between all sessions, regular only, or extended only.',
       },
     },
   },
@@ -135,8 +135,10 @@ chart.setSessionFilter('regular');`,
     return withDocs(wrapper, {
       description:
         'Display <strong>pre-market</strong> and <strong>post-market</strong> trading sessions alongside regular hours. ' +
+        'Extended hours bars are rendered at <strong>40% opacity</strong> with colored background shading: ' +
+        '<span style="color:#2196F3">blue</span> for pre-market, <span style="color:#ff9800">orange</span> for post-market. ' +
         'Use <code>chart.setMarketSessions()</code> to define session boundaries and ' +
-        '<code>chart.setSessionFilter()</code> to toggle between <code>"regular"</code>, <code>"extended"</code>, or <code>"all"</code> sessions.',
+        '<code>chart.setSessionFilter()</code> to toggle between <code>"all"</code>, <code>"regular"</code>, or <code>"extended"</code> sessions.',
       code: `
 import { createChart, US_EQUITY_SESSIONS } from '@itssumitrai/fin-charter';
 
