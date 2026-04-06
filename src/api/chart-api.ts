@@ -1773,16 +1773,24 @@ class ChartApi implements IChartApi {
     }
   }
 
-  /** Convert a hex or rgb color to a semi-transparent fill for band indicators. */
+  /** Convert a hex, rgb, or rgba color to a semi-transparent fill for band indicators. */
   private _bandColorToFill(color: string): string {
-    // If it's a hex color like #42a5f5, convert to rgba with 0.08 alpha
+    // Hex color like #42a5f5
     if (color.startsWith('#') && color.length === 7) {
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
       const b = parseInt(color.slice(5, 7), 16);
       return `rgba(${r},${g},${b},0.08)`;
     }
-    return color.replace(/[\d.]+\)$/, '0.08)');
+    // rgba(r,g,b,a) — replace the alpha
+    if (color.startsWith('rgba')) {
+      return color.replace(/,\s*[\d.]+\s*\)$/, ',0.08)');
+    }
+    // rgb(r,g,b) — convert to rgba
+    if (color.startsWith('rgb')) {
+      return color.replace('rgb(', 'rgba(').replace(')', ',0.08)');
+    }
+    return color;
   }
 
   private _getIndicatorColorMap(
@@ -2994,9 +3002,10 @@ class ChartApi implements IChartApi {
       const to = Math.min(toIdx, store.length - 1, upper.length - 1, lower.length - 1);
       if (fromIdx > to) continue;
 
-      const priceToY = this._comparisonMode
-        ? (p: number) => pane.priceScale.priceToY(p) // bands don't use comparison basis
-        : (p: number) => pane.priceScale.priceToY(p);
+      // In comparison mode, the price scale shows percentages — skip band fill
+      // since band values are absolute prices, not percentages
+      if (this._comparisonMode) continue;
+      const priceToY = (p: number) => pane.priceScale.priceToY(p);
 
       // Build upper and lower point arrays, skipping NaN values
       const upperPts: Array<{ x: number; y: number }> = [];
