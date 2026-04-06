@@ -338,6 +338,9 @@ export interface IndicatorOptions {
   histogramUpColor?: string;
   /** Histogram down-bar color override (default: red). */
   histogramDownColor?: string;
+  /** Fill color between upper and lower bands for band indicators (bollinger, keltner, donchian).
+   *  Set to 'transparent' or '' to disable. Defaults to a semi-transparent version of the band color. */
+  bandFillColor?: string;
 }
 
 export const OVERLAY_INDICATORS: Set<IndicatorType> = new Set([
