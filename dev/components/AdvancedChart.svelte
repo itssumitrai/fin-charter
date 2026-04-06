@@ -16,6 +16,7 @@
   let mainSeries: ISeriesApi<SeriesType> | undefined = $state(undefined);
   let comparisonSeries: Map<string, ISeriesApi<SeriesType>> = new Map();
   let comparisonBars: Map<string, import('@itssumitrai/fin-charter').Bar[]> = new Map();
+  let comparisonExhausted: Set<string> = new Set();
   let indicatorApis: Map<string, ReturnType<IChartApi['addIndicator']>> = new Map();
 
   // Track previous values to detect changes
@@ -92,6 +93,7 @@
       chart.removeSeries(s);
       comparisonSeries.delete(sym);
       comparisonBars.delete(sym);
+      comparisonExhausted.delete(sym);
       if (comparisonSeries.size === 0) {
         chart.setComparisonMode(false);
       }
@@ -207,25 +209,31 @@
               historyExhausted = true;
             }
           }
-          // Also fetch more data for comparison symbols to keep them in sync
+          // Also fetch more data for comparison symbols in parallel to keep them in sync
           if (comparisonSeries.size > 0) {
-            for (const [sym, series] of comparisonSeries) {
-              const symBars = comparisonBars.get(sym);
-              if (!symBars || symBars.length === 0) continue;
-              const symFirstTime = symBars[0].time;
-              if (range.from <= symFirstTime) {
-                try {
-                  const symResult = await fetchMoreBars(sym, appStore.periodicity, symFirstTime, 0, symBars[0].open);
-                  if (symResult.bars.length > 0 && comparisonSeries.has(sym)) {
-                    const updatedBars = [...symResult.bars, ...symBars];
-                    comparisonBars.set(sym, updatedBars);
-                    series.setData(updatedBars);
+            await Promise.all(
+              Array.from(comparisonSeries.entries()).map(async ([sym, series]) => {
+                if (comparisonExhausted.has(sym)) return;
+                const symBars = comparisonBars.get(sym);
+                if (!symBars || symBars.length === 0) return;
+                const symFirstTime = symBars[0].time;
+                if (range.from <= symFirstTime) {
+                  try {
+                    const symResult = await fetchMoreBars(sym, appStore.periodicity, symFirstTime, 0, symBars[0].open);
+                    if (symResult.bars.length > 0 && comparisonSeries.has(sym)) {
+                      const updatedBars = [...symResult.bars, ...symBars];
+                      comparisonBars.set(sym, updatedBars);
+                      series.setData(updatedBars);
+                    }
+                    if (!symResult.moreAvailable) {
+                      comparisonExhausted.add(sym);
+                    }
+                  } catch (err) {
+                    console.warn(`Failed to load historical comparison data for ${sym}:`, err);
                   }
-                } catch {
-                  // Silently skip failed comparison pagination
                 }
-              }
-            }
+              })
+            );
           }
         } catch (err) {
           console.error('Failed to load historical data:', err);
@@ -249,6 +257,7 @@
       }
       comparisonSeries.clear();
       comparisonBars.clear();
+      comparisonExhausted.clear();
       appStore.comparisonMode = false;
       // Clear store comparison symbols
       for (const s of [...appStore.comparisonSymbols]) {
