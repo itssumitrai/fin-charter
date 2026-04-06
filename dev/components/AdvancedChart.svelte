@@ -15,6 +15,7 @@
   let chart: IChartApi | undefined = $state(undefined);
   let mainSeries: ISeriesApi<SeriesType> | undefined = $state(undefined);
   let comparisonSeries: Map<string, ISeriesApi<SeriesType>> = new Map();
+  let comparisonBars: Map<string, import('@itssumitrai/fin-charter').Bar[]> = new Map();
   let indicatorApis: Map<string, ReturnType<IChartApi['addIndicator']>> = new Map();
 
   // Track previous values to detect changes
@@ -75,9 +76,10 @@
       if (reqId !== loadRequestId || !appStore.comparisonSymbols.includes(sym) || comparisonSeries.has(sym)) return;
       const colors = ['#2196F3', '#ff9800', '#e91e63', '#4caf50', '#9c27b0'];
       const colorIdx = comparisonSeries.size % colors.length;
-      const s = chart!.addSeries({ type: 'line', color: colors[colorIdx], lineWidth: 2 });
+      const s = chart!.addSeries({ type: 'line', color: colors[colorIdx], lineWidth: 2, label: sym });
       s.setData(bars);
       comparisonSeries.set(sym, s);
+      comparisonBars.set(sym, bars);
       chart!.setComparisonMode(true);
     } catch (err) {
       console.error(`Failed to load comparison ${sym}:`, err);
@@ -89,6 +91,7 @@
     if (s && chart) {
       chart.removeSeries(s);
       comparisonSeries.delete(sym);
+      comparisonBars.delete(sym);
       if (comparisonSeries.size === 0) {
         chart.setComparisonMode(false);
       }
@@ -204,6 +207,26 @@
               historyExhausted = true;
             }
           }
+          // Also fetch more data for comparison symbols to keep them in sync
+          if (comparisonSeries.size > 0) {
+            for (const [sym, series] of comparisonSeries) {
+              const symBars = comparisonBars.get(sym);
+              if (!symBars || symBars.length === 0) continue;
+              const symFirstTime = symBars[0].time;
+              if (range.from <= symFirstTime) {
+                try {
+                  const symResult = await fetchMoreBars(sym, appStore.periodicity, symFirstTime, 0, symBars[0].open);
+                  if (symResult.bars.length > 0 && comparisonSeries.has(sym)) {
+                    const updatedBars = [...symResult.bars, ...symBars];
+                    comparisonBars.set(sym, updatedBars);
+                    series.setData(updatedBars);
+                  }
+                } catch {
+                  // Silently skip failed comparison pagination
+                }
+              }
+            }
+          }
         } catch (err) {
           console.error('Failed to load historical data:', err);
         } finally {
@@ -225,6 +248,7 @@
         chart.removeSeries(api);
       }
       comparisonSeries.clear();
+      comparisonBars.clear();
       appStore.comparisonMode = false;
       // Clear store comparison symbols
       for (const s of [...appStore.comparisonSymbols]) {
