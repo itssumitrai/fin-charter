@@ -69,8 +69,9 @@ chart.addIndicator('bollinger', {
     return withDocs(container, {
       description:
         '<strong>Bollinger Bands</strong> using the chart-managed <code>addIndicator()</code> API. ' +
-        'The chart automatically computes upper, middle (SMA), and lower bands and renders them as overlay lines. ' +
+        'The chart automatically computes upper, middle (SMA), and lower bands with a <strong>filled area</strong> between the bands. ' +
         'Parameters: <code>period: 20</code> (SMA lookback) and <code>stdDev: 2</code> (band width in standard deviations). ' +
+        'The fill color is auto-derived from the band color. Customize it with <code>bandFillColor</code>. ' +
         'Prices touching the upper band may indicate overbought conditions; prices near the lower band may indicate oversold.',
       code: `import { createChart } from '@itssumitrai/fin-charter';
 
