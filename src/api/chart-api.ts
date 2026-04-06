@@ -2453,6 +2453,11 @@ class ChartApi implements IChartApi {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
+    // Build session runs for opacity modulation
+    const sessionRuns = (this._marketSessions.length > 0 && primaryStore && this._sessionFilter === 'all')
+      ? this._buildSessionRuns(primaryStore, range)
+      : [{ fromIdx: range.fromIdx, toIdx: Math.min(range.toIdx, (primaryStore?.length ?? 1) - 1), isExtended: false }];
+
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
 
@@ -2468,7 +2473,19 @@ class ChartApi implements IChartApi {
       } else {
         priceToY = (p: number) => pane.priceScale.priceToY(p);
       }
-      this._drawSeries(entry, target, store, range, indexToX, priceToY);
+
+      // Draw each session run with appropriate opacity
+      for (const run of sessionRuns) {
+        const runRange = { fromIdx: run.fromIdx, toIdx: run.toIdx };
+        if (run.isExtended) {
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+        }
+        this._drawSeries(entry, target, store, runRange, indexToX, priceToY);
+        if (run.isExtended) {
+          ctx.restore();
+        }
+      }
     }
 
     // Markers (main pane only)
@@ -2544,6 +2561,43 @@ class ChartApi implements IChartApi {
     ctx.lineTo(Math.round(chartW * pixelRatio), Math.round(chartH * pixelRatio) - 1);
     ctx.stroke();
     ctx.restore();
+  }
+
+  /**
+   * Split the visible range into contiguous runs of bars in the same session category
+   * (regular vs extended). Returns an array of { fromIdx, toIdx, isExtended }.
+   */
+  private _buildSessionRuns(
+    store: ColumnStore,
+    range: VisibleRange,
+  ): Array<{ fromIdx: number; toIdx: number; isExtended: boolean }> {
+    if (this._marketSessions.length === 0) {
+      return [{ fromIdx: range.fromIdx, toIdx: range.toIdx, isExtended: false }];
+    }
+
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const to = Math.min(range.toIdx, store.length - 1);
+    const runs: Array<{ fromIdx: number; toIdx: number; isExtended: boolean }> = [];
+
+    let runStart = range.fromIdx;
+    let runExtended = false;
+
+    for (let i = range.fromIdx; i <= to; i++) {
+      const minute = timestampToMinuteOfDay(store.time[i], timezone);
+      const session = getSessionForTime(minute, this._marketSessions);
+      const isExt = session !== null && session.id !== 'regular';
+
+      if (i === range.fromIdx) {
+        runExtended = isExt;
+      } else if (isExt !== runExtended) {
+        runs.push({ fromIdx: runStart, toIdx: i - 1, isExtended: runExtended });
+        runStart = i;
+        runExtended = isExt;
+      }
+    }
+
+    runs.push({ fromIdx: runStart, toIdx: to, isExtended: runExtended });
+    return runs;
   }
 
   /** Set of series types that have WebGL renderer implementations. */
@@ -3287,10 +3341,20 @@ class ChartApi implements IChartApi {
     const barWidth = this._timeScale.barSpacing * 0.8;
     const halfBar = Math.max(1, Math.round((barWidth * pixelRatio) / 2));
 
+    const hasSessionInfo = this._marketSessions.length > 0 && this._sessionFilter === 'all';
+    const volTimezone = this._options.timezone ?? 'America/New_York';
+
     ctx.save();
     for (let i = range.fromIdx; i <= to; i++) {
       const vol = primaryStore.volume[i];
       if (vol === 0) continue;
+
+      // Reduce opacity for extended hours volume bars
+      if (hasSessionInfo) {
+        const minute = timestampToMinuteOfDay(primaryStore.time[i], volTimezone);
+        const session = getSessionForTime(minute, this._marketSessions);
+        ctx.globalAlpha = (session && session.id !== 'regular') ? 0.4 : 1.0;
+      }
 
       const isUp = primaryStore.close[i] >= primaryStore.open[i];
       ctx.fillStyle = isUp ? volOpts.upColor : volOpts.downColor;
