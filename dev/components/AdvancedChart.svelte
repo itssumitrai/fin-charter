@@ -139,6 +139,8 @@
     if (!containerEl) return;
     chart?.remove();
     comparisonSeries.clear();
+    comparisonBars.clear();
+    comparisonExhausted.clear();
     indicatorApis.clear();
 
     // Sync chartContext into appStore on init
@@ -210,6 +212,7 @@
             }
           }
           // Also fetch more data for comparison symbols in parallel to keep them in sync
+          const compReqId = loadRequestId;
           if (comparisonSeries.size > 0) {
             await Promise.all(
               Array.from(comparisonSeries.entries()).map(async ([sym, series]) => {
@@ -220,7 +223,9 @@
                 if (range.from <= symFirstTime) {
                   try {
                     const symResult = await fetchMoreBars(sym, appStore.periodicity, symFirstTime, 0, symBars[0].open);
-                    if (symResult.bars.length > 0 && comparisonSeries.has(sym)) {
+                    // Guard: skip if symbol/periodicity changed or comparison was removed
+                    if (compReqId !== loadRequestId || !comparisonSeries.has(sym)) return;
+                    if (symResult.bars.length > 0) {
                       const updatedBars = [...symResult.bars, ...symBars];
                       comparisonBars.set(sym, updatedBars);
                       series.setData(updatedBars);
@@ -286,6 +291,8 @@
         chart!.removeSeries(api);
       }
       comparisonSeries.clear();
+      comparisonBars.clear();
+      comparisonExhausted.clear();
       loadData();
     }
   });

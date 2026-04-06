@@ -486,6 +486,7 @@ class ChartApi implements IChartApi {
 
   // Animation state for smooth streaming updates
   private _lastBarAnims: Map<SeriesApi<SeriesType>, LastBarAnimState> = new Map();
+  private _dataChangedCallbacks: Map<SeriesApi<SeriesType>, () => void> = new Map();
 
   // WebGL rendering
   private _useWebGL: boolean = false;
@@ -786,6 +787,11 @@ class ChartApi implements IChartApi {
       this._series.splice(idx, 1);
       this._lastBarAnims.delete(entry.api);
       this._basisPrices.delete(entry.api);
+      const dcCb = this._dataChangedCallbacks.get(entry.api);
+      if (dcCb) {
+        entry.api.unsubscribeDataChanged(dcCb);
+        this._dataChangedCallbacks.delete(entry.api);
+      }
 
       // If we removed the primary (first) series the crosshair handler holds a
       // reference to its DataLayer. Reset it so the handler is recreated with
@@ -3994,9 +4000,9 @@ class ChartApi implements IChartApi {
 
     // Clear cached comparison basis when series data changes
     const seriesApi = api as SeriesApi<SeriesType>;
-    seriesApi.subscribeDataChanged(() => {
-      this._basisPrices.delete(seriesApi);
-    });
+    const dataChangedCb = () => { this._basisPrices.delete(seriesApi); };
+    seriesApi.subscribeDataChanged(dataChangedCb);
+    this._dataChangedCallbacks.set(seriesApi, dataChangedCb);
 
     // Register HUD row for user-visible (non-internal) series
     if (!_internal) {
