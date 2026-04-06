@@ -180,7 +180,8 @@
       if (range.from <= firstBarTime) {
         isFetchingHistory = true;
         try {
-          const result = await fetchMoreBars(appStore.symbol, appStore.periodicity, firstBarTime, firstTradeDate);
+          const firstBarPrice = allBars[0].open;
+          const result = await fetchMoreBars(appStore.symbol, appStore.periodicity, firstBarTime, firstTradeDate, firstBarPrice);
           // Guard: only apply if symbol/periodicity haven't changed while fetching
           if (result.bars.length > 0 && mainSeries && allBars.length > 0 && allBars[0].time === firstBarTime) {
             allBars = [...result.bars, ...allBars];

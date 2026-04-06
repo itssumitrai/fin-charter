@@ -1029,6 +1029,15 @@ class ChartApi implements IChartApi {
     this._options.width = width;
     this._options.height = height;
 
+    // Auto-fit on first resize with data (autoSize charts get correct width here)
+    if (!this._hasAutoFit && this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      if (store.length > 0) {
+        this._hasAutoFit = true;
+        this._timeScale.fitContent();
+      }
+    }
+
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
 
@@ -2178,8 +2187,9 @@ class ChartApi implements IChartApi {
       const primaryStore = this._series[0].api.getDataLayer().store;
       this._timeScale.setDataLength(primaryStore.length);
 
-      // Auto-fit content on first paint with data so the chart fills the viewport
-      if (!this._hasAutoFit && primaryStore.length > 0 && this._chartWidth > 0) {
+      // Auto-fit content on first paint with data (non-autoSize charts only;
+      // autoSize charts auto-fit in resize() once the container has real dimensions)
+      if (!this._hasAutoFit && !this._options.autoSize && primaryStore.length > 0 && this._chartWidth > 0) {
         this._hasAutoFit = true;
         this._timeScale.fitContent();
       }
