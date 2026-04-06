@@ -2453,10 +2453,20 @@ class ChartApi implements IChartApi {
       this._drawVolumeOverlay(ctx, chartW, chartH, range, pixelRatio);
     }
 
-    // Build session runs for opacity modulation
-    const sessionRuns = (this._marketSessions.length > 0 && primaryStore && this._sessionFilter === 'all')
+    // Build session runs for opacity modulation and filtering
+    const sessionRuns = (this._marketSessions.length > 0 && primaryStore)
       ? this._buildSessionRuns(primaryStore, range)
       : [{ fromIdx: range.fromIdx, toIdx: Math.min(range.toIdx, (primaryStore?.length ?? 1) - 1), isExtended: false }];
+
+    // Filter runs based on session filter
+    const needsFiltering = this._marketSessions.length > 0 && this._sessionFilter !== 'all';
+    const filteredRuns = needsFiltering
+      ? sessionRuns.filter(run => {
+          if (this._sessionFilter === 'regular') return !run.isExtended;
+          if (this._sessionFilter === 'extended') return run.isExtended;
+          return true;
+        })
+      : sessionRuns;
 
     for (const entry of seriesForPane) {
       if (!entry.api.isVisible()) continue;
@@ -2475,14 +2485,15 @@ class ChartApi implements IChartApi {
       }
 
       // Draw each session run with appropriate opacity
-      for (const run of sessionRuns) {
+      for (const run of filteredRuns) {
         const runRange = { fromIdx: run.fromIdx, toIdx: run.toIdx };
-        if (run.isExtended) {
+        const reduceAlpha = run.isExtended && this._sessionFilter === 'all';
+        if (reduceAlpha) {
           ctx.save();
           ctx.globalAlpha = 0.4;
         }
         this._drawSeries(entry, target, store, runRange, indexToX, priceToY);
-        if (run.isExtended) {
+        if (reduceAlpha) {
           ctx.restore();
         }
       }
@@ -2598,6 +2609,21 @@ class ChartApi implements IChartApi {
 
     runs.push({ fromIdx: runStart, toIdx: to, isExtended: runExtended });
     return runs;
+  }
+
+  /**
+   * Returns true if the bar at `index` should be visible given the current session filter.
+   * When no sessions are configured or filter is 'all', every bar is visible.
+   */
+  private _isBarVisibleForFilter(store: ColumnStore, index: number): boolean {
+    if (this._marketSessions.length === 0 || this._sessionFilter === 'all') return true;
+    const timezone = this._options.timezone ?? 'America/New_York';
+    const minute = timestampToMinuteOfDay(store.time[index], timezone);
+    const session = getSessionForTime(minute, this._marketSessions);
+    if (!session) return false;
+    if (this._sessionFilter === 'regular') return session.id === 'regular';
+    if (this._sessionFilter === 'extended') return session.id !== 'regular';
+    return true;
   }
 
   /** Set of series types that have WebGL renderer implementations. */
@@ -3218,6 +3244,7 @@ class ChartApi implements IChartApi {
         // In comparison mode we must scan in percent space (no segment tree shortcut)
         const basis = this._getBasisPrice(entry, range);
         for (let i = range.fromIdx; i <= to; i++) {
+          if (!this._isBarVisibleForFilter(store, i)) continue;
           const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
           const hiPct = basis === 0 ? 0 : ((store.high[i] - basis) / basis) * 100;
           if (isLeft) {
@@ -3231,7 +3258,9 @@ class ChartApi implements IChartApi {
       } else {
         // Use segment tree for O(log n) min/max when the store is the raw (non-transformed) one.
         // Heikin-Ashi and other transforms produce a different store, so fall back to linear scan.
-        if (store === rawStore && dataLayer.segmentTree.length === store.length) {
+        // Also skip segment tree when filtering by session (it would include filtered-out bars).
+        const useSegTree = store === rawStore && dataLayer.segmentTree.length === store.length && this._sessionFilter === 'all';
+        if (useSegTree) {
           const { min, max } = dataLayer.queryMinMax(range.fromIdx, to);
           if (isLeft) {
             if (min < leftMin) leftMin = min;
@@ -3241,8 +3270,9 @@ class ChartApi implements IChartApi {
             if (max > rightMax) rightMax = max;
           }
         } else {
-          // Linear scan fallback for transformed stores
+          // Linear scan fallback for transformed stores or when session filtering is active
           for (let i = range.fromIdx; i <= to; i++) {
+            if (!this._isBarVisibleForFilter(store, i)) continue;
             const lo = store.low[i];
             const hi = store.high[i];
             if (isLeft) {
@@ -3348,6 +3378,7 @@ class ChartApi implements IChartApi {
     for (let i = range.fromIdx; i <= to; i++) {
       const vol = primaryStore.volume[i];
       if (vol === 0) continue;
+      if (!this._isBarVisibleForFilter(primaryStore, i)) continue;
 
       // Reduce opacity for extended hours volume bars
       if (hasSessionInfo) {
