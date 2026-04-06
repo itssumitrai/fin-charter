@@ -79,6 +79,9 @@ const REQUEST_CHUNK: Record<string, number> = {
  */
 const fetchedRanges = new Map<string, { period1: number; period2: number; lastRequest: number }>();
 
+/** Track whether the proxy is available (set to false on first fetch failure). */
+let proxyAvailable = true;
+
 function periodicityToKey(p: Periodicity): string {
   const map: Record<string, string> = {
     minute: 'm', hour: 'h', day: 'D', week: 'W', month: 'M',
@@ -141,10 +144,12 @@ export async function fetchBars(
     resp = await fetch(url);
   } catch {
     // Proxy unavailable (e.g. static Storybook build) — return generated fallback data
+    proxyAvailable = false;
     return generateFallbackData(symbol);
   }
   if (!resp.ok) {
     // Proxy endpoint unavailable (e.g. static Storybook build) — fallback
+    proxyAvailable = false;
     return generateFallbackData(symbol);
   }
 
@@ -275,6 +280,7 @@ export async function fetchMoreBars(
   periodicity: Periodicity,
   beforeTimestamp: number,
   firstTradeDate?: number,
+  startPrice?: number,
 ): Promise<FetchMoreResult> {
   const key = periodicityToKey(periodicity);
   const chunkSize = REQUEST_CHUNK[key] ?? 0;
@@ -282,6 +288,19 @@ export async function fetchMoreBars(
 
   const yahooInterval = (INTERVAL_MAP[key] ?? INTERVAL_MAP['1D']).interval;
   const rangeKey = `${symbol}:${key}`;
+
+  // If proxy is unavailable, generate synthetic historical data so the chart
+  // supports infinite scroll even in static builds (e.g. deployed Storybook)
+  if (!proxyAvailable) {
+    const intervalMap: Record<string, number> = {
+      '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400,
+      '1D': 86400, '1W': 604800, '1M': 2592000,
+    };
+    const intervalSec = intervalMap[key] ?? 86400;
+    const count = Math.min(200, Math.floor(chunkSize / intervalSec));
+    const bars = generatePrecedingBars(beforeTimestamp, startPrice ?? 100, count, intervalSec);
+    return { bars, moreAvailable: true };
+  }
 
   // Check if we already have this range cached (debounce within 30s)
   const cached = fetchedRanges.get(rangeKey);
@@ -366,6 +385,7 @@ export async function fetchMoreBars(
 /** Clear cached fetch ranges (call on symbol/periodicity change). */
 export function clearFetchCache(): void {
   fetchedRanges.clear();
+  proxyAvailable = true; // re-check proxy on next fetch
 }
 
 // Fallback data for static builds (no proxy available)
@@ -395,6 +415,33 @@ function generateFallbackData(symbol: string): { bars: Bar[]; meta: QuoteMeta } 
     bars,
     meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York', firstTradeDate: 0 },
   };
+}
+
+/**
+ * Generate synthetic historical bars preceding `beforeTimestamp`.
+ * The first bar's close matches `startPrice` so the data connects seamlessly.
+ */
+function generatePrecedingBars(
+  beforeTimestamp: number,
+  startPrice: number,
+  count: number,
+  intervalSec: number,
+): Bar[] {
+  const bars: Bar[] = [];
+  let price = startPrice;
+  // Walk backwards from beforeTimestamp
+  for (let i = count; i >= 1; i--) {
+    const time = beforeTimestamp - i * intervalSec;
+    const change = price * (Math.random() * 0.04 - 0.02);
+    const open = Math.max(0.01, price - change);
+    const close = price;
+    const high = Math.max(open, close) + Math.random() * price * 0.015;
+    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+    const volume = Math.round(1e6 + Math.random() * 9e6);
+    bars.push({ time, open, high, low, close, volume });
+    price = open; // walk price backwards
+  }
+  return bars;
 }
 
 function aggregate4h(bars: Bar[]): Bar[] {
