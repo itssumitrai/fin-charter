@@ -498,17 +498,55 @@ function generatePrecedingBars(
 ): Bar[] {
   const bars: Bar[] = [];
   let price = startPrice;
-  // Walk backwards from beforeTimestamp
-  for (let i = count; i >= 1; i--) {
-    const time = beforeTimestamp - i * intervalSec;
-    const change = price * (Math.random() * 0.04 - 0.02);
-    const open = Math.max(0.01, price - change);
-    const close = price;
-    const high = Math.max(open, close) + Math.random() * price * 0.015;
-    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
-    const volume = Math.round(1e6 + Math.random() * 9e6);
-    bars.push({ time, open, high, low, close, volume });
-    price = open; // walk price backwards
+  const intraday = intervalSec < 86400;
+
+  if (intraday) {
+    // For intraday: walk backwards placing bars during market hours (9:30-16:00 ET)
+    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
+    const MARKET_CLOSE_SEC = 16 * 3600;
+    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC;
+    const ET_OFFSET = -5 * 3600;
+    const barsPerDay = Math.floor(SESSION_DURATION / intervalSec);
+
+    let generated = 0;
+    // Start from the day before beforeTimestamp and walk backwards
+    let dayMidnightUTC = Math.floor((beforeTimestamp - 86400) / 86400) * 86400;
+
+    while (generated < count) {
+      const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
+      if (dow === 0 || dow === 6) { dayMidnightUTC -= 86400; continue; }
+
+      const marketOpenUTC = dayMidnightUTC - ET_OFFSET + MARKET_OPEN_SEC;
+      const dayBars: Bar[] = [];
+      for (let b = barsPerDay - 1; b >= 0 && generated + dayBars.length < count; b--) {
+        const time = marketOpenUTC + b * intervalSec;
+        if (time >= beforeTimestamp) continue;
+        const change = price * (Math.random() * 0.04 - 0.02);
+        const open = Math.max(0.01, price - change);
+        const close = price;
+        const high = Math.max(open, close) + Math.random() * price * 0.015;
+        const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+        const volume = Math.round(1e6 + Math.random() * 9e6);
+        dayBars.unshift({ time, open, high, low, close, volume });
+        price = open;
+      }
+      bars.unshift(...dayBars);
+      generated += dayBars.length;
+      dayMidnightUTC -= 86400;
+    }
+  } else {
+    // Non-intraday: simple backward walk
+    for (let i = count; i >= 1; i--) {
+      const time = beforeTimestamp - i * intervalSec;
+      const change = price * (Math.random() * 0.04 - 0.02);
+      const open = Math.max(0.01, price - change);
+      const close = price;
+      const high = Math.max(open, close) + Math.random() * price * 0.015;
+      const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+      const volume = Math.round(1e6 + Math.random() * 9e6);
+      bars.push({ time, open, high, low, close, volume });
+      price = open;
+    }
   }
   return bars;
 }
