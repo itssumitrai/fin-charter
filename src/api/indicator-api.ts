@@ -1,5 +1,5 @@
 import type { SeriesType } from '../core/types';
-import type { ISeriesApi } from './series-api';
+import type { ISeriesApi, SeriesApi } from './series-api';
 import type { IndicatorType, IndicatorOptions } from './options';
 
 // ─── IIndicatorApi ─────────────────────────────────────────────────────────
@@ -31,8 +31,9 @@ export class IndicatorApi implements IIndicatorApi {
   /** If we auto-created a pane for this indicator, track it for cleanup. */
   public autoCreatedPaneId: string | null = null;
 
-  /** Upper/lower band data for band-fill rendering (bollinger, keltner, donchian, ichimoku cloud). */
-  public bandData: { upper: Float64Array; lower: Float64Array } | null = null;
+  /** @internal Upper/lower series references for band-fill rendering.
+   *  Uses concrete SeriesApi to access getDataLayer(). Not part of the public API. */
+  public _bandSeries: { upper: SeriesApi<SeriesType>; lower: SeriesApi<SeriesType> } | null = null;
 
   /** Fill color between upper and lower bands. */
   public bandFillColor: string = '';
