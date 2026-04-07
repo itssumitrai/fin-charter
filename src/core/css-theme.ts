@@ -20,13 +20,102 @@ export const CSS_VARS = {
   crosshairVertColor: '--fc-crosshair-vert-color',
   crosshairHorzColor: '--fc-crosshair-horz-color',
 
-  // Series
-  candleUpColor: '--fc-candle-up',
-  candleDownColor: '--fc-candle-down',
+  // Series – legacy / area / line
   lineColor: '--fc-line-color',
   areaTopColor: '--fc-area-top',
   areaBottomColor: '--fc-area-bottom',
   areaLineColor: '--fc-area-line',
+
+  // Candlestick (specific)
+  candleBodyUp: '--fc-candle-body-up',
+  candleBodyDown: '--fc-candle-body-down',
+  candleWickUp: '--fc-candle-wick-up',
+  candleWickDown: '--fc-candle-wick-down',
+  candleBorderUp: '--fc-candle-border-up',
+  candleBorderDown: '--fc-candle-border-down',
+  // Backward-compat aliases (kept for existing CSS)
+  candleUpColor: '--fc-candle-up',
+  candleDownColor: '--fc-candle-down',
+
+  // Bar
+  barUp: '--fc-bar-up',
+  barDown: '--fc-bar-down',
+
+  // Baseline
+  baselineTopLine: '--fc-baseline-top-line',
+  baselineTopFill: '--fc-baseline-top-fill',
+  baselineBottomLine: '--fc-baseline-bottom-line',
+  baselineBottomFill: '--fc-baseline-bottom-fill',
+
+  // Hollow candle
+  hollowCandleUp: '--fc-hollow-candle-up',
+  hollowCandleDown: '--fc-hollow-candle-down',
+  hollowCandleWick: '--fc-hollow-candle-wick',
+
+  // Step line
+  stepLineColor: '--fc-step-line-color',
+
+  // Colored line
+  coloredLineUp: '--fc-colored-line-up',
+  coloredLineDown: '--fc-colored-line-down',
+
+  // Colored mountain
+  coloredMountainUp: '--fc-colored-mountain-up',
+  coloredMountainDown: '--fc-colored-mountain-down',
+  coloredMountainFillUp: '--fc-colored-mountain-fill-up',
+  coloredMountainFillDown: '--fc-colored-mountain-fill-down',
+
+  // HLC area
+  hlcAreaHigh: '--fc-hlc-area-high',
+  hlcAreaLow: '--fc-hlc-area-low',
+  hlcAreaFill: '--fc-hlc-area-fill',
+
+  // High-low
+  highLowUp: '--fc-high-low-up',
+  highLowDown: '--fc-high-low-down',
+
+  // Column
+  columnUp: '--fc-column-up',
+  columnDown: '--fc-column-down',
+
+  // Volume candle
+  volumeCandleUp: '--fc-volume-candle-up',
+  volumeCandleDown: '--fc-volume-candle-down',
+  volumeCandleWickUp: '--fc-volume-candle-wick-up',
+  volumeCandleWickDown: '--fc-volume-candle-wick-down',
+
+  // Histogram
+  histogramUp: '--fc-histogram-up',
+  histogramDown: '--fc-histogram-down',
+
+  // Baseline delta mountain
+  bdmTopLine: '--fc-bdm-top-line',
+  bdmTopFill: '--fc-bdm-top-fill',
+  bdmBottomLine: '--fc-bdm-bottom-line',
+  bdmBottomFill: '--fc-bdm-bottom-fill',
+
+  // Renko
+  renkoUp: '--fc-renko-up',
+  renkoDown: '--fc-renko-down',
+
+  // Kagi
+  kagiYang: '--fc-kagi-yang',
+  kagiYin: '--fc-kagi-yin',
+
+  // Line break
+  lineBreakUp: '--fc-line-break-up',
+  lineBreakDown: '--fc-line-break-down',
+
+  // Point figure
+  pointFigureUp: '--fc-point-figure-up',
+  pointFigureDown: '--fc-point-figure-down',
+
+  // Last price
+  lastPriceUp: '--fc-last-price-up',
+  lastPriceDown: '--fc-last-price-down',
+
+  // Band fill
+  bandFill: '--fc-band-fill',
 
   // Volume
   volumeUpColor: '--fc-volume-up',
