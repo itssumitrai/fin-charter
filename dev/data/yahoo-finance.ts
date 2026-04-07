@@ -150,12 +150,12 @@ export async function fetchBars(
   } catch {
     // Proxy unavailable (e.g. static Storybook build) — return generated fallback data
     proxyAvailable = false;
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
   if (!resp.ok) {
     // Proxy endpoint unavailable (e.g. static Storybook build) — fallback
     proxyAvailable = false;
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
 
   let result: (YahooQuote & { meta?: YahooMeta }) | undefined;
@@ -163,9 +163,9 @@ export async function fetchBars(
     const json = await resp.json();
     result = json.chart?.result?.[0];
   } catch {
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
-  if (!result) return generateFallbackData(symbol);
+  if (!result) return generateFallbackData(symbol, key);
 
   const quote: YahooQuote = result;
   const yahooMeta: YahooMeta = result.meta ?? {};
@@ -173,7 +173,7 @@ export async function fetchBars(
   const ohlcv = quote.indicators?.quote?.[0];
 
   if (!ohlcv || timestamps.length === 0) {
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
 
   const bars: Bar[] = [];
@@ -194,7 +194,7 @@ export async function fetchBars(
     });
   }
 
-  if (bars.length === 0) return generateFallbackData(symbol);
+  if (bars.length === 0) return generateFallbackData(symbol, key);
 
   // For 4h: aggregate 1h bars into 4h
   const finalBars = key === '4h' ? aggregate4h(bars) : bars;
@@ -401,23 +401,85 @@ const FALLBACK_PRICES: Record<string, number> = {
   'META': 510, 'NVDA': 880, 'JPM': 195, 'V': 280, 'JNJ': 155,
 };
 
-function generateFallbackData(symbol: string): { bars: Bar[]; meta: QuoteMeta } {
+/** Map interval keys to bar interval in seconds and bar count for fallback data. */
+const FALLBACK_CONFIG: Record<string, { intervalSec: number; count: number }> = {
+  '1m':  { intervalSec: 60,      count: 390 },    // 1 trading day of 1m bars
+  '5m':  { intervalSec: 300,     count: 390 },    // 5 days of 5m bars (78 bars/day × 5)
+  '15m': { intervalSec: 900,     count: 390 },    // 15 days of 15m bars (26 bars/day × 15)
+  '1h':  { intervalSec: 3600,    count: 500 },    // ~75 days of hourly bars
+  '4h':  { intervalSec: 14400,   count: 500 },    // ~300 days of 4h bars
+  '1D':  { intervalSec: 86400,   count: 365 },    // 1 year of daily bars
+  '1W':  { intervalSec: 604800,  count: 260 },    // 5 years of weekly bars
+  '1M':  { intervalSec: 2592000, count: 120 },    // 10 years of monthly bars
+};
+
+function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]; meta: QuoteMeta } {
   const startPrice = FALLBACK_PRICES[symbol] ?? 100;
+  const { intervalSec, count } = FALLBACK_CONFIG[key] ?? FALLBACK_CONFIG['1D'];
   const bars: Bar[] = [];
   let price = startPrice;
   const now = Math.floor(Date.now() / 1000);
-  const start = now - 365 * 86400;
-  for (let i = 0; i < 365; i++) {
-    const time = start + i * 86400;
-    const change = price * (Math.random() * 0.04 - 0.02);
-    const open = price;
-    const close = Math.max(0.01, price + change);
-    const high = Math.max(open, close) + Math.random() * price * 0.015;
-    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
-    const volume = Math.round(1e6 + Math.random() * 9e6);
-    bars.push({ time, open, high, low, close, volume });
-    price = close;
+  const start = now - count * intervalSec;
+
+  // For intraday intervals, generate bars only during market hours
+  const intraday = isIntradayKey(key);
+
+  if (intraday) {
+    // Walk backwards from now, placing bars during 9:30-16:00 ET on weekdays.
+    // Use ET offset (-5h standard, -4h daylight) — approximate with -5h since
+    // this is synthetic data and exact DST boundaries don't matter.
+    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
+    const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
+    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
+    const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC
+
+    let generated = 0;
+    // Start from today's market open and walk backwards day by day
+    const todayMidnightUTC = Math.floor(now / 86400) * 86400;
+    let dayOffset = 0;
+
+    while (generated < count) {
+      const dayMidnightUTC = todayMidnightUTC - dayOffset * 86400;
+      // Check if this day is a weekday (0=Sun, 6=Sat)
+      const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
+      if (dow === 0 || dow === 6) { dayOffset++; continue; }
+
+      const marketOpenUTC = dayMidnightUTC - ET_OFFSET + MARKET_OPEN_SEC;
+      const barsThisDay = Math.floor(SESSION_DURATION / intervalSec);
+
+      // Generate bars for this day (in chronological order)
+      const dayBars: typeof bars = [];
+      for (let b = 0; b < barsThisDay && generated + dayBars.length < count; b++) {
+        const time = marketOpenUTC + b * intervalSec;
+        const change = price * (Math.random() * 0.04 - 0.02);
+        const open = price;
+        const close = Math.max(0.01, price + change);
+        const high = Math.max(open, close) + Math.random() * price * 0.015;
+        const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+        const volume = Math.round(1e6 + Math.random() * 9e6);
+        dayBars.push({ time, open, high, low, close, volume });
+        price = close;
+      }
+      // Prepend (we're walking backwards but want chronological order)
+      bars.unshift(...dayBars);
+      generated += dayBars.length;
+      dayOffset++;
+    }
+  } else {
+    // Non-intraday: simple linear generation
+    for (let i = 0; i < count; i++) {
+      const time = start + i * intervalSec;
+      const change = price * (Math.random() * 0.04 - 0.02);
+      const open = price;
+      const close = Math.max(0.01, price + change);
+      const high = Math.max(open, close) + Math.random() * price * 0.015;
+      const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+      const volume = Math.round(1e6 + Math.random() * 9e6);
+      bars.push({ time, open, high, low, close, volume });
+      price = close;
+    }
   }
+
   return {
     bars,
     meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York', firstTradeDate: 0 },
