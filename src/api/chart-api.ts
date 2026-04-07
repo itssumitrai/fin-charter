@@ -1779,6 +1779,7 @@ class ChartApi implements IChartApi {
     const sortedKeys = Object.keys(result).sort((a, b) =>
       (a === 'histogram' ? -1 : 0) - (b === 'histogram' ? -1 : 0),
     );
+    const seriesByKey = new Map<string, ISeriesApi<SeriesType>>();
     for (const key of sortedKeys) {
       const values = result[key];
       const color = colorMap[key] ?? primaryColor;
@@ -1816,20 +1817,26 @@ class ChartApi implements IChartApi {
       }
 
       indicator.internalSeries.push(series);
+      seriesByKey.set(key, series);
     }
 
-    // Store band data for fill rendering (bollinger, keltner, donchian, ichimoku cloud)
+    // Store band series references for fill rendering (bollinger, keltner, donchian, ichimoku cloud)
     const BAND_INDICATORS = new Set<IndicatorType>(['bollinger', 'keltner', 'donchian']);
-    if (BAND_INDICATORS.has(type) && result.upper && result.lower) {
-      indicator.bandData = { upper: result.upper, lower: result.lower };
+    if (BAND_INDICATORS.has(type) && seriesByKey.has('upper') && seriesByKey.has('lower')) {
+      indicator.bandSeries = {
+        upper: seriesByKey.get('upper')! as SeriesApi<SeriesType>,
+        lower: seriesByKey.get('lower')! as SeriesApi<SeriesType>,
+      };
       const bandColor = colorMap.upper ?? primaryColor;
       const defaultFill = this._bandColorToFill(bandColor);
       indicator.bandFillColor = indicator.options().bandFillColor
         ?? this._cssSeriesDefaults.bandFill?.color
         ?? defaultFill;
-    } else if (type === 'ichimoku' && result.senkouA && result.senkouB) {
-      // Ichimoku cloud fill between senkou span A and B
-      indicator.bandData = { upper: result.senkouA, lower: result.senkouB };
+    } else if (type === 'ichimoku' && seriesByKey.has('senkouA') && seriesByKey.has('senkouB')) {
+      indicator.bandSeries = {
+        upper: seriesByKey.get('senkouA')! as SeriesApi<SeriesType>,
+        lower: seriesByKey.get('senkouB')! as SeriesApi<SeriesType>,
+      };
       const cloudColor = colorMap.senkouA ?? '#00E396';
       const defaultFill = this._bandColorToFill(cloudColor);
       indicator.bandFillColor = indicator.options().bandFillColor
@@ -3061,30 +3068,35 @@ class ChartApi implements IChartApi {
     pixelRatio: number,
   ): void {
     for (const indicator of this._indicators) {
-      if (!indicator.isVisible() || !indicator.bandData || !indicator.bandFillColor) continue;
+      if (!indicator.isVisible() || !indicator.bandSeries || !indicator.bandFillColor) continue;
       if (indicator.bandFillColor === 'transparent' || indicator.bandFillColor === '') continue;
       if (indicator.paneId() !== pane.id) continue;
 
-      const { upper, lower } = indicator.bandData;
-      const { fromIdx, toIdx } = range;
-      const to = Math.min(toIdx, store.length - 1, upper.length - 1, lower.length - 1);
-      if (fromIdx > to) continue;
-
       // In comparison mode, the price scale shows percentages — skip band fill
-      // since band values are absolute prices, not percentages
       if (this._comparisonMode) continue;
+
+      // Use the indicator's own series data layers — these have the correct
+      // index-to-x mapping (NaN bars were skipped when building the series,
+      // so indices align with the line renderer's indexToX calls)
+      const upperStore = indicator.bandSeries.upper.getDataLayer().store;
+      const lowerStore = indicator.bandSeries.lower.getDataLayer().store;
+      const len = Math.min(upperStore.length, lowerStore.length);
+      if (len < 2) continue;
+
+      // Clamp to the visible range (using series store length, not primary)
+      const from = Math.max(0, range.fromIdx);
+      const to = Math.min(range.toIdx, len - 1);
+      if (from > to) continue;
+
       const priceToY = (p: number) => pane.priceScale.priceToY(p);
 
-      // Build upper and lower point arrays, skipping NaN values
+      // Build upper and lower point arrays
       const upperPts: Array<{ x: number; y: number }> = [];
       const lowerPts: Array<{ x: number; y: number }> = [];
-      for (let i = fromIdx; i <= to; i++) {
-        const u = upper[i];
-        const l = lower[i];
-        if (isNaN(u) || isNaN(l)) continue;
+      for (let i = from; i <= to; i++) {
         const x = Math.round(indexToX(i) * pixelRatio);
-        upperPts.push({ x, y: Math.round(priceToY(u) * pixelRatio) });
-        lowerPts.push({ x, y: Math.round(priceToY(l) * pixelRatio) });
+        upperPts.push({ x, y: Math.round(priceToY(upperStore.close[i]) * pixelRatio) });
+        lowerPts.push({ x, y: Math.round(priceToY(lowerStore.close[i]) * pixelRatio) });
       }
       if (upperPts.length < 2) continue;
 
