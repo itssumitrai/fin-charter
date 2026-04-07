@@ -137,6 +137,8 @@ import type { MarketSession } from '../core/market-session';
 import { createPriceFormatter } from '../formatting/price-formatter';
 import { createTimeFormatter } from '../formatting/time-formatter';
 import { formatVolume } from '../formatting/volume-formatter';
+import { readCSSTheme } from '../core/css-theme';
+import type { CSSSeriesDefaults } from '../core/css-theme';
 
 // ─── Axis constants ────────────────────────────────────────────────────────
 
@@ -304,6 +306,8 @@ export interface IChartApi {
   removeTextLabel(label: import('../core/text-label').TextLabel): void;
   /** Get all text labels. */
   getTextLabels(): import('../core/text-label').TextLabel[];
+  /** Re-read CSS design token variables and repaint. */
+  refreshCSSTheme(): void;
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -450,6 +454,9 @@ class ChartApi implements IChartApi {
   private _indicators: IndicatorApi[] = [];
   private _nextIndicatorId = 0;
 
+  // CSS design token defaults
+  private _cssSeriesDefaults: CSSSeriesDefaults = {};
+
   // Comparison mode
   private _comparisonMode: boolean = false;
   private _basisPrices: Map<SeriesApi<SeriesType>, number> = new Map(); // series -> basis price (first visible bar's close)
@@ -577,6 +584,7 @@ class ChartApi implements IChartApi {
     this._wrapper.appendChild(this._tooltipEl);
 
     container.appendChild(this._wrapper);
+    this._readCSSDefaults();
 
     // Get contexts
     this._timeAxisCtx = this._timeAxisCanvas.getContext('2d')!;
@@ -1014,11 +1022,54 @@ class ChartApi implements IChartApi {
       this.requestRepaint(InvalidationLevel.Full);
     }
 
+    this._readCSSDefaults();
     for (const cb of this._preferencesChangeCallbacks) cb(options);
   }
 
   options(): ChartOptions {
     return { ...this._options };
+  }
+
+  refreshCSSTheme(): void {
+    this._readCSSDefaults();
+    this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  private _readCSSDefaults(): void {
+    try {
+      const { seriesDefaults } = readCSSTheme(this._container);
+      this._cssSeriesDefaults = seriesDefaults;
+    } catch {
+      this._cssSeriesDefaults = {};
+    }
+  }
+
+  private _getCSSDefaultsForType(type: SeriesType): Record<string, unknown> | null {
+    const d = this._cssSeriesDefaults;
+    switch (type) {
+      case 'candlestick':
+      case 'heikin-ashi':
+        return d.candlestick ? { ...d.candlestick } : null;
+      case 'bar': return d.bar ? { ...d.bar } : null;
+      case 'baseline': return d.baseline ? { ...d.baseline } : null;
+      case 'hollow-candle': return d['hollow-candle'] ? { ...d['hollow-candle'] } : null;
+      case 'line': return d.line ? { ...d.line } : null;
+      case 'area': return d.area ? { ...d.area } : null;
+      case 'histogram': return d.histogram ? { ...d.histogram } : null;
+      case 'step-line': return d['step-line'] ? { ...d['step-line'] } : null;
+      case 'colored-line': return d['colored-line'] ? { ...d['colored-line'] } : null;
+      case 'colored-mountain': return d['colored-mountain'] ? { ...d['colored-mountain'] } : null;
+      case 'hlc-area': return d['hlc-area'] ? { ...d['hlc-area'] } : null;
+      case 'high-low': return d['high-low'] ? { ...d['high-low'] } : null;
+      case 'column': return d.column ? { ...d.column } : null;
+      case 'volume-candle': return d['volume-candle'] ? { ...d['volume-candle'] } : null;
+      case 'baseline-delta-mountain': return d['baseline-delta-mountain'] ? { ...d['baseline-delta-mountain'] } : null;
+      case 'renko': return d.renko ? { ...d.renko } : null;
+      case 'kagi': return d.kagi ? { ...d.kagi } : null;
+      case 'line-break': return d['line-break'] ? { ...d['line-break'] } : null;
+      case 'point-figure': return d['point-figure'] ? { ...d['point-figure'] } : null;
+      default: return null;
+    }
   }
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
@@ -1763,13 +1814,17 @@ class ChartApi implements IChartApi {
       indicator.bandData = { upper: result.upper, lower: result.lower };
       const bandColor = colorMap.upper ?? primaryColor;
       const defaultFill = this._bandColorToFill(bandColor);
-      indicator.bandFillColor = indicator.options().bandFillColor ?? defaultFill;
+      indicator.bandFillColor = indicator.options().bandFillColor
+        ?? this._cssSeriesDefaults.bandFill?.color
+        ?? defaultFill;
     } else if (type === 'ichimoku' && result.senkouA && result.senkouB) {
       // Ichimoku cloud fill between senkou span A and B
       indicator.bandData = { upper: result.senkouA, lower: result.senkouB };
       const cloudColor = colorMap.senkouA ?? '#00E396';
       const defaultFill = this._bandColorToFill(cloudColor);
-      indicator.bandFillColor = indicator.options().bandFillColor ?? defaultFill;
+      indicator.bandFillColor = indicator.options().bandFillColor
+        ?? this._cssSeriesDefaults.bandFill?.color
+        ?? defaultFill;
     }
   }
 
@@ -2586,7 +2641,10 @@ class ChartApi implements IChartApi {
       const lastClose = primaryStore.close[primaryStore.length - 1];
       const lastOpen = primaryStore.open[primaryStore.length - 1];
       const isUp = lastClose >= lastOpen;
-      const lineColor = isUp ? '#00E396' : '#FF3B5C';
+      const lpDefaults = this._cssSeriesDefaults.lastPriceLine;
+      const lineColor = isUp
+        ? (lpDefaults?.upColor ?? '#00E396')
+        : (lpDefaults?.downColor ?? '#FF3B5C');
       const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
 
       ctx.save();
@@ -4077,7 +4135,12 @@ class ChartApi implements IChartApi {
     _internal: boolean = false,
   ): ISeriesApi<T> {
     const dataLayer = new DataLayer();
-    const resolvedOptions = (options ?? {}) as SeriesOptionsMap[T];
+    // Merge CSS design token defaults under explicit options.
+    // Priority: explicit JS options > CSS variables > built-in renderer defaults
+    const cssDefaults = this._getCSSDefaultsForType(type);
+    const resolvedOptions = (cssDefaults
+      ? { ...cssDefaults, ...(options ?? {}) }
+      : (options ?? {})) as SeriesOptionsMap[T];
 
     // Determine which pane this series belongs to
     const paneId = (resolvedOptions as { paneId?: string }).paneId ?? this._mainPaneId;
