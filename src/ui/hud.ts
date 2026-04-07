@@ -123,10 +123,47 @@ export class HudManager {
     headerLine.style.cssText =
       'display:flex;align-items:center;gap:4px;height:18px;pointer-events:auto;';
 
-    // Color swatch
+    // Color swatch — clicking opens a native color picker
     const swatch = document.createElement('div');
     swatch.style.cssText =
-      `width:10px;height:10px;border-radius:2px;flex-shrink:0;background:${config.color};`;
+      `width:10px;height:10px;border-radius:2px;flex-shrink:0;background:${config.color};cursor:pointer;`;
+    swatch.title = 'Change color';
+
+    // Only add color picker if the series has a color settings field
+    const initialFields = config.getSettingsFields();
+    const hasColorField = initialFields.some(f => f.type === 'color');
+    if (hasColorField) {
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      // Parse hex color — handle #RGB, #RRGGBB, or fallback
+      const hex = config.color.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? '#ffffff';
+      colorInput.value = hex;
+      colorInput.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+      swatch.appendChild(colorInput);
+
+      swatch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        colorInput.click();
+      });
+
+      // Use 'change' event (fires once on picker close) to avoid excessive repaints
+      colorInput.addEventListener('change', () => {
+        const newColor = colorInput.value;
+        swatch.style.background = newColor;
+
+        const fields = config.getSettingsFields();
+        const colorField = fields.find(f => f.type === 'color');
+        if (colorField) {
+          const values: Record<string, string | number> = {};
+          for (const f of fields) {
+            values[f.key] = f.value;
+          }
+          values[colorField.key] = newColor;
+          config.onSettingsApply(values);
+        }
+      });
+    }
+
     headerLine.appendChild(swatch);
 
     // Label
