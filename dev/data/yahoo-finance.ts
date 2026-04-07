@@ -421,34 +421,65 @@ function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]
   const now = Math.floor(Date.now() / 1000);
   const start = now - count * intervalSec;
 
-  // For intraday intervals, generate bars only during market hours (9:30-16:00 ET)
+  // For intraday intervals, generate bars only during market hours
   const intraday = isIntradayKey(key);
 
-  for (let i = 0; i < count; i++) {
-    let time: number;
-    if (intraday) {
-      // Distribute bars across trading days (6.5 hours = 390 min per day)
-      const barsPerDay = Math.floor(23400 / intervalSec); // 23400s = 6.5 hours
-      const dayIndex = Math.floor(i / barsPerDay);
-      const barInDay = i % barsPerDay;
-      // Skip weekends: shift dayIndex to business days
-      const businessDay = dayIndex + Math.floor(dayIndex / 5) * 2;
-      // Market open at 9:30 ET = 14:30 UTC
-      const dayStart = start + businessDay * 86400 + 14 * 3600 + 30 * 60;
-      time = dayStart + barInDay * intervalSec;
-    } else {
-      time = start + i * intervalSec;
-    }
+  if (intraday) {
+    // Walk backwards from now, placing bars during 9:30-16:00 ET on weekdays.
+    // Use ET offset (-5h standard, -4h daylight) — approximate with -5h since
+    // this is synthetic data and exact DST boundaries don't matter.
+    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
+    const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
+    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
+    const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC
 
-    const change = price * (Math.random() * 0.04 - 0.02);
-    const open = price;
-    const close = Math.max(0.01, price + change);
-    const high = Math.max(open, close) + Math.random() * price * 0.015;
-    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
-    const volume = Math.round(1e6 + Math.random() * 9e6);
-    bars.push({ time, open, high, low, close, volume });
-    price = close;
+    let generated = 0;
+    // Start from today's market open and walk backwards day by day
+    const todayMidnightUTC = Math.floor(now / 86400) * 86400;
+    let dayOffset = 0;
+
+    while (generated < count) {
+      const dayMidnightUTC = todayMidnightUTC - dayOffset * 86400;
+      // Check if this day is a weekday (0=Sun, 6=Sat)
+      const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
+      if (dow === 0 || dow === 6) { dayOffset++; continue; }
+
+      const marketOpenUTC = dayMidnightUTC - ET_OFFSET + MARKET_OPEN_SEC;
+      const barsThisDay = Math.floor(SESSION_DURATION / intervalSec);
+
+      // Generate bars for this day (in chronological order)
+      const dayBars: typeof bars = [];
+      for (let b = 0; b < barsThisDay && generated + dayBars.length < count; b++) {
+        const time = marketOpenUTC + b * intervalSec;
+        const change = price * (Math.random() * 0.04 - 0.02);
+        const open = price;
+        const close = Math.max(0.01, price + change);
+        const high = Math.max(open, close) + Math.random() * price * 0.015;
+        const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+        const volume = Math.round(1e6 + Math.random() * 9e6);
+        dayBars.push({ time, open, high, low, close, volume });
+        price = close;
+      }
+      // Prepend (we're walking backwards but want chronological order)
+      bars.unshift(...dayBars);
+      generated += dayBars.length;
+      dayOffset++;
+    }
+  } else {
+    // Non-intraday: simple linear generation
+    for (let i = 0; i < count; i++) {
+      const time = start + i * intervalSec;
+      const change = price * (Math.random() * 0.04 - 0.02);
+      const open = price;
+      const close = Math.max(0.01, price + change);
+      const high = Math.max(open, close) + Math.random() * price * 0.015;
+      const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+      const volume = Math.round(1e6 + Math.random() * 9e6);
+      bars.push({ time, open, high, low, close, volume });
+      price = close;
+    }
   }
+
   return {
     bars,
     meta: { price, previousClose: startPrice, currency: 'USD', exchange: 'NAS', timezone: 'America/New_York', firstTradeDate: 0 },
