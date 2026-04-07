@@ -45,6 +45,12 @@ const INTERVAL_MAP: Record<string, { interval: string; range: string }> = {
 
 const ONE_DAY = 86400;
 
+/** Shared market-hours constants for fallback data generation (approximate ET). */
+const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
+const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
+const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
+const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC (ignores DST — acceptable for synthetic data)
+
 /**
  * Yahoo Finance API absolute limits: max seconds from NOW for each interval.
  * Requests with period1 older than now - limit will return errors or empty data.
@@ -425,21 +431,12 @@ function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]
   const intraday = isIntradayKey(key);
 
   if (intraday) {
-    // Walk backwards from now, placing bars during 9:30-16:00 ET on weekdays.
-    // Use ET offset (-5h standard, -4h daylight) — approximate with -5h since
-    // this is synthetic data and exact DST boundaries don't matter.
-    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
-    const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
-    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
-    const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC
-
     let generated = 0;
-    // Start from today's market open and walk backwards day by day
-    const todayMidnightUTC = Math.floor(now / 86400) * 86400;
+    const todayMidnightUTC = Math.floor(now / ONE_DAY) * ONE_DAY;
     let dayOffset = 0;
 
     while (generated < count) {
-      const dayMidnightUTC = todayMidnightUTC - dayOffset * 86400;
+      const dayMidnightUTC = todayMidnightUTC - dayOffset * ONE_DAY;
       // Check if this day is a weekday (0=Sun, 6=Sat)
       const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
       if (dow === 0 || dow === 6) { dayOffset++; continue; }
@@ -498,17 +495,50 @@ function generatePrecedingBars(
 ): Bar[] {
   const bars: Bar[] = [];
   let price = startPrice;
-  // Walk backwards from beforeTimestamp
-  for (let i = count; i >= 1; i--) {
-    const time = beforeTimestamp - i * intervalSec;
-    const change = price * (Math.random() * 0.04 - 0.02);
-    const open = Math.max(0.01, price - change);
-    const close = price;
-    const high = Math.max(open, close) + Math.random() * price * 0.015;
-    const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
-    const volume = Math.round(1e6 + Math.random() * 9e6);
-    bars.push({ time, open, high, low, close, volume });
-    price = open; // walk price backwards
+  const intraday = intervalSec < 86400;
+
+  if (intraday) {
+    // For intraday: walk backwards placing bars during market hours (9:30-16:00 ET)
+    const barsPerDay = Math.floor(SESSION_DURATION / intervalSec);
+
+    let generated = 0;
+    let dayMidnightUTC = Math.floor((beforeTimestamp - ONE_DAY) / ONE_DAY) * ONE_DAY;
+
+    while (generated < count) {
+      const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
+      if (dow === 0 || dow === 6) { dayMidnightUTC -= ONE_DAY; continue; }
+
+      const marketOpenUTC = dayMidnightUTC - ET_OFFSET + MARKET_OPEN_SEC;
+      const dayBars: Bar[] = [];
+      for (let b = barsPerDay - 1; b >= 0 && generated + dayBars.length < count; b--) {
+        const time = marketOpenUTC + b * intervalSec;
+        if (time >= beforeTimestamp) continue;
+        const change = price * (Math.random() * 0.04 - 0.02);
+        const open = Math.max(0.01, price - change);
+        const close = price;
+        const high = Math.max(open, close) + Math.random() * price * 0.015;
+        const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+        const volume = Math.round(1e6 + Math.random() * 9e6);
+        dayBars.unshift({ time, open, high, low, close, volume });
+        price = open;
+      }
+      bars.unshift(...dayBars);
+      generated += dayBars.length;
+      dayMidnightUTC -= ONE_DAY;
+    }
+  } else {
+    // Non-intraday: simple backward walk
+    for (let i = count; i >= 1; i--) {
+      const time = beforeTimestamp - i * intervalSec;
+      const change = price * (Math.random() * 0.04 - 0.02);
+      const open = Math.max(0.01, price - change);
+      const close = price;
+      const high = Math.max(open, close) + Math.random() * price * 0.015;
+      const low = Math.max(0.01, Math.min(open, close) - Math.random() * price * 0.015);
+      const volume = Math.round(1e6 + Math.random() * 9e6);
+      bars.push({ time, open, high, low, close, volume });
+      price = open;
+    }
   }
   return bars;
 }
