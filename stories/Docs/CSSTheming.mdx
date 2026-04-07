@@ -40,17 +40,27 @@ import { CSS_VARS } from '@itssumitrai/fin-charter';
 
 ```css
 .chart-dark {
+  /* Layout */
   --fc-bg: #1a1a2e;
   --fc-text: #d1d4dc;
   --fc-font-size: 11;
+
+  /* Grid & crosshair */
   --fc-grid-horz-color: rgba(255, 255, 255, 0.06);
   --fc-grid-vert-color: rgba(255, 255, 255, 0.06);
   --fc-crosshair-vert-color: #9598A1;
   --fc-crosshair-horz-color: #9598A1;
-  --fc-candle-up: #00E396;
-  --fc-candle-down: #FF3B5C;
-  --fc-volume-up: rgba(0, 227, 150, 0.5);
-  --fc-volume-down: rgba(255, 59, 92, 0.5);
+
+  /* Candlestick (granular variables — preferred) */
+  --fc-candle-body-up: #00E396;
+  --fc-candle-body-down: #FF3B5C;
+  --fc-candle-wick-up: #00E396;
+  --fc-candle-wick-down: #FF3B5C;
+
+  /* Volume overlay */
+  --fc-volume-up: rgba(0, 227, 150, 0.24);
+  --fc-volume-down: rgba(255, 59, 92, 0.24);
+
   --fc-watermark-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -76,14 +86,16 @@ import { readCSSTheme, createChart } from '@itssumitrai/fin-charter';
 const container = document.getElementById('chart')!;
 container.classList.add('chart-dark');
 
-const themeOptions = readCSSTheme(container);
+const { chartOptions, seriesDefaults } = readCSSTheme(container);
 const chart = createChart(container, {
   autoSize: true,
-  ...themeOptions,
+  ...chartOptions,
 });
 ```
 
 Only variables that are defined in CSS are included in the result. Undefined variables are omitted so they do not override defaults.
+
+For a complete list of every `--fc-*` variable, their default values, and the series type each one controls, see the [CSS Design Tokens](/?path=/docs/docs-css-design-tokens--docs) reference page.
 
 ---
 
