@@ -40,8 +40,6 @@ interface HudRowEntry {
   valuesEl: HTMLSpanElement;
   buttonsEl: HTMLDivElement;
   eyeBtn: HTMLButtonElement;
-  swatchEl: HTMLDivElement;
-  colorInput: HTMLInputElement;
   visible: boolean;
 }
 
@@ -131,35 +129,40 @@ export class HudManager {
       `width:10px;height:10px;border-radius:2px;flex-shrink:0;background:${config.color};cursor:pointer;`;
     swatch.title = 'Change color';
 
-    // Hidden native color input behind the swatch
-    const colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.value = config.color.startsWith('#') ? config.color : '#ffffff';
-    colorInput.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
-    swatch.appendChild(colorInput);
+    // Only add color picker if the series has a color settings field
+    const initialFields = config.getSettingsFields();
+    const hasColorField = initialFields.some(f => f.type === 'color');
+    if (hasColorField) {
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      // Parse hex color — handle #RGB, #RRGGBB, or fallback
+      const hex = config.color.match(/^#[0-9a-fA-F]{6}$/)?.[0] ?? '#ffffff';
+      colorInput.value = hex;
+      colorInput.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+      swatch.appendChild(colorInput);
 
-    swatch.addEventListener('click', (e) => {
-      e.stopPropagation();
-      colorInput.click();
-    });
+      swatch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        colorInput.click();
+      });
 
-    colorInput.addEventListener('input', () => {
-      const newColor = colorInput.value;
-      swatch.style.background = newColor;
+      // Use 'change' event (fires once on picker close) to avoid excessive repaints
+      colorInput.addEventListener('change', () => {
+        const newColor = colorInput.value;
+        swatch.style.background = newColor;
 
-      // Determine the primary color field for this series type from settings fields
-      const fields = config.getSettingsFields();
-      const colorField = fields.find(f => f.type === 'color');
-      if (colorField) {
-        // Build values object with all current field values, overriding the primary color
-        const values: Record<string, string | number> = {};
-        for (const f of fields) {
-          values[f.key] = f.value;
+        const fields = config.getSettingsFields();
+        const colorField = fields.find(f => f.type === 'color');
+        if (colorField) {
+          const values: Record<string, string | number> = {};
+          for (const f of fields) {
+            values[f.key] = f.value;
+          }
+          values[colorField.key] = newColor;
+          config.onSettingsApply(values);
         }
-        values[colorField.key] = newColor;
-        config.onSettingsApply(values);
-      }
-    });
+      });
+    }
 
     headerLine.appendChild(swatch);
 
@@ -229,7 +232,7 @@ export class HudManager {
     this._rowsWrapper.appendChild(row);
 
     const entry: HudRowEntry = {
-      config, el: row, valuesEl, buttonsEl, eyeBtn, swatchEl: swatch, colorInput, visible: true,
+      config, el: row, valuesEl, buttonsEl, eyeBtn, visible: true,
     };
     this._rows.set(config.id, entry);
   }
