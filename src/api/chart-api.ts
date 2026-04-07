@@ -1031,7 +1031,17 @@ class ChartApi implements IChartApi {
   }
 
   refreshCSSTheme(): void {
-    this._readCSSDefaults();
+    // Re-read both chart options and series defaults from CSS variables
+    try {
+      const { chartOptions, seriesDefaults } = readCSSTheme(this._container);
+      this._cssSeriesDefaults = seriesDefaults;
+      // Apply chart-level options (layout, grid, crosshair, etc.)
+      if (Object.keys(chartOptions).length > 0) {
+        this.applyOptions(chartOptions);
+      }
+    } catch {
+      this._cssSeriesDefaults = {};
+    }
     this.requestRepaint(InvalidationLevel.Full);
   }
 

@@ -156,8 +156,8 @@ export interface CSSThemeResult {
 
 /**
  * Read CSS custom properties from a container element and return
- * a partial ChartOptions object. Undefined properties (not set in CSS)
- * are omitted so mergeOptions will skip them.
+ * a CSSThemeResult containing chart options and per-series-type color defaults.
+ * Undefined properties (not set in CSS) are omitted so mergeOptions will skip them.
  */
 export function readCSSTheme(container: HTMLElement): CSSThemeResult {
   const style = getComputedStyle(container);
