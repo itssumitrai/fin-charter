@@ -93,6 +93,7 @@ export type {
 
 // ─── CSS Theme ──────────────────────────────────────────────────────
 export { CSS_VARS, readCSSTheme, generateCSSTheme, applyCSSTheme } from './core/css-theme';
+export type { CSSSeriesDefaults, CSSThemeResult } from './core/css-theme';
 
 // ─── Data Feed ──────────────────────────────────────────────────────
 export { DataFeedManager } from './core/data-feed';
