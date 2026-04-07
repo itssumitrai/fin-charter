@@ -45,6 +45,12 @@ const INTERVAL_MAP: Record<string, { interval: string; range: string }> = {
 
 const ONE_DAY = 86400;
 
+/** Shared market-hours constants for fallback data generation (approximate ET). */
+const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
+const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
+const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
+const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC (ignores DST — acceptable for synthetic data)
+
 /**
  * Yahoo Finance API absolute limits: max seconds from NOW for each interval.
  * Requests with period1 older than now - limit will return errors or empty data.
@@ -425,21 +431,12 @@ function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]
   const intraday = isIntradayKey(key);
 
   if (intraday) {
-    // Walk backwards from now, placing bars during 9:30-16:00 ET on weekdays.
-    // Use ET offset (-5h standard, -4h daylight) — approximate with -5h since
-    // this is synthetic data and exact DST boundaries don't matter.
-    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;  // 9:30 in seconds from midnight
-    const MARKET_CLOSE_SEC = 16 * 3600;           // 16:00 in seconds from midnight
-    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC; // 23400s = 6.5h
-    const ET_OFFSET = -5 * 3600; // approximate ET offset from UTC
-
     let generated = 0;
-    // Start from today's market open and walk backwards day by day
-    const todayMidnightUTC = Math.floor(now / 86400) * 86400;
+    const todayMidnightUTC = Math.floor(now / ONE_DAY) * ONE_DAY;
     let dayOffset = 0;
 
     while (generated < count) {
-      const dayMidnightUTC = todayMidnightUTC - dayOffset * 86400;
+      const dayMidnightUTC = todayMidnightUTC - dayOffset * ONE_DAY;
       // Check if this day is a weekday (0=Sun, 6=Sat)
       const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
       if (dow === 0 || dow === 6) { dayOffset++; continue; }
@@ -502,19 +499,14 @@ function generatePrecedingBars(
 
   if (intraday) {
     // For intraday: walk backwards placing bars during market hours (9:30-16:00 ET)
-    const MARKET_OPEN_SEC = 9 * 3600 + 30 * 60;
-    const MARKET_CLOSE_SEC = 16 * 3600;
-    const SESSION_DURATION = MARKET_CLOSE_SEC - MARKET_OPEN_SEC;
-    const ET_OFFSET = -5 * 3600;
     const barsPerDay = Math.floor(SESSION_DURATION / intervalSec);
 
     let generated = 0;
-    // Start from the day before beforeTimestamp and walk backwards
-    let dayMidnightUTC = Math.floor((beforeTimestamp - 86400) / 86400) * 86400;
+    let dayMidnightUTC = Math.floor((beforeTimestamp - ONE_DAY) / ONE_DAY) * ONE_DAY;
 
     while (generated < count) {
       const dow = new Date(dayMidnightUTC * 1000).getUTCDay();
-      if (dow === 0 || dow === 6) { dayMidnightUTC -= 86400; continue; }
+      if (dow === 0 || dow === 6) { dayMidnightUTC -= ONE_DAY; continue; }
 
       const marketOpenUTC = dayMidnightUTC - ET_OFFSET + MARKET_OPEN_SEC;
       const dayBars: Bar[] = [];
@@ -532,7 +524,7 @@ function generatePrecedingBars(
       }
       bars.unshift(...dayBars);
       generated += dayBars.length;
-      dayMidnightUTC -= 86400;
+      dayMidnightUTC -= ONE_DAY;
     }
   } else {
     // Non-intraday: simple backward walk
