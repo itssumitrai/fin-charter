@@ -1,0 +1,274 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs/CSS Design Tokens" />
+
+# CSS Design Tokens
+
+fin-charter resolves chart and series colors through a three-tier priority system:
+
+1. **Explicit JS options** — values passed directly to `createChart()` or `chart.applyOptions()` always win.
+2. **CSS variables** — `--fc-*` custom properties read from the container element via `readCSSTheme()`.
+3. **Built-in defaults** — the library's own fallback values, used when neither JS options nor CSS variables are set.
+
+This means you can theme the entire chart purely via CSS without writing any JS configuration. Define `--fc-*` variables on the chart container (or any ancestor), call `readCSSTheme()`, and spread the result into `createChart()`.
+
+---
+
+## Usage Example
+
+**Define variables in CSS:**
+
+```css
+.my-theme {
+  --fc-candle-body-up: #26a69a;
+  --fc-candle-body-down: #ef5350;
+  --fc-candle-wick-up: #26a69a;
+  --fc-candle-wick-down: #ef5350;
+  --fc-bg: #1e1e2e;
+  --fc-text: #d1d4dc;
+}
+```
+
+**Apply the theme and create the chart:**
+
+```ts
+import { readCSSTheme, createChart } from '@itssumitrai/fin-charter';
+
+const container = document.getElementById('chart')!;
+container.classList.add('my-theme');
+
+const { chartOptions, seriesDefaults } = readCSSTheme(container);
+const chart = createChart(container, { autoSize: true, ...chartOptions });
+
+// Series will pick up candle colors from CSS automatically
+const series = chart.addSeries({ type: 'candlestick' });
+```
+
+Only variables that are defined in CSS are included in the result. Undefined variables are omitted so they do not override library defaults.
+
+---
+
+## Complete Variable Reference
+
+### Layout
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-bg` | `#1a1a2e` | Chart background color |
+| `--fc-text` | `#d1d4dc` | Text color for price labels and time axis |
+| `--fc-font-size` | `11` | Font size in pixels (unitless number) |
+| `--fc-font-family` | `-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif` | Font family stack |
+
+### Grid
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-grid-horz-color` | `rgba(255,255,255,0.06)` | Horizontal grid line color |
+| `--fc-grid-vert-color` | `rgba(255,255,255,0.06)` | Vertical grid line color |
+
+### Crosshair
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-crosshair-vert-color` | `#758696` | Crosshair vertical line color |
+| `--fc-crosshair-horz-color` | `#758696` | Crosshair horizontal line color |
+
+### Candlestick
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-candle-body-up` | `#00E396` | Bullish candle body color |
+| `--fc-candle-body-down` | `#FF3B5C` | Bearish candle body color |
+| `--fc-candle-wick-up` | `#00E396` | Bullish candle wick color |
+| `--fc-candle-wick-down` | `#FF3B5C` | Bearish candle wick color |
+| `--fc-candle-border-up` | `#00E396` | Bullish candle border color |
+| `--fc-candle-border-down` | `#FF3B5C` | Bearish candle border color |
+
+### Bar (OHLC)
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-bar-up` | `#00E396` | Bullish OHLC bar color |
+| `--fc-bar-down` | `#FF3B5C` | Bearish OHLC bar color |
+
+### Baseline
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-baseline-top-line` | `#00E396` | Baseline series line color above the base |
+| `--fc-baseline-top-fill` | `rgba(0,227,150,0.28)` | Baseline area fill color above the base |
+| `--fc-baseline-bottom-line` | `#FF3B5C` | Baseline series line color below the base |
+| `--fc-baseline-bottom-fill` | `rgba(255,59,92,0.28)` | Baseline area fill color below the base |
+
+### Hollow Candle
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-hollow-candle-up` | `#00E396` | Bullish hollow candle color |
+| `--fc-hollow-candle-down` | `#FF3B5C` | Bearish hollow candle color |
+| `--fc-hollow-candle-wick` | `#737375` | Hollow candle wick color |
+
+### Line
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-line-color` | `#2196F3` | Line series color |
+
+### Area
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-area-line` | `#2196F3` | Area series line color |
+| `--fc-area-top` | `rgba(33,150,243,0.4)` | Area gradient top (fill) color |
+| `--fc-area-bottom` | `rgba(33,150,243,0)` | Area gradient bottom color |
+
+### Step Line
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-step-line-color` | `#2196F3` | Step line series color |
+
+### Colored Line
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-colored-line-up` | `#00E396` | Colored line bullish segment color |
+| `--fc-colored-line-down` | `#FF3B5C` | Colored line bearish segment color |
+
+### Colored Mountain
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-colored-mountain-up` | `#00E396` | Colored mountain bullish line color |
+| `--fc-colored-mountain-down` | `#FF3B5C` | Colored mountain bearish line color |
+| `--fc-colored-mountain-fill-up` | `rgba(0,227,150,0.28)` | Colored mountain bullish fill color |
+| `--fc-colored-mountain-fill-down` | `rgba(255,59,92,0.28)` | Colored mountain bearish fill color |
+
+### HLC Area
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-hlc-area-high` | `#00E396` | HLC area high line color |
+| `--fc-hlc-area-low` | `#FF3B5C` | HLC area low line color |
+| `--fc-hlc-area-fill` | `rgba(33,150,243,0.2)` | HLC area fill color |
+
+### High-Low
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-high-low-up` | `#00E396` | High-Low series bullish color |
+| `--fc-high-low-down` | `#FF3B5C` | High-Low series bearish color |
+
+### Column
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-column-up` | `#00E396` | Bullish column bar color |
+| `--fc-column-down` | `#FF3B5C` | Bearish column bar color |
+
+### Volume Candle
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-volume-candle-up` | `#00E396` | Bullish volume candle body color |
+| `--fc-volume-candle-down` | `#FF3B5C` | Bearish volume candle body color |
+| `--fc-volume-candle-wick-up` | `#00E396` | Bullish volume candle wick color |
+| `--fc-volume-candle-wick-down` | `#FF3B5C` | Bearish volume candle wick color |
+
+### Histogram
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-histogram-up` | `rgba(0,227,150,0.5)` | Histogram bullish bar color |
+| `--fc-histogram-down` | `rgba(255,59,92,0.5)` | Histogram bearish bar color |
+
+### Baseline Delta Mountain
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-bdm-top-line` | `#00E396` | Baseline delta mountain line color above base |
+| `--fc-bdm-top-fill` | `rgba(0,227,150,0.56)` | Baseline delta mountain fill color above base |
+| `--fc-bdm-bottom-line` | `#FF3B5C` | Baseline delta mountain line color below base |
+| `--fc-bdm-bottom-fill` | `rgba(255,59,92,0.56)` | Baseline delta mountain fill color below base |
+
+### Renko
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-renko-up` | `#00E396` | Renko bullish brick color |
+| `--fc-renko-down` | `#FF3B5C` | Renko bearish brick color |
+
+### Kagi
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-kagi-yang` | `#00E396` | Kagi yang (rising) line color |
+| `--fc-kagi-yin` | `#FF3B5C` | Kagi yin (falling) line color |
+
+### Line Break
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-line-break-up` | `#00E396` | Line Break bullish block color |
+| `--fc-line-break-down` | `#FF3B5C` | Line Break bearish block color |
+
+### Point & Figure
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-point-figure-up` | `#00E396` | Point & Figure X (rising) column color |
+| `--fc-point-figure-down` | `#FF3B5C` | Point & Figure O (falling) column color |
+
+### Volume Overlay
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-volume-up` | `rgba(0,227,150,0.24)` | Volume overlay bullish bar color |
+| `--fc-volume-down` | `rgba(255,59,92,0.24)` | Volume overlay bearish bar color |
+
+### Last Price Line
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-last-price-up` | `#00E396` | Last price line color when price is rising |
+| `--fc-last-price-down` | `#FF3B5C` | Last price line color when price is falling |
+
+### Band Fill
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-band-fill` | `rgba(66,165,245,0.08)` | Band / channel fill color |
+
+### Watermark
+
+| CSS Variable | Default | Description |
+|---|---|---|
+| `--fc-watermark-color` | `rgba(255,255,255,0.06)` | Watermark text color |
+
+---
+
+## Backward Compatibility
+
+The legacy aliases `--fc-candle-up` and `--fc-candle-down` continue to work and map to the candle body colors. The more specific variables take priority:
+
+| Legacy variable | Maps to |
+|---|---|
+| `--fc-candle-up` | `--fc-candle-body-up` (fallback only — more specific variable wins) |
+| `--fc-candle-down` | `--fc-candle-body-down` (fallback only — more specific variable wins) |
+
+If both `--fc-candle-body-up` and `--fc-candle-up` are defined, `--fc-candle-body-up` takes priority.
+
+---
+
+## Refreshing After CSS Changes
+
+If you update CSS variables at runtime (e.g., switching a class), call `chart.refreshCSSTheme()` to re-read all `--fc-*` variables from the container and trigger a repaint:
+
+```ts
+// Switch theme class
+container.classList.remove('my-dark-theme');
+container.classList.add('my-light-theme');
+
+// Re-read and repaint
+chart.refreshCSSTheme();
+```
