@@ -150,12 +150,12 @@ export async function fetchBars(
   } catch {
     // Proxy unavailable (e.g. static Storybook build) — return generated fallback data
     proxyAvailable = false;
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
   if (!resp.ok) {
     // Proxy endpoint unavailable (e.g. static Storybook build) — fallback
     proxyAvailable = false;
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
 
   let result: (YahooQuote & { meta?: YahooMeta }) | undefined;
@@ -163,9 +163,9 @@ export async function fetchBars(
     const json = await resp.json();
     result = json.chart?.result?.[0];
   } catch {
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
-  if (!result) return generateFallbackData(symbol);
+  if (!result) return generateFallbackData(symbol, key);
 
   const quote: YahooQuote = result;
   const yahooMeta: YahooMeta = result.meta ?? {};
@@ -173,7 +173,7 @@ export async function fetchBars(
   const ohlcv = quote.indicators?.quote?.[0];
 
   if (!ohlcv || timestamps.length === 0) {
-    return generateFallbackData(symbol);
+    return generateFallbackData(symbol, key);
   }
 
   const bars: Bar[] = [];
@@ -194,7 +194,7 @@ export async function fetchBars(
     });
   }
 
-  if (bars.length === 0) return generateFallbackData(symbol);
+  if (bars.length === 0) return generateFallbackData(symbol, key);
 
   // For 4h: aggregate 1h bars into 4h
   const finalBars = key === '4h' ? aggregate4h(bars) : bars;
@@ -401,14 +401,45 @@ const FALLBACK_PRICES: Record<string, number> = {
   'META': 510, 'NVDA': 880, 'JPM': 195, 'V': 280, 'JNJ': 155,
 };
 
-function generateFallbackData(symbol: string): { bars: Bar[]; meta: QuoteMeta } {
+/** Map interval keys to bar interval in seconds and bar count for fallback data. */
+const FALLBACK_CONFIG: Record<string, { intervalSec: number; count: number }> = {
+  '1m':  { intervalSec: 60,      count: 390 },    // 1 trading day of 1m bars
+  '5m':  { intervalSec: 300,     count: 390 },    // 5 days of 5m bars (78 bars/day × 5)
+  '15m': { intervalSec: 900,     count: 390 },    // 15 days of 15m bars (26 bars/day × 15)
+  '1h':  { intervalSec: 3600,    count: 500 },    // ~75 days of hourly bars
+  '4h':  { intervalSec: 14400,   count: 500 },    // ~300 days of 4h bars
+  '1D':  { intervalSec: 86400,   count: 365 },    // 1 year of daily bars
+  '1W':  { intervalSec: 604800,  count: 260 },    // 5 years of weekly bars
+  '1M':  { intervalSec: 2592000, count: 120 },    // 10 years of monthly bars
+};
+
+function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]; meta: QuoteMeta } {
   const startPrice = FALLBACK_PRICES[symbol] ?? 100;
+  const { intervalSec, count } = FALLBACK_CONFIG[key] ?? FALLBACK_CONFIG['1D'];
   const bars: Bar[] = [];
   let price = startPrice;
   const now = Math.floor(Date.now() / 1000);
-  const start = now - 365 * 86400;
-  for (let i = 0; i < 365; i++) {
-    const time = start + i * 86400;
+  const start = now - count * intervalSec;
+
+  // For intraday intervals, generate bars only during market hours (9:30-16:00 ET)
+  const intraday = isIntradayKey(key);
+
+  for (let i = 0; i < count; i++) {
+    let time: number;
+    if (intraday) {
+      // Distribute bars across trading days (6.5 hours = 390 min per day)
+      const barsPerDay = Math.floor(23400 / intervalSec); // 23400s = 6.5 hours
+      const dayIndex = Math.floor(i / barsPerDay);
+      const barInDay = i % barsPerDay;
+      // Skip weekends: shift dayIndex to business days
+      const businessDay = dayIndex + Math.floor(dayIndex / 5) * 2;
+      // Market open at 9:30 ET = 14:30 UTC
+      const dayStart = start + businessDay * 86400 + 14 * 3600 + 30 * 60;
+      time = dayStart + barInDay * intervalSec;
+    } else {
+      time = start + i * intervalSec;
+    }
+
     const change = price * (Math.random() * 0.04 - 0.02);
     const open = price;
     const close = Math.max(0.01, price + change);
