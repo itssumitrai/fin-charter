@@ -31,9 +31,9 @@ export class IndicatorApi implements IIndicatorApi {
   /** If we auto-created a pane for this indicator, track it for cleanup. */
   public autoCreatedPaneId: string | null = null;
 
-  /** Upper/lower series references for band-fill rendering (bollinger, keltner, donchian, ichimoku cloud).
-   *  Stores the concrete SeriesApi (not ISeriesApi) to access getDataLayer(). */
-  public bandSeries: { upper: SeriesApi<SeriesType>; lower: SeriesApi<SeriesType> } | null = null;
+  /** @internal Upper/lower series references for band-fill rendering.
+   *  Uses concrete SeriesApi to access getDataLayer(). Not part of the public API. */
+  public _bandSeries: { upper: SeriesApi<SeriesType>; lower: SeriesApi<SeriesType> } | null = null;
 
   /** Fill color between upper and lower bands. */
   public bandFillColor: string = '';

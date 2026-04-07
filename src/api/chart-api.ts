@@ -1779,7 +1779,7 @@ class ChartApi implements IChartApi {
     const sortedKeys = Object.keys(result).sort((a, b) =>
       (a === 'histogram' ? -1 : 0) - (b === 'histogram' ? -1 : 0),
     );
-    const seriesByKey = new Map<string, ISeriesApi<SeriesType>>();
+    const seriesByKey = new Map<string, SeriesApi<SeriesType>>();
     for (const key of sortedKeys) {
       const values = result[key];
       const color = colorMap[key] ?? primaryColor;
@@ -1817,15 +1817,15 @@ class ChartApi implements IChartApi {
       }
 
       indicator.internalSeries.push(series);
-      seriesByKey.set(key, series);
+      seriesByKey.set(key, series as SeriesApi<SeriesType>);
     }
 
     // Store band series references for fill rendering (bollinger, keltner, donchian, ichimoku cloud)
     const BAND_INDICATORS = new Set<IndicatorType>(['bollinger', 'keltner', 'donchian']);
     if (BAND_INDICATORS.has(type) && seriesByKey.has('upper') && seriesByKey.has('lower')) {
-      indicator.bandSeries = {
-        upper: seriesByKey.get('upper')! as SeriesApi<SeriesType>,
-        lower: seriesByKey.get('lower')! as SeriesApi<SeriesType>,
+      indicator._bandSeries = {
+        upper: seriesByKey.get('upper')!,
+        lower: seriesByKey.get('lower')!,
       };
       const bandColor = colorMap.upper ?? primaryColor;
       const defaultFill = this._bandColorToFill(bandColor);
@@ -1833,9 +1833,9 @@ class ChartApi implements IChartApi {
         ?? this._cssSeriesDefaults.bandFill?.color
         ?? defaultFill;
     } else if (type === 'ichimoku' && seriesByKey.has('senkouA') && seriesByKey.has('senkouB')) {
-      indicator.bandSeries = {
-        upper: seriesByKey.get('senkouA')! as SeriesApi<SeriesType>,
-        lower: seriesByKey.get('senkouB')! as SeriesApi<SeriesType>,
+      indicator._bandSeries = {
+        upper: seriesByKey.get('senkouA')!,
+        lower: seriesByKey.get('senkouB')!,
       };
       const cloudColor = colorMap.senkouA ?? '#00E396';
       const defaultFill = this._bandColorToFill(cloudColor);
@@ -3068,7 +3068,7 @@ class ChartApi implements IChartApi {
     pixelRatio: number,
   ): void {
     for (const indicator of this._indicators) {
-      if (!indicator.isVisible() || !indicator.bandSeries || !indicator.bandFillColor) continue;
+      if (!indicator.isVisible() || !indicator._bandSeries || !indicator.bandFillColor) continue;
       if (indicator.bandFillColor === 'transparent' || indicator.bandFillColor === '') continue;
       if (indicator.paneId() !== pane.id) continue;
 
@@ -3078,8 +3078,8 @@ class ChartApi implements IChartApi {
       // Use the indicator's own series data layers — these have the correct
       // index-to-x mapping (NaN bars were skipped when building the series,
       // so indices align with the line renderer's indexToX calls)
-      const upperStore = indicator.bandSeries.upper.getDataLayer().store;
-      const lowerStore = indicator.bandSeries.lower.getDataLayer().store;
+      const upperStore = indicator._bandSeries.upper.getDataLayer().store;
+      const lowerStore = indicator._bandSeries.lower.getDataLayer().store;
       const len = Math.min(upperStore.length, lowerStore.length);
       if (len < 2) continue;
 
