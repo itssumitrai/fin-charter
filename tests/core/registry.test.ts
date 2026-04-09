@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   getSeriesRegistration,
   getIndicatorRegistration,
@@ -53,7 +53,7 @@ describe('Series Registry', () => {
 });
 
 describe('Indicator Registry', () => {
-  it('has all 30 indicators registered', () => {
+  it('has all 29 indicators registered', () => {
     const types = getRegisteredIndicatorTypes();
     expect(types.length).toBeGreaterThanOrEqual(29);
 
