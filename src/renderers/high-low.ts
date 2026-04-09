@@ -31,7 +31,7 @@ export class HighLowRenderer {
     const { context: ctx, pixelRatio: pr } = target;
     const { fromIdx, toIdx } = range;
 
-    if (fromIdx >= toIdx || store.length === 0) return;
+    if (fromIdx > toIdx || store.length === 0) return;
 
     const { color, lineWidth } = this._options;
     const lw = lineWidth * pr;

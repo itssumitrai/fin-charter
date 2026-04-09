@@ -71,6 +71,17 @@ series.update({ time, open, high, low, close, volume });`,
     let currentTime = lastBar.time + 86400; // next day
     let currentPrice = lastBar.close;
 
+    const observer = new MutationObserver(() => {
+      if (!wrapper.isConnected) {
+        observer.disconnect();
+        clearInterval(intervalId);
+        chart.remove();
+      }
+    });
+    requestAnimationFrame(() => {
+      if (wrapper.isConnected) observer.observe(document.body, { childList: true, subtree: true });
+    });
+
     const intervalId = setInterval(() => {
       // Clean up when the wrapper is removed from the DOM
       if (!document.contains(wrapper)) {

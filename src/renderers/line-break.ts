@@ -143,7 +143,7 @@ export class LineBreakRenderer {
     const { context: ctx, pixelRatio: pr } = target;
     const { fromIdx, toIdx } = range;
 
-    if (fromIdx >= toIdx || store.length === 0) return;
+    if (fromIdx > toIdx || store.length === 0) return;
 
     const opts = this._options;
     const blocks = this._buildBlocks(store, fromIdx, toIdx);

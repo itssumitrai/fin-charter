@@ -32,21 +32,23 @@ export function computeIchimoku(
     kijun[i] = (highMaxKijun[i] + lowMinKijun[i]) / 2;
   }
 
-  // SenkouA = (Tenkan + Kijun) / 2, shifted AHEAD by kijunPeriod positions
-  // senkouA[i] = computed value at [i - kijunPeriod], for i >= kijunPeriod
+  // SenkouA = (Tenkan + Kijun) / 2, shifted FORWARD by kijunPeriod positions
+  // value computed at bar i is stored at index i + kijunPeriod
   const senkouA = new Float64Array(length).fill(NaN);
-  for (let i = kijunPeriod; i < length; i++) {
-    const src = i - kijunPeriod;
-    const a = (tenkan[src] + kijun[src]) / 2;
-    senkouA[i] = isNaN(a) ? NaN : a;
+  for (let i = 0; i < length; i++) {
+    if (i + kijunPeriod < length) {
+      const a = (tenkan[i] + kijun[i]) / 2;
+      senkouA[i + kijunPeriod] = isNaN(a) ? NaN : a;
+    }
   }
 
-  // SenkouB = (slidingMax(high, senkouPeriod) + slidingMin(low, senkouPeriod)) / 2, also shifted ahead by kijunPeriod
+  // SenkouB = (slidingMax(high, senkouPeriod) + slidingMin(low, senkouPeriod)) / 2, also shifted forward by kijunPeriod
   const senkouB = new Float64Array(length).fill(NaN);
-  for (let i = kijunPeriod; i < length; i++) {
-    const src = i - kijunPeriod;
-    const b = (highMaxSenkou[src] + lowMinSenkou[src]) / 2;
-    senkouB[i] = isNaN(b) ? NaN : b;
+  for (let i = 0; i < length; i++) {
+    if (i + kijunPeriod < length) {
+      const b = (highMaxSenkou[i] + lowMinSenkou[i]) / 2;
+      senkouB[i + kijunPeriod] = isNaN(b) ? NaN : b;
+    }
   }
 
   // Chikou = close shifted BEHIND by kijunPeriod positions

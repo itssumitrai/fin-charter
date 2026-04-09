@@ -103,6 +103,16 @@ chart.subscribeVisibleRangeChange(async (range) => {
       }
     });
 
+    const observer = new MutationObserver(() => {
+      if (!root.isConnected) {
+        observer.disconnect();
+        chart.remove();
+      }
+    });
+    requestAnimationFrame(() => {
+      if (root.isConnected) observer.observe(document.body, { childList: true, subtree: true });
+    });
+
     root.appendChild(loadingEl);
     root.appendChild(container);
     return withDocs(root, {
