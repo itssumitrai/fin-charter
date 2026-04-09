@@ -1176,6 +1176,8 @@ class ChartApi implements IChartApi {
     this._drawingApis.clear();
     this._alertLines.length = 0;
     this._textLabels.length = 0;
+    this._series.length = 0;
+    this._indicators.length = 0;
 
     this._wrapper.remove();
   }
@@ -1695,7 +1697,7 @@ class ChartApi implements IChartApi {
         return { upper: r.upper, middle: r.middle, lower: r.lower };
       }
       case 'vwap':
-        return { value: computeVWAP(high, low, close, volume, len) };
+        return { value: computeVWAP(high, low, close, volume, len, store.time) };
       case 'stochastic': {
         const r = computeStochastic(high, low, close, len, params.kPeriod, params.dPeriod);
         return { k: r.k, d: r.d };
@@ -2129,7 +2131,7 @@ class ChartApi implements IChartApi {
     if (state.panes) {
       for (const paneEntry of state.panes) {
         const pane = this._paneMap.get(paneEntry.id);
-        if (pane && paneEntry.height) {
+        if (pane && paneEntry.height != null) {
           pane.height = paneEntry.height;
         }
       }

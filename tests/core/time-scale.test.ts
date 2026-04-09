@@ -10,9 +10,10 @@ describe('TimeScale', () => {
 
   // ── Visible range ──────────────────────────────────────────────────────────
 
-  it('returns {0,0} when no data or width', () => {
+  it('returns empty range {0,-1} when no data', () => {
     expect(ts.visibleRange()).toEqual({ fromIdx: 0, toIdx: -1 });
     ts.setWidth(500);
+    // With width but no data, still empty
     expect(ts.visibleRange()).toEqual({ fromIdx: 0, toIdx: -1 });
   });
 
