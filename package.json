@@ -17,7 +17,16 @@
     "access": "public",
     "provenance": true
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/series/*.ts",
+    "./src/series.ts",
+    "./src/indicators/registrations.ts",
+    "./src/full.ts",
+    "./dist/series/*.js",
+    "./dist/series.js",
+    "./dist/indicators/registrations.js",
+    "./dist/full.js"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
