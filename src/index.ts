@@ -1,7 +1,11 @@
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 // ─── API layer ──────────────────────────────────────────────────────────────
 export { createChart } from './api/chart-api';
+
+// ─── Registry (modular bundle system) ──────────────────────────────────────
+export { registerSeries, registerIndicator, registerDrawing, registerAll } from './core/registry';
+export type { SeriesRegistration, IndicatorRegistration, DrawingRegistration, ISeriesRenderer } from './core/registry';
 export type {
   IChartApi, IDrawingApi,
   CrosshairMoveCallback, ClickCallback, DblClickCallback,

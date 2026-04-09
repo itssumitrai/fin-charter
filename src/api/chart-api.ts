@@ -39,27 +39,8 @@ import type { ISeriesPrimitive } from '../core/types';
 import { HudManager } from '../ui/hud';
 import type { SettingsField } from '../ui/settings-popup';
 
-import { CandlestickRenderer } from '../renderers/candlestick';
-import { LineRenderer } from '../renderers/line';
-import { AreaRenderer } from '../renderers/area';
-import { BarOHLCRenderer } from '../renderers/bar-ohlc';
-import { BaselineRenderer } from '../renderers/baseline';
-import { HollowCandleRenderer } from '../renderers/hollow-candle';
-import { HistogramRenderer } from '../renderers/histogram';
-import { StepLineRenderer } from '../renderers/step-line';
-import { ColoredLineRenderer } from '../renderers/colored-line';
-import { ColoredMountainRenderer } from '../renderers/colored-mountain';
-import { HLCAreaRenderer } from '../renderers/hlc-area';
-import { HighLowRenderer } from '../renderers/high-low';
-import { ColumnRenderer } from '../renderers/column';
-import { VolumeCandleRenderer } from '../renderers/volume-candle';
-import { BaselineDeltaMountainRenderer } from '../renderers/baseline-delta-mountain';
-import { RenkoRenderer } from '../renderers/renko';
-import { KagiRenderer } from '../renderers/kagi';
-import { LineBreakRenderer } from '../renderers/line-break';
-import { PointFigureRenderer } from '../renderers/point-figure';
-
-import { isWebGLAvailable, CandlestickWebGLRenderer, LineWebGLRenderer, AreaWebGLRenderer } from '../renderers/webgl/index';
+import { getSeriesRegistration, getIndicatorRegistration } from '../core/registry';
+import type { ISeriesRenderer } from '../core/registry';
 
 import {
   exportCSV as exportCSVFn,
@@ -92,44 +73,13 @@ import {
   type IndicatorType,
   type IndicatorOptions,
   DEFAULT_CHART_OPTIONS,
-  DEFAULT_INDICATOR_PARAMS,
-  OVERLAY_INDICATORS,
   DARK_THEME,
   LIGHT_THEME,
   COLORFUL_THEME,
   mergeOptions,
 } from './options';
 
-import { computeSMA } from '../indicators/sma';
-import { computeEMA } from '../indicators/ema';
-import { computeRSI } from '../indicators/rsi';
 import { computeHeikinAshi } from '../transforms/heikin-ashi';
-import { computeMACD } from '../indicators/macd';
-import { computeBollinger } from '../indicators/bollinger';
-import { computeVWAP } from '../indicators/vwap';
-import { computeStochastic } from '../indicators/stochastic';
-import { computeATR } from '../indicators/atr';
-import { computeADX } from '../indicators/adx';
-import { computeOBV } from '../indicators/obv';
-import { computeWilliamsR } from '../indicators/williams-r';
-import { computeIchimoku } from '../indicators/ichimoku';
-import { computeParabolicSAR } from '../indicators/parabolic-sar';
-import { computeKeltner } from '../indicators/keltner';
-import { computeDonchian } from '../indicators/donchian';
-import { computeCCI } from '../indicators/cci';
-import { computePivotPoints } from '../indicators/pivot-points';
-import { computeAroon } from '../indicators/aroon';
-import { computeAwesomeOscillator } from '../indicators/awesome-oscillator';
-import { computeChaikinMF } from '../indicators/chaikin-mf';
-import { computeCoppock } from '../indicators/coppock';
-import { computeElderForce } from '../indicators/elder-force';
-import { computeTRIX } from '../indicators/trix';
-import { computeSupertrend } from '../indicators/supertrend';
-import { computeVWMA } from '../indicators/vwma';
-import { computeChoppiness } from '../indicators/choppiness';
-import { computeMFI } from '../indicators/mfi';
-import { computeROC } from '../indicators/roc';
-import { computeLinearRegression } from '../indicators/linear-regression';
 import type { Periodicity } from '../core/periodicity';
 import { timestampToMinuteOfDay, getSessionForTime } from '../core/market-session';
 import type { MarketSession } from '../core/market-session';
@@ -335,26 +285,7 @@ const LAST_BAR_SNAP = 0.0005;
 
 interface SeriesEntry {
   api: SeriesApi<SeriesType>;
-  renderer:
-    | CandlestickRenderer
-    | LineRenderer
-    | AreaRenderer
-    | BarOHLCRenderer
-    | BaselineRenderer
-    | HollowCandleRenderer
-    | HistogramRenderer
-    | StepLineRenderer
-    | ColoredLineRenderer
-    | ColoredMountainRenderer
-    | HLCAreaRenderer
-    | HighLowRenderer
-    | ColumnRenderer
-    | VolumeCandleRenderer
-    | BaselineDeltaMountainRenderer
-    | RenkoRenderer
-    | KagiRenderer
-    | LineBreakRenderer
-    | PointFigureRenderer;
+  renderer: ISeriesRenderer;
   type: SeriesType;
   paneId: string;
   /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
@@ -495,11 +426,8 @@ class ChartApi implements IChartApi {
   private _lastBarAnims: Map<SeriesApi<SeriesType>, LastBarAnimState> = new Map();
   private _dataChangedCallbacks: Map<SeriesApi<SeriesType>, () => void> = new Map();
 
-  // WebGL rendering
+  // WebGL rendering (currently disabled — renderers use Canvas2D via registry)
   private _useWebGL: boolean = false;
-  private _webglCandlestick: CandlestickWebGLRenderer | null = null;
-  private _webglLine: LineWebGLRenderer | null = null;
-  private _webglArea: AreaWebGLRenderer | null = null;
 
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -533,13 +461,9 @@ class ChartApi implements IChartApi {
     this._paneContainer.style.flexDirection = 'column';
     this._paneContainer.style.width = '100%';
 
-    // Determine WebGL availability
-    this._useWebGL = options.renderer === 'webgl' && isWebGLAvailable();
-    if (this._useWebGL) {
-      this._webglCandlestick = new CandlestickWebGLRenderer();
-      this._webglLine = new LineWebGLRenderer();
-      this._webglArea = new AreaWebGLRenderer();
-    }
+    // WebGL rendering is currently disabled — all series use Canvas2D via the registry.
+    // The _useWebGL flag is preserved for future re-enablement.
+    this._useWebGL = false;
 
     // Create main pane
     const mainPaneHeight = this._height - TIME_AXIS_HEIGHT;
@@ -1164,13 +1088,7 @@ class ChartApi implements IChartApi {
     }
     this._undoRedo.clear();
 
-    // Clean up WebGL renderers
-    this._webglCandlestick?.dispose();
-    this._webglLine?.dispose();
-    this._webglArea?.dispose();
-    this._webglCandlestick = null;
-    this._webglLine = null;
-    this._webglArea = null;
+    // WebGL renderers are currently disabled; nothing to dispose.
 
     this._lastBarAnims.clear();
     this._dataChangedCallbacks.clear();
@@ -1562,8 +1480,9 @@ class ChartApi implements IChartApi {
   addIndicator(type: IndicatorType, options: IndicatorOptions): IIndicatorApi {
     const id = `indicator-${this._nextIndicatorId++}`;
 
-    // 1. Resolve params
-    const defaults = DEFAULT_INDICATOR_PARAMS[type] ?? {};
+    // 1. Resolve params via registry
+    const indReg = getIndicatorRegistration(type);
+    const defaults = indReg?.defaultParams ?? {};
     const params = { ...defaults, ...(options.params ?? {}) };
 
     // 2. Determine pane
@@ -1571,7 +1490,7 @@ class ChartApi implements IChartApi {
     let autoCreatedPaneId: string | null = null;
     if (options.paneId) {
       paneId = options.paneId;
-    } else if (OVERLAY_INDICATORS.has(type)) {
+    } else if (indReg?.overlay ?? false) {
       paneId = this._mainPaneId;
     } else {
       const newPane = this.addPane({ height: 150 });
@@ -1678,96 +1597,11 @@ class ChartApi implements IChartApi {
     store: ColumnStore,
     params: Record<string, number>,
   ): Record<string, Float64Array> {
-    const len = store.length;
-    const close = store.close;
-    const high = store.high;
-    const low = store.low;
-    const volume = store.volume;
-
-    switch (type) {
-      case 'sma':
-        return { value: computeSMA(close, len, params.period) };
-      case 'ema':
-        return { value: computeEMA(close, len, params.period) };
-      case 'rsi':
-        return { value: computeRSI(close, len, params.period) };
-      case 'macd': {
-        const r = computeMACD(close, len, params.fastPeriod, params.slowPeriod, params.signalPeriod);
-        return { macd: r.macd, signal: r.signal, histogram: r.histogram };
-      }
-      case 'bollinger': {
-        const r = computeBollinger(close, len, params.period, params.stdDev);
-        return { upper: r.upper, middle: r.middle, lower: r.lower };
-      }
-      case 'vwap':
-        return { value: computeVWAP(high, low, close, volume, len, store.time) };
-      case 'stochastic': {
-        const r = computeStochastic(high, low, close, len, params.kPeriod, params.dPeriod);
-        return { k: r.k, d: r.d };
-      }
-      case 'atr':
-        return { value: computeATR(high, low, close, len, params.period) };
-      case 'adx': {
-        const r = computeADX(high, low, close, len, params.period);
-        return { adx: r.adx, plusDI: r.plusDI, minusDI: r.minusDI };
-      }
-      case 'obv':
-        return { value: computeOBV(close, volume, len) };
-      case 'williams-r':
-        return { value: computeWilliamsR(high, low, close, len, params.period) };
-      case 'ichimoku': {
-        const r = computeIchimoku(high, low, close, len, params.tenkanPeriod, params.kijunPeriod, params.senkouPeriod);
-        return { tenkan: r.tenkan, kijun: r.kijun, senkouA: r.senkouA, senkouB: r.senkouB, chikou: r.chikou };
-      }
-      case 'parabolic-sar':
-        return { value: computeParabolicSAR(high, low, len, params.afStep, params.afMax) };
-      case 'keltner': {
-        const r = computeKeltner(close, high, low, len, params.emaPeriod, params.atrPeriod, params.multiplier);
-        return { upper: r.upper, middle: r.middle, lower: r.lower };
-      }
-      case 'donchian': {
-        const r = computeDonchian(high, low, len, params.period);
-        return { upper: r.upper, middle: r.middle, lower: r.lower };
-      }
-      case 'cci':
-        return { value: computeCCI(high, low, close, len, params.period) };
-      case 'pivot-points': {
-        const r = computePivotPoints(high, low, close, len);
-        return { pp: r.pp, r1: r.r1, r2: r.r2, r3: r.r3, s1: r.s1, s2: r.s2, s3: r.s3 };
-      }
-      case 'aroon': {
-        const r = computeAroon(high, low, len, params.period ?? 25);
-        return { up: r.up, down: r.down };
-      }
-      case 'awesome-oscillator':
-        return { histogram: computeAwesomeOscillator(high, low, len, params.fastPeriod ?? 5, params.slowPeriod ?? 34) };
-      case 'chaikin-mf':
-        return { value: computeChaikinMF(high, low, close, volume, len, params.period ?? 20) };
-      case 'coppock':
-        return { value: computeCoppock(close, len, params.wmaPeriod ?? 10, params.longROC ?? 14, params.shortROC ?? 11) };
-      case 'elder-force':
-        return { value: computeElderForce(close, volume, len, params.period ?? 13) };
-      case 'trix': {
-        const r = computeTRIX(close, len, params.period ?? 15, params.signalPeriod ?? 9);
-        return { trix: r.trix, signal: r.signal };
-      }
-      case 'supertrend': {
-        const r = computeSupertrend(high, low, close, len, params.period ?? 10, params.multiplier ?? 3);
-        return { value: r.value };
-      }
-      case 'vwma':
-        return { value: computeVWMA(close, volume, len, params.period ?? 20) };
-      case 'choppiness':
-        return { value: computeChoppiness(high, low, close, len, params.period ?? 14) };
-      case 'mfi':
-        return { value: computeMFI(high, low, close, volume, len, params.period ?? 14) };
-      case 'roc':
-        return { value: computeROC(close, len, params.period ?? 12) };
-      case 'linear-regression':
-        return { value: computeLinearRegression(close, len, params.period ?? 20) };
-      default:
-        throw new Error(`Unknown indicator type: ${type}`);
+    const reg = getIndicatorRegistration(type);
+    if (!reg) {
+      throw new Error(`Indicator type "${type}" is not registered. Import and register it first.`);
     }
+    return reg.compute(store, params);
   }
 
   private _createIndicatorSeries(
@@ -1881,30 +1715,9 @@ class ChartApi implements IChartApi {
     type: IndicatorType,
     primaryColor: string,
   ): Record<string, string> {
-    switch (type) {
-      case 'macd':
-        return { macd: '#2962ff', signal: '#ff6d00', histogram: '#00E396' };
-      case 'bollinger':
-        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
-      case 'stochastic':
-        return { k: primaryColor, d: '#ff6d00' };
-      case 'adx':
-        return { adx: primaryColor, plusDI: '#00E396', minusDI: '#FF3B5C' };
-      case 'ichimoku':
-        return { tenkan: '#2962ff', kijun: '#FF3B5C', senkouA: '#00E396', senkouB: '#ee6823', chikou: '#9c27b0' };
-      case 'keltner':
-        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
-      case 'donchian':
-        return { upper: '#42a5f5', middle: primaryColor, lower: '#42a5f5' };
-      case 'pivot-points':
-        return { pp: primaryColor, r1: '#FF3B5C', r2: '#FF3B5C', r3: '#FF3B5C', s1: '#00E396', s2: '#00E396', s3: '#00E396' };
-      case 'aroon':
-        return { up: '#00E396', down: '#FF3B5C' };
-      case 'trix':
-        return { trix: primaryColor, signal: '#ff6d00' };
-      default:
-        return { value: primaryColor };
-    }
+    const reg = getIndicatorRegistration(type);
+    if (reg) return reg.colorMap(primaryColor);
+    return { value: primaryColor };
   }
 
   // ── Feature 6: Comparison Mode ───────────────────────────────────────────
@@ -2839,10 +2652,7 @@ class ChartApi implements IChartApi {
     return true;
   }
 
-  /** Set of series types that have WebGL renderer implementations. */
-  private static readonly _WEBGL_SUPPORTED_TYPES = new Set<SeriesType>([
-    'candlestick', 'heikin-ashi', 'line', 'area',
-  ]);
+  // WebGL renderer types — currently disabled; all series use Canvas2D via registry.
 
   private _drawSeries(
     entry: SeriesEntry,
@@ -2875,102 +2685,8 @@ class ChartApi implements IChartApi {
       }
     }
 
-    // ── WebGL fast path for supported types ──────────────────────────────
-    const pane = this._paneMap.get(entry.paneId);
-    const gl = pane?.canvases.webglCtx ?? null;
-
-    if (gl && this._useWebGL && ChartApi._WEBGL_SUPPORTED_TYPES.has(entry.type)) {
-      const pixelRatio = target.pixelRatio;
-      const w = target.width;
-      const h = target.height;
-
-      switch (entry.type) {
-        case 'candlestick':
-        case 'heikin-ashi':
-          this._webglCandlestick!.applyOptions((entry.renderer as CandlestickRenderer).options());
-          this._webglCandlestick!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY, barWidth);
-          break;
-        case 'line':
-          this._webglLine!.applyOptions((entry.renderer as LineRenderer).options());
-          this._webglLine!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY);
-          break;
-        case 'area':
-          this._webglArea!.applyOptions((entry.renderer as AreaRenderer).options());
-          this._webglArea!.draw(gl, w, h, pixelRatio, store, range, indexToX, priceToY);
-          break;
-      }
-
-      // Restore store if needed
-      if (saved !== null) {
-        store.open[lastIdx] = saved.o;
-        store.high[lastIdx] = saved.h;
-        store.low[lastIdx] = saved.l;
-        store.close[lastIdx] = saved.c;
-      }
-      return;
-    }
-
-    // ── Canvas 2D path ──────────────────────────────────────────────────
-    switch (entry.type) {
-      case 'candlestick':
-      case 'heikin-ashi':
-        (entry.renderer as CandlestickRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'line':
-        (entry.renderer as LineRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'area':
-        (entry.renderer as AreaRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'bar':
-        (entry.renderer as BarOHLCRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'baseline':
-        (entry.renderer as BaselineRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'hollow-candle':
-        (entry.renderer as HollowCandleRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'histogram':
-        (entry.renderer as HistogramRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'step-line':
-        (entry.renderer as StepLineRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'colored-line':
-        (entry.renderer as ColoredLineRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'colored-mountain':
-        (entry.renderer as ColoredMountainRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'hlc-area':
-        (entry.renderer as HLCAreaRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'high-low':
-        (entry.renderer as HighLowRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'column':
-        (entry.renderer as ColumnRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'volume-candle':
-        (entry.renderer as VolumeCandleRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'baseline-delta-mountain':
-        (entry.renderer as BaselineDeltaMountainRenderer).draw(target, store, range, indexToX, priceToY);
-        break;
-      case 'renko':
-        (entry.renderer as RenkoRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'kagi':
-        (entry.renderer as KagiRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'line-break':
-        (entry.renderer as LineBreakRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-      case 'point-figure':
-        (entry.renderer as PointFigureRenderer).draw(target, store, range, indexToX, priceToY, barWidth);
-        break;
-    }
+    // ── Canvas 2D path via registry renderer ─────────────────────────────
+    entry.renderer.draw(target, store, range, indexToX, priceToY, barWidth);
 
     // Restore original store values after rendering
     if (saved !== null) {
@@ -4330,106 +4046,11 @@ class ChartApi implements IChartApi {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: _d, priceScaleId: _p, visible: _v, paneId: _pi, label: _l, ...rendererOpts } = options;
 
-    switch (type) {
-      case 'candlestick':
-      case 'heikin-ashi': {
-        const r = new CandlestickRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'line': {
-        const r = new LineRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'area': {
-        const r = new AreaRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'bar': {
-        const r = new BarOHLCRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'baseline': {
-        const r = new BaselineRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'hollow-candle': {
-        const r = new HollowCandleRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'histogram': {
-        const r = new HistogramRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'step-line': {
-        const r = new StepLineRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'colored-line': {
-        const r = new ColoredLineRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'colored-mountain': {
-        const r = new ColoredMountainRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'hlc-area': {
-        const r = new HLCAreaRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'high-low': {
-        const r = new HighLowRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'column': {
-        const r = new ColumnRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'volume-candle': {
-        const r = new VolumeCandleRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'baseline-delta-mountain': {
-        const r = new BaselineDeltaMountainRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'renko': {
-        const r = new RenkoRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'kagi': {
-        const r = new KagiRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'line-break': {
-        const r = new LineBreakRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      case 'point-figure': {
-        const r = new PointFigureRenderer();
-        if (Object.keys(rendererOpts).length > 0) r.applyOptions(rendererOpts as never);
-        return r;
-      }
-      default:
-        throw new Error(`Unknown series type: ${type}`);
+    const reg = getSeriesRegistration(type);
+    if (!reg) {
+      throw new Error(`Series type "${type}" is not registered. Import and register it first, e.g.:\nimport '@itssumitrai/fin-charter/series/${type}';`);
     }
+    return reg.createRenderer(rendererOpts);
   }
 
   private _getClickState(e: MouseEvent): { x: number; y: number; time: number; price: number } {
