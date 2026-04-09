@@ -32,7 +32,7 @@ const config: StorybookConfig = {
           { find: '@itssumitrai/fin-charter/core/accessibility', replacement: resolve(__dirname, '../src/core/accessibility.ts') },
           { find: '@itssumitrai/fin-charter/core/chart-sync', replacement: resolve(__dirname, '../src/core/chart-sync.ts') },
           { find: '@itssumitrai/fin-charter/core/symbol-resolver', replacement: resolve(__dirname, '../src/core/symbol-resolver.ts') },
-          { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
+          { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/full.ts') },
         ],
       },
     });
