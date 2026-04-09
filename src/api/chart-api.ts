@@ -4048,7 +4048,7 @@ class ChartApi implements IChartApi {
 
     const reg = getSeriesRegistration(type);
     if (!reg) {
-      throw new Error(`Series type "${type}" is not registered. Import and register it first, e.g.:\nimport '@itssumitrai/fin-charter/series/${type}';`);
+      throw new Error(`Series type "${type}" is not registered. Import the series module first, e.g.:\nimport '@itssumitrai/fin-charter/series/candlestick';\nOr use the full bundle: import { createChart } from '@itssumitrai/fin-charter/full';`);
     }
     return reg.createRenderer(rendererOpts);
   }

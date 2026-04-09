@@ -2,8 +2,8 @@
  * Registry system for modular chart components.
  *
  * Renderers, indicators, and drawings register themselves via typed objects.
- * Consumers pass registrations to createChart() so only the code they use
- * ends up in the bundle.
+ * Consumers import registration modules (e.g., '@itssumitrai/fin-charter/series/candlestick')
+ * which auto-register on import. Only imported modules end up in the bundle.
  */
 
 import type { ColumnStore, SeriesType, VisibleRange, IRenderTarget } from './types';
