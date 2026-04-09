@@ -1,5 +1,33 @@
 # @itssumitrai/fin-charter
 
+## 0.4.0
+
+### Minor Changes
+
+- ## Breaking Changes
+  - **Modular bundle architecture**: Series types and indicators must now be registered before use. The core `createChart` no longer bundles all 20 renderers and 30 indicators. Import only what you need for minimal bundles (~15KB gzip), or use `@itssumitrai/fin-charter/full` for the batteries-included experience (~55KB gzip).
+  - **WebGL rendering temporarily disabled**: The WebGL fast path has been removed during the modular refactor. Canvas2D rendering is used for all series types. WebGL will be re-added as an optional registration in a future release.
+
+  ## Migration Guide
+
+  ```ts
+  // Before (v0.3.x)
+  import { createChart } from '@itssumitrai/fin-charter';
+
+  // After — minimal bundle (import only what you need)
+  import { createChart } from '@itssumitrai/fin-charter';
+  import '@itssumitrai/fin-charter/series/candlestick';
+
+  // After — full bundle (all features, backward compatible)
+  import { createChart } from '@itssumitrai/fin-charter/full';
+  ```
+
+  ## New Features
+  - **Y-axis zoom**: Drag up/down on the price axis to zoom in/out vertically. Double-click to reset to auto-scale.
+  - **Registry API**: `registerSeries()`, `registerIndicator()`, `registerDrawing()`, `registerAll()` for programmatic registration of custom or built-in components.
+  - **Individual series entry points**: `@itssumitrai/fin-charter/series/candlestick`, `/series/line`, etc. — import only the chart types you need.
+  - **Full bundle entry point**: `@itssumitrai/fin-charter/full` — registers everything, backward compatible.
+
 ## 0.3.0
 
 ### Minor Changes
