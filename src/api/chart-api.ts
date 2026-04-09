@@ -611,6 +611,9 @@ class ChartApi implements IChartApi {
     this._eventRouter.addHandler(this._panZoomHandler);
     this._eventRouter.attach(mainPane.canvases.overlayCanvas);
 
+    // ── Y-axis zoom (drag on price axis) ─────────────────────────────────
+    this._setupPriceAxisDrag(mainPane);
+
     // ── Undo/Redo keyboard shortcuts ──────────────────────────────────────
     this._handleUndoRedoKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -2269,6 +2272,75 @@ class ChartApi implements IChartApi {
   }
 
   // ── Layout panes ─────────────────────────────────────────────────────
+
+  // ── Y-axis zoom setup ───────────────────────────────────────────────
+
+  private _setupPriceAxisDrag(pane: Pane): void {
+    const setupAxis = (canvas: HTMLCanvasElement, priceScale: PriceScale, key: string) => {
+      let dragging = false;
+      let startY = 0;
+      let startMin = 0;
+      let startMax = 0;
+
+      canvas.style.pointerEvents = 'auto';
+      canvas.style.cursor = 'ns-resize';
+      canvas.style.touchAction = 'none'; // prevent page scroll on touch devices
+
+      const onPointerDown = (e: PointerEvent) => {
+        if (e.button !== 0) return; // only left-click initiates drag
+        dragging = true;
+        startY = e.clientY;
+        const range = priceScale.priceRange;
+        startMin = range.min;
+        startMax = range.max;
+        canvas.setPointerCapture(e.pointerId);
+      };
+
+      const onPointerMove = (e: PointerEvent) => {
+        if (!dragging) return;
+        const dy = e.clientY - startY;
+        const scale = Math.max(0.1, 1 + dy * 0.005);
+        const mid = (startMin + startMax) / 2;
+        let halfSpan = ((startMax - startMin) / 2) * scale;
+        // Clamp for log mode — don't let min go below 0
+        if (priceScale.mode === 'logarithmic' && mid - halfSpan <= 0) {
+          halfSpan = mid - 1e-10;
+        }
+        priceScale.setRange(mid - halfSpan, mid + halfSpan);
+        this.requestRepaint(InvalidationLevel.Full);
+      };
+
+      const resetDrag = () => { dragging = false; };
+
+      const onDblClick = () => {
+        priceScale.resetAutoScale();
+        this.requestRepaint(InvalidationLevel.Full);
+      };
+
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', resetDrag);
+      canvas.addEventListener('pointercancel', resetDrag);
+      canvas.addEventListener('lostpointercapture', resetDrag);
+      canvas.addEventListener('dblclick', onDblClick);
+
+      this._panePointerCleanup.set(`priceaxis-${key}`, () => {
+        canvas.removeEventListener('pointerdown', onPointerDown);
+        canvas.removeEventListener('pointermove', onPointerMove);
+        canvas.removeEventListener('pointerup', resetDrag);
+        canvas.removeEventListener('pointercancel', resetDrag);
+        canvas.removeEventListener('lostpointercapture', resetDrag);
+        canvas.removeEventListener('dblclick', onDblClick);
+      });
+    };
+
+    if (this._options.rightPriceScale.visible) {
+      setupAxis(pane.canvases.rightPriceAxisCanvas, pane.priceScale, 'right');
+    }
+    if (this._options.leftPriceScale.visible) {
+      setupAxis(pane.canvases.leftPriceAxisCanvas, pane.leftPriceScale, 'left');
+    }
+  }
 
   private _layoutPanes(): void {
     const pixelRatio = window.devicePixelRatio || 1;
