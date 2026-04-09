@@ -1,5 +1,43 @@
 # @itssumitrai/fin-charter
 
+## 0.3.0
+
+### Minor Changes
+
+- ## New Features
+  - **Pre/post market visual support** — session background shading (blue for pre-market, orange for post-market), 40% opacity for extended hours bars, three-way session filter (All/Regular/Extended) in toolbar, Yahoo Finance `includePrePost` parameter
+  - **CSS design tokens** — ~70 `--fc-*` CSS variables for theming every series type's colors via CSS. Three-tier priority: explicit JS > CSS variables > built-in defaults. New `refreshCSSTheme()` API. Searchable Storybook reference page.
+  - **Band indicator fills** — Bollinger Bands, Keltner Channel, Donchian Channel, and Ichimoku Cloud now render semi-transparent filled areas between upper/lower bands
+  - **Legend color picker** — Click the color swatch in the OHLC legend to open a native color picker and change series colors instantly
+  - **Bollinger Bands stories** — Three dedicated Storybook stories (chart-managed, manual compute, custom params)
+  - **Replay feature story** — Interactive Storybook story with play/pause/stop, step forward/backward, speed control
+  - **Brighter default colors** — Updated default up/down colors to neon variants (#00E396 green, #FF3B5C red)
+  - **Auto-fit on load** — Charts automatically fit all data to the viewport on first paint
+  - **Screenshot fix** — Screenshots now include the chart's background color (dark mode works correctly)
+  - **Export downloads** — Export story triggers actual file downloads (CSV/SVG/PDF)
+
+  ## Bug Fixes
+  - Fixed comparison series showing wrong symbol in legend
+  - Fixed comparison mode infinite scroll and chart jumping (basis price cache)
+  - Fixed fallback data for intraday intervals (now generates correct-interval bars with market hours)
+  - Fixed infinite scroll regression for intraday fallback data
+  - Fixed band fill alignment with indicator line series
+  - Fixed volume overlay crash when no series exist
+  - Fixed `removePane` leaking subscriptions for ejected series
+  - Fixed single-bar range skipped by all 19 renderers (`fromIdx >= toIdx` → `fromIdx > toIdx`)
+  - Fixed `_getBasisPrice` returning NaN for indicator series in comparison mode
+  - Fixed grid rendering infinite-loop for very small price ranges (capped at 200 iterations)
+  - Fixed VWAP indicator — now resets accumulators at session boundaries
+  - Fixed Supertrend indicator initialization (prevUpper/prevLower)
+  - Fixed Ichimoku cloud shift direction (now shifted forward, not backward)
+  - Fixed `setData(ColumnData)` — now validates equal column lengths
+  - Fixed `visibleRange` returning phantom bar for empty data
+  - Fixed log mode silently disabling when price ≤ 0
+  - Fixed daily fallback data including weekend bars
+  - Fixed `remove()` not clearing all collections (memory leak)
+  - Fixed `importState` ignoring pane heights
+  - Fixed 3 stories missing cleanup on unmount (InfiniteHistory, Pagination, DataChanged)
+
 ## 0.2.0
 
 ### Minor Changes
