@@ -82,6 +82,7 @@ export class PriceScale {
 
     if (!this._initialized) {
       // First call — snap immediately, no animation
+      if (this._mode === 'logarithmic' && minPrice <= 0) minPrice = 1e-10;
       this._min = minPrice;
       this._max = maxPrice;
       this._targetMin = minPrice;
@@ -100,6 +101,9 @@ export class PriceScale {
 
     this._targetMin = minPrice;
     this._targetMax = maxPrice;
+    if (this._mode === 'logarithmic' && this._targetMin <= 0) {
+      this._targetMin = 1e-10;
+    }
     this._animating = true;
   }
 

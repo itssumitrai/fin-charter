@@ -116,7 +116,10 @@ export class TimeScale {
    * leftBorder = rightBorder - width/barSpacing + 1
    */
   visibleRange(): VisibleRange {
-    if (this._dataLength === 0 || this._width === 0) {
+    if (this._dataLength === 0) {
+      return { fromIdx: 0, toIdx: -1 };
+    }
+    if (this._width === 0) {
       return { fromIdx: 0, toIdx: 0 };
     }
 

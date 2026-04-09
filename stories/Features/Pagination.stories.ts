@@ -79,6 +79,7 @@ chart.subscribeVisibleRangeChange(async (range) => {
 
         // Simulate async fetch with a small timeout
         setTimeout(() => {
+          if (!wrapper.isConnected) return;
           const CHUNK = 100;
           const newStartTime = earliestTime - CHUNK * 86400;
           const newBars: Bar[] = generateOHLCV(CHUNK, 120, newStartTime);
@@ -89,6 +90,16 @@ chart.subscribeVisibleRangeChange(async (range) => {
           loading = false;
         }, 300);
       }
+    });
+
+    const observer = new MutationObserver(() => {
+      if (!wrapper.isConnected) {
+        observer.disconnect();
+        chart.remove();
+      }
+    });
+    requestAnimationFrame(() => {
+      if (wrapper.isConnected) observer.observe(document.body, { childList: true, subtree: true });
     });
 
     wrapper.appendChild(statusBar);
