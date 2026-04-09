@@ -1,5 +1,11 @@
 # @itssumitrai/fin-charter
 
+## 0.4.1
+
+### Patch Changes
+
+- Fixed critical bug where bundlers tree-shook away series/indicator registration modules due to `"sideEffects": false` in package.json. Changed to an explicit sideEffects array so registration files are preserved. Added 9 registry tests to prevent regression.
+
 ## 0.4.0
 
 ### Minor Changes
