@@ -23,6 +23,11 @@ export class DataLayer {
     } else {
       // ColumnData — copy into a new ColumnStore
       const len = data.time.length;
+      for (const field of ['open', 'high', 'low', 'close', 'volume'] as const) {
+        if (data[field].length !== len) {
+          throw new Error(`ColumnData field '${field}' has length ${data[field].length}, expected ${len}`);
+        }
+      }
       const capacity = Math.max(Math.ceil(len * 1.5), 2048);
       const store = createColumnStore(capacity);
       store.length = len;

@@ -920,7 +920,10 @@ class ChartApi implements IChartApi {
     }
 
     // Remove series assigned to this pane
-    this._series = this._series.filter((s) => s.paneId !== paneId);
+    const seriesToRemove = this._series.filter(s => s.paneId === paneId);
+    for (const s of seriesToRemove) {
+      this.removeSeries(s.api);
+    }
 
     this._layoutPanes();
     this.requestRepaint(InvalidationLevel.Full);
@@ -1132,10 +1135,6 @@ class ChartApi implements IChartApi {
     for (const cleanup of this._panePointerCleanup.values()) cleanup();
     this._panePointerCleanup.clear();
 
-    // Clean up all indicator pane pointer listeners
-    for (const cleanup of this._panePointerCleanup.values()) cleanup();
-    this._panePointerCleanup.clear();
-
     // Clean up HUDs
     for (const hud of this._huds.values()) hud.destroy();
     this._huds.clear();
@@ -1169,6 +1168,14 @@ class ChartApi implements IChartApi {
     this._webglCandlestick = null;
     this._webglLine = null;
     this._webglArea = null;
+
+    this._lastBarAnims.clear();
+    this._dataChangedCallbacks.clear();
+    this._basisPrices.clear();
+    this._drawings.length = 0;
+    this._drawingApis.clear();
+    this._alertLines.length = 0;
+    this._textLabels.length = 0;
 
     this._wrapper.remove();
   }
@@ -2118,6 +2125,17 @@ class ChartApi implements IChartApi {
       this.setVisibleRange(state.visibleRange.from, state.visibleRange.to);
     }
 
+    // Restore pane heights
+    if (state.panes) {
+      for (const paneEntry of state.panes) {
+        const pane = this._paneMap.get(paneEntry.id);
+        if (pane && paneEntry.height) {
+          pane.height = paneEntry.height;
+        }
+      }
+      this._layoutPanes();
+    }
+
     this.requestRepaint(InvalidationLevel.Full);
   }
 
@@ -2219,7 +2237,8 @@ class ChartApi implements IChartApi {
     }
     const store = entry.api.getDataLayer().store;
     const fromIdx = Math.max(0, Math.min(range.fromIdx, store.length - 1));
-    const basis = store.close[fromIdx] ?? 0;
+    const raw = store.close[fromIdx];
+    const basis = (raw == null || isNaN(raw) || raw === 0) ? 1 : raw;
     this._basisPrices.set(entry.api, basis);
     return basis;
   }
@@ -2554,7 +2573,7 @@ class ChartApi implements IChartApi {
       ? (() => {
           const basis = this._getBasisPrice(primaryEntryForPane, range);
           return (price: number) => {
-            const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+            const pct = ((price - basis) / basis) * 100;
             return pane.priceScale.priceToY(pct);
           };
         })()
@@ -2594,7 +2613,7 @@ class ChartApi implements IChartApi {
       if (this._comparisonMode) {
         const basis = this._getBasisPrice(entry, range);
         priceToY = (price: number) => {
-          const pct = basis === 0 ? 0 : ((price - basis) / basis) * 100;
+          const pct = ((price - basis) / basis) * 100;
           return pane.priceScale.priceToY(pct);
         };
       } else {
@@ -3203,7 +3222,8 @@ class ChartApi implements IChartApi {
     const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
-    for (let price = firstPrice; price <= priceRange.max; price += step) {
+    let gridSteps = 0;
+    for (let price = firstPrice; price <= priceRange.max && gridSteps < 200; price += step, gridSteps++) {
       const y = Math.round(pane.priceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 
@@ -3241,7 +3261,7 @@ class ChartApi implements IChartApi {
         if (this._comparisonMode) {
           const range = this._timeScale.visibleRange();
           const basis = this._getBasisPrice(primaryEntry, range);
-          const pct = basis === 0 ? 0 : ((lastClose - basis) / basis) * 100;
+          const pct = ((lastClose - basis) / basis) * 100;
           labelY = Math.round(pane.priceScale.priceToY(pct) * pixelRatio);
           priceText = formatAxisLabel(pct);
         } else {
@@ -3295,7 +3315,7 @@ class ChartApi implements IChartApi {
         const primaryEntry = this._series[0];
         const range = this._timeScale.visibleRange();
         const basis = this._getBasisPrice(primaryEntry, range);
-        const pct = basis === 0 ? 0 : ((this._crosshair.price - basis) / basis) * 100;
+        const pct = ((this._crosshair.price - basis) / basis) * 100;
         priceText = formatAxisLabel(pct);
       } else {
         priceText = this._formatPrice(this._crosshair.price);
@@ -3426,8 +3446,8 @@ class ChartApi implements IChartApi {
         const basis = this._getBasisPrice(entry, range);
         for (let i = range.fromIdx; i <= to; i++) {
           if (!this._isBarVisibleForFilter(store, i)) continue;
-          const loPct = basis === 0 ? 0 : ((store.low[i] - basis) / basis) * 100;
-          const hiPct = basis === 0 ? 0 : ((store.high[i] - basis) / basis) * 100;
+          const loPct = ((store.low[i] - basis) / basis) * 100;
+          const hiPct = ((store.high[i] - basis) / basis) * 100;
           if (isLeft) {
             if (loPct < leftMin) leftMin = loPct;
             if (hiPct > leftMax) leftMax = hiPct;
@@ -3528,6 +3548,7 @@ class ChartApi implements IChartApi {
     range: VisibleRange,
     pixelRatio: number,
   ): void {
+    if (this._series.length === 0) return;
     const volOpts = this._options.volume;
 
     // Gather volume data from all visible series (use primary for OHLC coloring)
@@ -4091,7 +4112,8 @@ class ChartApi implements IChartApi {
     const labelHeight = Math.round(layout.fontSize * 1.6 * pixelRatio);
 
     const firstPrice = Math.ceil(priceRange.min / step) * step;
-    for (let price = firstPrice; price <= priceRange.max; price += step) {
+    let gridSteps = 0;
+    for (let price = firstPrice; price <= priceRange.max && gridSteps < 200; price += step, gridSteps++) {
       const y = Math.round(pane.leftPriceScale.priceToY(price) * pixelRatio);
       if (y < labelHeight / 2 || y > Math.round(chartH * pixelRatio) - labelHeight / 2) continue;
 

@@ -100,6 +100,9 @@ export class PriceScale {
 
     this._targetMin = minPrice;
     this._targetMax = maxPrice;
+    if (this._mode === 'logarithmic' && this._targetMin <= 0) {
+      this._targetMin = 1e-10;
+    }
     this._animating = true;
   }
 

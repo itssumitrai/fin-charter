@@ -3,7 +3,8 @@ export function computeVWAP(
   low: Float64Array,
   close: Float64Array,
   volume: Float64Array,
-  length: number
+  length: number,
+  time?: Float64Array
 ): Float64Array {
   const result = new Float64Array(length);
 
@@ -11,6 +12,12 @@ export function computeVWAP(
   let cumulativeVol = 0;
 
   for (let i = 0; i < length; i++) {
+    // Reset VWAP at session boundaries (gap > 6 hours between bars)
+    if (i > 0 && time && (time[i] - time[i - 1]) > 21600) {
+      cumulativeTPV = 0;
+      cumulativeVol = 0;
+    }
+
     const typicalPrice = (high[i] + low[i] + close[i]) / 3;
     cumulativeTPV += typicalPrice * volume[i];
     cumulativeVol += volume[i];

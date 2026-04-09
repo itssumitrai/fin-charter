@@ -464,8 +464,14 @@ function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]
     }
   } else {
     // Non-intraday: simple linear generation
-    for (let i = 0; i < count; i++) {
+    let barIndex = 0;
+    for (let i = 0; barIndex < count; i++) {
       const time = start + i * intervalSec;
+      // Skip weekends for daily data
+      if (intervalSec === ONE_DAY) {
+        const dow = new Date(time * 1000).getUTCDay();
+        if (dow === 0 || dow === 6) continue;
+      }
       const change = price * (Math.random() * 0.04 - 0.02);
       const open = price;
       const close = Math.max(0.01, price + change);
@@ -474,6 +480,7 @@ function generateFallbackData(symbol: string, key: string = '1D'): { bars: Bar[]
       const volume = Math.round(1e6 + Math.random() * 9e6);
       bars.push({ time, open, high, low, close, volume });
       price = close;
+      barIndex++;
     }
   }
 

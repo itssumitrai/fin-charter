@@ -117,7 +117,7 @@ export class TimeScale {
    */
   visibleRange(): VisibleRange {
     if (this._dataLength === 0 || this._width === 0) {
-      return { fromIdx: 0, toIdx: 0 };
+      return { fromIdx: 0, toIdx: -1 };
     }
 
     const barsInView = this._width / this._barSpacing;

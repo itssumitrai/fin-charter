@@ -11,6 +11,10 @@ export function computeSupertrend(high: Float64Array, low: Float64Array, close: 
     const mid = (high[i] + low[i]) / 2;
     let upper = mid + multiplier * atr[i];
     let lower = mid - multiplier * atr[i];
+    if (i === period) {
+      prevUpper = upper;
+      prevLower = lower;
+    }
     if (i > period) {
       if (!(lower > prevLower || close[i - 1] < prevLower)) lower = prevLower;
       if (!(upper < prevUpper || close[i - 1] > prevUpper)) upper = prevUpper;
