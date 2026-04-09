@@ -13,7 +13,7 @@ export default defineConfig({
       { find: '@itssumitrai/fin-charter/timezone', replacement: resolve(__dirname, '../src/timezone/index.ts') },
       { find: '@itssumitrai/fin-charter/currency', replacement: resolve(__dirname, '../src/currency/index.ts') },
       { find: '@itssumitrai/fin-charter/i18n', replacement: resolve(__dirname, '../src/i18n/index.ts') },
-      { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/index.ts') },
+      { find: '@itssumitrai/fin-charter', replacement: resolve(__dirname, '../src/full.ts') },
     ],
   },
   server: {

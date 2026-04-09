@@ -26,6 +26,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./full": {
+      "types": "./dist/full.d.ts",
+      "import": "./dist/full.js"
+    },
+    "./series": {
+      "types": "./dist/series/index.d.ts",
+      "import": "./dist/series/index.js"
+    },
+    "./series/*": {
+      "types": "./dist/series/*.d.ts",
+      "import": "./dist/series/*.js"
+    },
     "./indicators": {
       "types": "./dist/indicators/index.d.ts",
       "import": "./dist/indicators/index.js"
