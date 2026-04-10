@@ -2591,32 +2591,39 @@ class ChartApi implements IChartApi {
       ctx.stroke();
       ctx.restore();
 
-      // Pulse dot at the last data point — shows a breathing/pulsing circle
-      // that indicates live/streaming data
-      const pulsePhase = (performance.now() % 1500) / 1500; // 1.5s cycle
-      const pulseScale = 1 + pulsePhase * 2; // radius grows 1x → 3x
-      const pulseAlpha = 1 - pulsePhase; // opacity fades 1 → 0
+      // Pulse dot at the last data point — only when the last bar is visible
+      // and was recently updated (streaming active)
+      const lastBarVisible = lastIdx >= range.fromIdx && lastIdx <= range.toIdx;
+      const hasRecentAnim = this._lastBarAnims.size > 0;
+      if (lastBarVisible) {
+        const pulsePhase = (performance.now() % 1500) / 1500; // 1.5s cycle
 
-      ctx.save();
-      // Outer pulsing ring
-      const outerRadius = 4 * pixelRatio * pulseScale;
-      ctx.beginPath();
-      ctx.arc(lastX, lastY, outerRadius, 0, Math.PI * 2);
-      ctx.fillStyle = lineColor;
-      ctx.globalAlpha = pulseAlpha * 0.3;
-      ctx.fill();
+        ctx.save();
 
-      // Solid inner dot
-      const innerRadius = 3 * pixelRatio;
-      ctx.beginPath();
-      ctx.arc(lastX, lastY, innerRadius, 0, Math.PI * 2);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = lineColor;
-      ctx.fill();
-      ctx.restore();
+        // Outer pulsing ring (stroke, not fill)
+        if (hasRecentAnim) {
+          const pulseScale = 1 + pulsePhase * 2;
+          const pulseAlpha = 1 - pulsePhase;
+          const outerRadius = 4 * pixelRatio * pulseScale;
+          ctx.beginPath();
+          ctx.arc(lastX, lastY, outerRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = lineColor;
+          ctx.lineWidth = 1.5 * pixelRatio;
+          ctx.globalAlpha = pulseAlpha * 0.5;
+          ctx.stroke();
+          // Keep animation running while streaming
+          this._pulseActive = true;
+        }
 
-      // Keep animation running for continuous pulse
-      this._pulseActive = true;
+        // Solid inner dot (always visible when last bar is on screen)
+        const innerRadius = 3 * pixelRatio;
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, innerRadius, 0, Math.PI * 2);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = lineColor;
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     ctx.restore();
