@@ -429,6 +429,9 @@ class ChartApi implements IChartApi {
   // WebGL rendering (currently disabled — renderers use Canvas2D via registry)
   private _useWebGL: boolean = false;
 
+  // Pulse dot animation at the last data point
+  private _pulseActive: boolean = false;
+
   private get _chartWidth(): number {
     const leftScaleW = this._options.leftPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
     const rightScaleW = this._options.rightPriceScale.visible ? PRICE_AXIS_WIDTH : 0;
@@ -2334,6 +2337,11 @@ class ChartApi implements IChartApi {
     for (const anim of this._lastBarAnims.values()) {
       if (anim.animating) return true;
     }
+    // Pulse dot animation runs continuously when data is visible
+    if (this._pulseActive) {
+      this._pulseActive = false; // reset — will be re-set in next paint if still visible
+      return true;
+    }
     return false;
   }
 
@@ -2559,17 +2567,20 @@ class ChartApi implements IChartApi {
       }
     }
 
-    // Last close price line (main pane only)
+    // Last close price line + pulse dot (main pane only)
     if (isMain && this._options.lastPriceLine.visible && primaryStore && primaryStore.length > 0) {
-      const lastClose = primaryStore.close[primaryStore.length - 1];
-      const lastOpen = primaryStore.open[primaryStore.length - 1];
+      const lastIdx = primaryStore.length - 1;
+      const lastClose = primaryStore.close[lastIdx];
+      const lastOpen = primaryStore.open[lastIdx];
       const isUp = lastClose >= lastOpen;
       const lpDefaults = this._cssSeriesDefaults.lastPriceLine;
       const lineColor = isUp
         ? (lpDefaults?.upColor ?? '#00E396')
         : (lpDefaults?.downColor ?? '#FF3B5C');
       const lastY = Math.round(primaryPriceToY(lastClose) * pixelRatio);
+      const lastX = Math.round(indexToX(lastIdx) * pixelRatio);
 
+      // Dashed price line
       ctx.save();
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = pixelRatio;
@@ -2579,6 +2590,33 @@ class ChartApi implements IChartApi {
       ctx.lineTo(Math.round(chartW * pixelRatio), lastY);
       ctx.stroke();
       ctx.restore();
+
+      // Pulse dot at the last data point — shows a breathing/pulsing circle
+      // that indicates live/streaming data
+      const pulsePhase = (performance.now() % 1500) / 1500; // 1.5s cycle
+      const pulseScale = 1 + pulsePhase * 2; // radius grows 1x → 3x
+      const pulseAlpha = 1 - pulsePhase; // opacity fades 1 → 0
+
+      ctx.save();
+      // Outer pulsing ring
+      const outerRadius = 4 * pixelRatio * pulseScale;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, outerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = lineColor;
+      ctx.globalAlpha = pulseAlpha * 0.3;
+      ctx.fill();
+
+      // Solid inner dot
+      const innerRadius = 3 * pixelRatio;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, innerRadius, 0, Math.PI * 2);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = lineColor;
+      ctx.fill();
+      ctx.restore();
+
+      // Keep animation running for continuous pulse
+      this._pulseActive = true;
     }
 
     ctx.restore();
