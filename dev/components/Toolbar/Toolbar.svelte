@@ -6,6 +6,7 @@
   import DrawingToolbar from './DrawingToolbar.svelte';
   import CompareButton from './CompareButton.svelte';
   import SessionFilter from './SessionFilter.svelte';
+  import RangeSelector from './RangeSelector.svelte';
   import TimezoneSelector from './TimezoneSelector.svelte';
   import UtilityButtons from './UtilityButtons.svelte';
 
@@ -27,6 +28,8 @@
   <DrawingToolbar />
   <CompareButton />
   <SessionFilter />
+  <div class="sep"></div>
+  <RangeSelector />
   <div class="spacer"></div>
   <TimezoneSelector />
   <UtilityButtons {onfullscreen} {onscreenshot} {onsettings} />

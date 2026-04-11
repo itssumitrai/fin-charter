@@ -141,3 +141,5 @@ vite.config.ts.timestamp-*
 # Storybook build output
 storybook-static/
 .superpowers/
+.playwright-mcp/
+*.png

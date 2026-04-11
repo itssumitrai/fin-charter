@@ -175,6 +175,7 @@
     });
 
     chart = c;
+    chartContext.chartApi = c;
     mainSeries = createSeries(c, appStore.chartType);
     prevChartType = appStore.chartType;
     prevSymbol = appStore.symbol;
@@ -407,6 +408,7 @@
     // Invalidate in-flight requests so they don't touch removed chart
     ++loadRequestId;
     chart?.remove();
+    chartContext.chartApi = null;
     chart = undefined;
     mainSeries = undefined;
   });
