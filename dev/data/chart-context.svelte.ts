@@ -105,8 +105,14 @@ let _context = $state<ChartContextConfig>({ ...DEFAULT_CHART_CONTEXT });
  * Reactive chart context. Read properties directly; the AdvancedChart
  * component uses `$effect` to react to changes.
  */
+let _chartApi: import('@itssumitrai/fin-charter').IChartApi | null = $state(null);
+
 export const chartContext = {
   get config() { return _context; },
+
+  /** The active chart API instance (set by AdvancedChart after creation). */
+  get chartApi() { return _chartApi; },
+  set chartApi(api: import('@itssumitrai/fin-charter').IChartApi | null) { _chartApi = api; },
 
   get symbol() { return _context.symbol; },
   get chartType() { return _context.chartType; },
