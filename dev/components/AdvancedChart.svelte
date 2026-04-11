@@ -10,6 +10,7 @@
   import Toolbar from './Toolbar/Toolbar.svelte';
   import Sidebar from './Sidebar/Sidebar.svelte';
   import StatusBar from './StatusBar/StatusBar.svelte';
+  import Navigator from './Navigator.svelte';
 
   let containerEl: HTMLDivElement | undefined = $state(undefined);
   let chart: IChartApi | undefined = $state(undefined);
@@ -428,6 +429,7 @@
     <Sidebar />
   </div>
 
+  <Navigator />
   <StatusBar />
 </div>
 
