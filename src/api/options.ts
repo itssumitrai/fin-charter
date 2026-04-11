@@ -64,8 +64,30 @@ export interface LastPriceLineOptions {
   visible: boolean;
 }
 
+/** Data passed to custom tooltip formatters. */
+export interface TooltipData {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  /** Formatted date string. */
+  dateStr: string;
+  /** Whether close >= open. */
+  isUp: boolean;
+  /** Bar index in the data store. */
+  barIndex: number;
+}
+
 export interface TooltipOptions {
   enabled: boolean;
+  /**
+   * Custom tooltip formatter. Return an HTML string or HTMLElement.
+   * When provided, replaces the default OHLCV tooltip content.
+   * The tooltip container (positioning, background) is still managed by the chart.
+   */
+  formatter?: (data: TooltipData) => string | HTMLElement;
 }
 
 export interface WatermarkOptions {
