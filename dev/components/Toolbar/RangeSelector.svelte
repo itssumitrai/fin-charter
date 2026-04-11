@@ -1,25 +1,25 @@
 <script lang="ts">
   import { chartContext } from '../../data/chart-context.svelte.ts';
 
-  interface Range {
+  interface RangePreset {
     label: string;
-    days: number | 'ytd' | 'all';
+    value: number | 'ytd' | 'all';
   }
 
-  const ranges: Range[] = [
-    { label: '1D', days: 1 },
-    { label: '1W', days: 7 },
-    { label: '1M', days: 30 },
-    { label: '3M', days: 90 },
-    { label: '6M', days: 180 },
-    { label: '1Y', days: 365 },
-    { label: 'YTD', days: 'ytd' },
-    { label: 'All', days: 'all' },
+  const ranges: RangePreset[] = [
+    { label: '1D', value: 1 },
+    { label: '1W', value: 7 },
+    { label: '1M', value: 30 },
+    { label: '3M', value: 90 },
+    { label: '6M', value: 180 },
+    { label: '1Y', value: 365 },
+    { label: 'YTD', value: 'ytd' },
+    { label: 'All', value: 'all' },
   ];
 
   let activeRange = $state<string>('');
 
-  function selectRange(range: Range) {
+  function selectRange(range: RangePreset) {
     const chart = chartContext.chartApi;
     if (!chart) return;
 
@@ -27,20 +27,20 @@
 
     const now = Math.floor(Date.now() / 1000);
 
-    if (range.days === 'all') {
+    if (range.value === 'all') {
       chart.fitContent();
       return;
     }
 
-    if (range.days === 'ytd') {
-      // YTD: from Jan 1 of current year to now
-      const jan1 = new Date(new Date().getFullYear(), 0, 1);
-      const from = Math.floor(jan1.getTime() / 1000);
-      chart.setVisibleRange(from, now);
+    if (range.value === 'ytd') {
+      // YTD: from Jan 1 of current year (UTC) to now
+      const year = new Date().getUTCFullYear();
+      const jan1UTC = Date.UTC(year, 0, 1) / 1000;
+      chart.setVisibleRange(jan1UTC, now);
       return;
     }
 
-    const from = now - range.days * 86400;
+    const from = now - range.value * 86400;
     chart.setVisibleRange(from, now);
   }
 </script>
