@@ -147,6 +147,7 @@ export type {
   BaseSeriesOptions,
   SeriesOptionsMap,
   TooltipOptions,
+  TooltipData,
   WatermarkOptions,
   VolumeOverlayOptions,
   PriceScaleOptions,

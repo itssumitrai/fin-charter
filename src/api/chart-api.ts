@@ -3663,13 +3663,31 @@ class ChartApi implements IChartApi {
       const isUp = c >= o;
       const color = isUp ? '#00E396' : '#FF3B5C';
 
-      this._tooltipDateEl.textContent = dateStr;
-      this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
-      this._tooltipOHEl.style.color = color;
-      this._tooltipLCEl.textContent = `L ${this._formatPrice(l)} C ${this._formatPrice(c)}`;
-      this._tooltipLCEl.style.color = color;
-      this._tooltipVEl.textContent = `V ${formatVolume(v, this._options.locale)}`;
-      this._tooltipVEl.style.color = '#999';
+      // Use custom formatter if provided, otherwise default OHLCV template
+      if (this._options.tooltip.formatter) {
+        const tooltipData = { time: timestamp, open: o, high: h, low: l, close: c, volume: v, dateStr, isUp, barIndex: idx };
+        const result = this._options.tooltip.formatter(tooltipData);
+        // Clear default child elements
+        this._tooltipDateEl.textContent = '';
+        this._tooltipOHEl.textContent = '';
+        this._tooltipLCEl.textContent = '';
+        this._tooltipVEl.textContent = '';
+        if (result instanceof HTMLElement) {
+          // Safe: consumer constructs the DOM themselves
+          this._tooltipDateEl.replaceChildren(result);
+        } else {
+          // Plain text — safe, no HTML injection
+          this._tooltipDateEl.textContent = String(result);
+        }
+      } else {
+        this._tooltipDateEl.textContent = dateStr;
+        this._tooltipOHEl.textContent = `O ${this._formatPrice(o)} H ${this._formatPrice(h)}`;
+        this._tooltipOHEl.style.color = color;
+        this._tooltipLCEl.textContent = `L ${this._formatPrice(l)} C ${this._formatPrice(c)}`;
+        this._tooltipLCEl.style.color = color;
+        this._tooltipVEl.textContent = `V ${formatVolume(v, this._options.locale)}`;
+        this._tooltipVEl.style.color = '#999';
+      }
 
       // Re-measure cached dimensions only when content changes
       this._tooltipWidth = this._tooltipEl.offsetWidth || 140;
