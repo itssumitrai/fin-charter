@@ -1,0 +1,517 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - banner "Storybook" [ref=e6]:
+      - heading "Storybook" [level=1] [ref=e7]
+      - img
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - link "Skip to content" [ref=e14] [cursor=pointer]:
+              - /url: "#storybook-preview-wrapper"
+            - link "fin-charter" [ref=e16] [cursor=pointer]:
+              - /url: /
+              - img "fin-charter" [ref=e17]
+            - switch "Settings" [ref=e18] [cursor=pointer]:
+              - img [ref=e19]
+          - generic [ref=e24]:
+            - generic [ref=e26] [cursor=pointer]:
+              - button "Open onboarding guide" [ref=e30]:
+                - img [ref=e32]
+                - strong [ref=e34]: Get started
+              - generic [ref=e35]:
+                - button "Collapse onboarding guide" [expanded] [ref=e36]:
+                  - img [ref=e37]
+                - button "0% completed" [ref=e39]:
+                  - generic [ref=e40]:
+                    - img [ref=e41]
+                    - img [ref=e43]
+                  - generic [ref=e46]: 0%
+            - list [ref=e48]:
+              - listitem [ref=e49]:
+                - button "Open onboarding guide for Render your first component" [ref=e50] [cursor=pointer]:
+                  - img [ref=e52]
+                  - generic [ref=e55]: Render your first component
+              - listitem [ref=e56]:
+                - button "Open onboarding guide for Change a story with Controls" [ref=e57] [cursor=pointer]:
+                  - img [ref=e59]
+                  - generic [ref=e62]: Change a story with Controls
+              - listitem [ref=e63]:
+                - button "Open onboarding guide for Install Vitest addon" [ref=e64] [cursor=pointer]:
+                  - img [ref=e66]
+                  - generic [ref=e69]: Install Vitest addon
+        - generic [ref=e70]: Search for components
+        - search [ref=e71]:
+          - combobox "Search for components" [ref=e72]:
+            - generic:
+              - img
+            - searchbox "Search for components" [ref=e73]
+            - code:
+              - generic: ⌘
+              - text: K
+            - button "Tag filters" [ref=e75] [cursor=pointer]:
+              - img [ref=e76]
+        - navigation "Stories" [ref=e79]:
+          - heading "Stories" [level=2] [ref=e80]
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - button "Collapse" [expanded] [ref=e84] [cursor=pointer]:
+                - img [ref=e86]
+                - text: Docs
+              - button "Expand all" [ref=e88] [cursor=pointer]:
+                - img [ref=e89]
+            - link "Accessibility" [ref=e92] [cursor=pointer]:
+              - /url: /?path=/docs/docs-accessibility--docs
+              - img [ref=e94]
+              - text: Accessibility
+            - link "API Reference" [ref=e97] [cursor=pointer]:
+              - /url: /?path=/docs/docs-api-reference--docs
+              - img [ref=e99]
+              - text: API Reference
+            - link "CSS Design Tokens" [ref=e102] [cursor=pointer]:
+              - /url: /?path=/docs/docs-css-design-tokens--docs
+              - img [ref=e104]
+              - text: CSS Design Tokens
+            - link "CSS Theming" [ref=e107] [cursor=pointer]:
+              - /url: /?path=/docs/docs-css-theming--docs
+              - img [ref=e109]
+              - text: CSS Theming
+            - link "Chart Sync" [ref=e112] [cursor=pointer]:
+              - /url: /?path=/docs/docs-chart-sync--docs
+              - img [ref=e114]
+              - text: Chart Sync
+            - link "Custom Indicators" [ref=e117] [cursor=pointer]:
+              - /url: /?path=/docs/docs-custom-indicators--docs
+              - img [ref=e119]
+              - text: Custom Indicators
+            - link "Data Feed" [ref=e122] [cursor=pointer]:
+              - /url: /?path=/docs/docs-data-feed--docs
+              - img [ref=e124]
+              - text: Data Feed
+            - link "Data Integration" [ref=e127] [cursor=pointer]:
+              - /url: /?path=/docs/docs-data-integration--docs
+              - img [ref=e129]
+              - text: Data Integration
+            - link "Drawing Tools" [ref=e132] [cursor=pointer]:
+              - /url: /?path=/docs/docs-drawing-tools--docs
+              - img [ref=e134]
+              - text: Drawing Tools
+            - link "Getting Started" [ref=e137] [cursor=pointer]:
+              - /url: /?path=/docs/docs-getting-started--docs
+              - img [ref=e139]
+              - text: Getting Started
+            - link "Indicators" [ref=e142] [cursor=pointer]:
+              - /url: /?path=/docs/docs-indicators--docs
+              - img [ref=e144]
+              - text: Indicators
+            - link "Performance" [ref=e147] [cursor=pointer]:
+              - /url: /?path=/docs/docs-performance--docs
+              - img [ref=e149]
+              - text: Performance
+            - link "Plugin System" [ref=e152] [cursor=pointer]:
+              - /url: /?path=/docs/docs-plugin-system--docs
+              - img [ref=e154]
+              - text: Plugin System
+            - link "Plugins" [ref=e157] [cursor=pointer]:
+              - /url: /?path=/docs/docs-plugins--docs
+              - img [ref=e159]
+              - text: Plugins
+            - link "RTL Support" [ref=e162] [cursor=pointer]:
+              - /url: /?path=/docs/docs-rtl-support--docs
+              - img [ref=e164]
+              - text: RTL Support
+            - link "Replay Mode" [ref=e167] [cursor=pointer]:
+              - /url: /?path=/docs/docs-replay-mode--docs
+              - img [ref=e169]
+              - text: Replay Mode
+            - link "Storage Adapters" [ref=e172] [cursor=pointer]:
+              - /url: /?path=/docs/docs-storage-adapters--docs
+              - img [ref=e174]
+              - text: Storage Adapters
+            - link "Symbol Resolver" [ref=e177] [cursor=pointer]:
+              - /url: /?path=/docs/docs-symbol-resolver--docs
+              - img [ref=e179]
+              - text: Symbol Resolver
+            - link "Touch Gestures" [ref=e182] [cursor=pointer]:
+              - /url: /?path=/docs/docs-touch-gestures--docs
+              - img [ref=e184]
+              - text: Touch Gestures
+            - link "Trading Primitives" [ref=e187] [cursor=pointer]:
+              - /url: /?path=/docs/docs-trading-primitives--docs
+              - img [ref=e189]
+              - text: Trading Primitives
+            - link "Volume Profile" [ref=e192] [cursor=pointer]:
+              - /url: /?path=/docs/docs-volume-profile--docs
+              - img [ref=e194]
+              - text: Volume Profile
+            - generic [ref=e196]:
+              - button "Collapse" [expanded] [ref=e197] [cursor=pointer]:
+                - img [ref=e199]
+                - text: Advanced Chart
+              - button "Expand all" [ref=e201] [cursor=pointer]:
+                - img [ref=e202]
+            - button "Full Application" [ref=e205] [cursor=pointer]:
+              - generic [ref=e206]:
+                - img [ref=e208]
+                - img [ref=e210]
+              - text: Full Application
+            - generic [ref=e212]:
+              - button "Collapse" [expanded] [ref=e213] [cursor=pointer]:
+                - img [ref=e215]
+                - text: Chart Types
+              - button "Expand all" [ref=e217] [cursor=pointer]:
+                - img [ref=e218]
+            - button "All Chart Types" [ref=e221] [cursor=pointer]:
+              - generic [ref=e222]:
+                - img [ref=e224]
+                - img [ref=e226]
+              - text: All Chart Types
+            - button "Area" [ref=e229] [cursor=pointer]:
+              - generic [ref=e230]:
+                - img [ref=e232]
+                - img [ref=e234]
+              - text: Area
+            - button "OHLC Bar" [ref=e237] [cursor=pointer]:
+              - generic [ref=e238]:
+                - img [ref=e240]
+                - img [ref=e242]
+              - text: OHLC Bar
+            - button "Baseline" [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]:
+                - img [ref=e248]
+                - img [ref=e250]
+              - text: Baseline
+            - button "Candlestick" [ref=e253] [cursor=pointer]:
+              - generic [ref=e254]:
+                - img [ref=e256]
+                - img [ref=e258]
+              - text: Candlestick
+            - button "Hollow Candle" [ref=e261] [cursor=pointer]:
+              - generic [ref=e262]:
+                - img [ref=e264]
+                - img [ref=e266]
+              - text: Hollow Candle
+            - button "Line" [ref=e269] [cursor=pointer]:
+              - generic [ref=e270]:
+                - img [ref=e272]
+                - img [ref=e274]
+              - text: Line
+            - button "Extended" [ref=e277] [cursor=pointer]:
+              - generic [ref=e278]:
+                - img [ref=e280]
+                - img [ref=e282]
+              - text: Extended
+            - generic [ref=e284]:
+              - button "Collapse" [expanded] [ref=e285] [cursor=pointer]:
+                - img [ref=e287]
+                - text: Customization
+              - button "Expand all" [ref=e289] [cursor=pointer]:
+                - img [ref=e290]
+            - button "Custom Fonts" [ref=e293] [cursor=pointer]:
+              - generic [ref=e294]:
+                - img [ref=e296]
+                - img [ref=e298]
+              - text: Custom Fonts
+            - button "Dual Price Scales" [ref=e301] [cursor=pointer]:
+              - generic [ref=e302]:
+                - img [ref=e304]
+                - img [ref=e306]
+              - text: Dual Price Scales
+            - button "Price Formatter" [ref=e309] [cursor=pointer]:
+              - generic [ref=e310]:
+                - img [ref=e312]
+                - img [ref=e314]
+              - text: Price Formatter
+            - button "Themes" [ref=e317] [cursor=pointer]:
+              - generic [ref=e318]:
+                - img [ref=e320]
+                - img [ref=e322]
+              - text: Themes
+            - generic [ref=e324]:
+              - button "Collapse" [expanded] [ref=e325] [cursor=pointer]:
+                - img [ref=e327]
+                - text: Drawing Tools
+              - button "Expand all" [ref=e329] [cursor=pointer]:
+                - img [ref=e330]
+            - button "Advanced" [ref=e333] [cursor=pointer]:
+              - generic [ref=e334]:
+                - img [ref=e336]
+                - img [ref=e338]
+              - text: Advanced
+            - button "Basic" [ref=e341] [cursor=pointer]:
+              - generic [ref=e342]:
+                - img [ref=e344]
+                - img [ref=e346]
+              - text: Basic
+            - generic [ref=e348]:
+              - button "Collapse" [expanded] [ref=e349] [cursor=pointer]:
+                - img [ref=e351]
+                - text: Features
+              - button "Expand all" [ref=e353] [cursor=pointer]:
+                - img [ref=e354]
+            - button "Alert Lines" [ref=e357] [cursor=pointer]:
+              - generic [ref=e358]:
+                - img [ref=e360]
+                - img [ref=e362]
+              - text: Alert Lines
+            - button "Chart State" [ref=e365] [cursor=pointer]:
+              - generic [ref=e366]:
+                - img [ref=e368]
+                - img [ref=e370]
+              - text: Chart State
+            - button "Chart Toolbar" [ref=e373] [cursor=pointer]:
+              - generic [ref=e374]:
+                - img [ref=e376]
+                - img [ref=e378]
+              - text: Chart Toolbar
+            - button "Comparison Mode" [ref=e381] [cursor=pointer]:
+              - generic [ref=e382]:
+                - img [ref=e384]
+                - img [ref=e386]
+              - text: Comparison Mode
+            - link "Context Menu" [ref=e389] [cursor=pointer]:
+              - /url: /?path=/story/features-context-menu--context-menu-demo
+              - img [ref=e391]
+              - text: Context Menu
+            - button "Data Changed" [ref=e394] [cursor=pointer]:
+              - generic [ref=e395]:
+                - img [ref=e397]
+                - img [ref=e399]
+              - text: Data Changed
+            - button "Event Callbacks" [ref=e402] [cursor=pointer]:
+              - generic [ref=e403]:
+                - img [ref=e405]
+                - img [ref=e407]
+              - text: Event Callbacks
+            - button "Event Markers" [ref=e410] [cursor=pointer]:
+              - generic [ref=e411]:
+                - img [ref=e413]
+                - img [ref=e415]
+              - text: Event Markers
+            - button "Export" [ref=e418] [cursor=pointer]:
+              - generic [ref=e419]:
+                - img [ref=e421]
+                - img [ref=e423]
+              - text: Export
+            - button "Extended Hours" [ref=e426] [cursor=pointer]:
+              - generic [ref=e427]:
+                - img [ref=e429]
+                - img [ref=e431]
+              - text: Extended Hours
+            - button "Fit Content" [ref=e434] [cursor=pointer]:
+              - generic [ref=e435]:
+                - img [ref=e437]
+                - img [ref=e439]
+              - text: Fit Content
+            - button "HUD" [ref=e442] [cursor=pointer]:
+              - generic [ref=e443]:
+                - img [ref=e445]
+                - img [ref=e447]
+              - text: HUD
+            - button "Heikin-Ashi" [ref=e450] [cursor=pointer]:
+              - generic [ref=e451]:
+                - img [ref=e453]
+                - img [ref=e455]
+              - text: Heikin-Ashi
+            - link "HUD Collapse" [ref=e458] [cursor=pointer]:
+              - /url: /?path=/story/features-hud-collapse--hud-collapse-demo
+              - img [ref=e460]
+              - text: HUD Collapse
+            - button "Indicator Panes" [ref=e463] [cursor=pointer]:
+              - generic [ref=e464]:
+                - img [ref=e466]
+                - img [ref=e468]
+              - text: Indicator Panes
+            - button "Last Price Line" [ref=e471] [cursor=pointer]:
+              - generic [ref=e472]:
+                - img [ref=e474]
+                - img [ref=e476]
+              - text: Last Price Line
+            - button "Log Scale" [ref=e479] [cursor=pointer]:
+              - generic [ref=e480]:
+                - img [ref=e482]
+                - img [ref=e484]
+              - text: Log Scale
+            - button "OHLC Legend & Tooltip" [ref=e487] [cursor=pointer]:
+              - generic [ref=e488]:
+                - img [ref=e490]
+                - img [ref=e492]
+              - text: OHLC Legend & Tooltip
+            - button "Pagination" [ref=e495] [cursor=pointer]:
+              - generic [ref=e496]:
+                - img [ref=e498]
+                - img [ref=e500]
+              - text: Pagination
+            - button "Periodicity" [ref=e503] [cursor=pointer]:
+              - generic [ref=e504]:
+                - img [ref=e506]
+                - img [ref=e508]
+              - text: Periodicity
+            - button "Price Lines" [ref=e511] [cursor=pointer]:
+              - generic [ref=e512]:
+                - img [ref=e514]
+                - img [ref=e516]
+              - text: Price Lines
+            - button "Range Selection" [ref=e519] [cursor=pointer]:
+              - generic [ref=e520]:
+                - img [ref=e522]
+                - img [ref=e524]
+              - text: Range Selection
+            - button "Replay" [ref=e527] [cursor=pointer]:
+              - generic [ref=e528]:
+                - img [ref=e530]
+                - img [ref=e532]
+              - text: Replay
+            - button "Screenshot" [ref=e535] [cursor=pointer]:
+              - generic [ref=e536]:
+                - img [ref=e538]
+                - img [ref=e540]
+              - text: Screenshot
+            - button "Series Markers" [ref=e543] [cursor=pointer]:
+              - generic [ref=e544]:
+                - img [ref=e546]
+                - img [ref=e548]
+              - text: Series Markers
+            - button "Text Labels" [ref=e551] [cursor=pointer]:
+              - generic [ref=e552]:
+                - img [ref=e554]
+                - img [ref=e556]
+              - text: Text Labels
+            - button "Time Formatter" [ref=e559] [cursor=pointer]:
+              - generic [ref=e560]:
+                - img [ref=e562]
+                - img [ref=e564]
+              - text: Time Formatter
+            - button "Undo Redo" [ref=e567] [cursor=pointer]:
+              - generic [ref=e568]:
+                - img [ref=e570]
+                - img [ref=e572]
+              - text: Undo Redo
+            - button "Volume Overlay" [ref=e575] [cursor=pointer]:
+              - generic [ref=e576]:
+                - img [ref=e578]
+                - img [ref=e580]
+              - text: Volume Overlay
+            - button "Watermark" [ref=e583] [cursor=pointer]:
+              - generic [ref=e584]:
+                - img [ref=e586]
+                - img [ref=e588]
+              - text: Watermark
+            - button "WebGL Renderer" [ref=e591] [cursor=pointer]:
+              - generic [ref=e592]:
+                - img [ref=e594]
+                - img [ref=e596]
+              - text: WebGL Renderer
+            - button "Multiple Series" [ref=e599] [cursor=pointer]:
+              - generic [ref=e600]:
+                - img [ref=e602]
+                - img [ref=e604]
+              - text: Multiple Series
+            - generic [ref=e606]:
+              - button "Collapse" [expanded] [ref=e607] [cursor=pointer]:
+                - img [ref=e609]
+                - text: Indicators
+              - button "Expand all" [ref=e611] [cursor=pointer]:
+                - img [ref=e612]
+            - button "Trend & Volatility" [ref=e615] [cursor=pointer]:
+              - generic [ref=e616]:
+                - img [ref=e618]
+                - img [ref=e620]
+              - text: Trend & Volatility
+            - button "Advanced" [ref=e623] [cursor=pointer]:
+              - generic [ref=e624]:
+                - img [ref=e626]
+                - img [ref=e628]
+              - text: Advanced
+            - button "Moving Averages" [ref=e631] [cursor=pointer]:
+              - generic [ref=e632]:
+                - img [ref=e634]
+                - img [ref=e636]
+              - text: Moving Averages
+            - button "Bollinger Bands" [ref=e639] [cursor=pointer]:
+              - generic [ref=e640]:
+                - img [ref=e642]
+                - img [ref=e644]
+              - text: Bollinger Bands
+            - button "Momentum & Volume" [ref=e647] [cursor=pointer]:
+              - generic [ref=e648]:
+                - img [ref=e650]
+                - img [ref=e652]
+              - text: Momentum & Volume
+            - generic [ref=e654]:
+              - button "Collapse" [expanded] [ref=e655] [cursor=pointer]:
+                - img [ref=e657]
+                - text: Navigation
+              - button "Expand all" [ref=e659] [cursor=pointer]:
+                - img [ref=e660]
+            - link "Go to Realtime" [ref=e663] [cursor=pointer]:
+              - /url: /?path=/story/navigation-go-to-realtime--default
+              - img [ref=e665]
+              - text: Go to Realtime
+            - link "Infinite History" [ref=e668] [cursor=pointer]:
+              - /url: /?path=/story/navigation-infinite-history--default
+              - img [ref=e670]
+              - text: Infinite History
+            - link "Range Switcher" [ref=e673] [cursor=pointer]:
+              - /url: /?path=/story/navigation-range-switcher--default
+              - img [ref=e675]
+              - text: Range Switcher
+            - generic [ref=e677]:
+              - button "Collapse" [expanded] [ref=e678] [cursor=pointer]:
+                - img [ref=e680]
+                - text: Real-Time
+              - button "Expand all" [ref=e682] [cursor=pointer]:
+                - img [ref=e683]
+            - button "Streaming" [ref=e686] [cursor=pointer]:
+              - generic [ref=e687]:
+                - img [ref=e689]
+                - img [ref=e691]
+              - text: Streaming
+    - separator "Sidebar resize handle" [ref=e693]
+  - generic [ref=e695]:
+    - region "Toolbar" [ref=e696]:
+      - heading "Toolbar" [level=2] [ref=e697]
+      - toolbar [ref=e698]:
+        - generic [ref=e699]:
+          - button "Reload story" [ref=e700] [cursor=pointer]:
+            - img [ref=e701]
+          - switch "Measure tool" [ref=e703] [cursor=pointer]:
+            - img [ref=e704]
+          - switch "Outline tool" [ref=e707] [cursor=pointer]:
+            - img [ref=e708]
+          - button "Viewport size" [ref=e710] [cursor=pointer]:
+            - img [ref=e711]
+        - generic [ref=e715]:
+          - switch "Change zoom level" [ref=e716] [cursor=pointer]: 100%
+          - button "Enter full screen" [ref=e717] [cursor=pointer]:
+            - img [ref=e718]
+          - button "Share" [ref=e720] [cursor=pointer]:
+            - img [ref=e721]
+    - main "Main preview area" [ref=e724]:
+      - heading "Main preview area" [level=2] [ref=e725]
+      - generic [ref=e726]:
+        - progressbar "Content is loading..." [ref=e728]
+        - generic [ref=e729]:
+          - link "Skip to sidebar" [ref=e730] [cursor=pointer]:
+            - /url: "#advanced-chart-full-application--advanced-chart"
+          - iframe [ref=e734]:
+            
+  - generic [ref=e735]:
+    - separator "Addon panel resize handle" [ref=e736]
+    - region "Addon panel" [ref=e738]:
+      - heading "Addon panel" [level=2] [ref=e739]
+      - generic [ref=e740]:
+        - generic [ref=e741]:
+          - generic [ref=e742]:
+            - button "Move addon panel to right" [ref=e743] [cursor=pointer]:
+              - img [ref=e744]
+            - button "Hide addon panel" [ref=e747] [cursor=pointer]:
+              - img [ref=e748]
+          - tablist "Available addons" [ref=e753]:
+            - tab "Controls" [selected] [ref=e754] [cursor=pointer]:
+              - generic [ref=e756]: Controls
+            - tab "Actions" [ref=e757] [cursor=pointer]:
+              - generic [ref=e759]: Actions
+            - tab "Interactions" [ref=e760] [cursor=pointer]:
+              - generic [ref=e762]: Interactions
+            - tab "Code" [ref=e763] [cursor=pointer]
+        - tabpanel "Controls" [ref=e764]
