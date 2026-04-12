@@ -1,5 +1,3 @@
-import type { IChartApi } from '../api/chart-api';
-
 export interface ChartGridOptions {
   /** Number of columns. Default: 2. */
   columns?: number;
@@ -7,7 +5,10 @@ export interface ChartGridOptions {
   rows?: number;
   /** Gap between charts in pixels. Default: 4. */
   gap?: number;
-  /** Sync crosshairs across charts. Default: true. */
+  /**
+   * Sync crosshairs across charts. Default: true.
+   * NOTE: Placeholder — crosshair synchronization is reserved for future implementation.
+   */
   syncCrosshairs?: boolean;
 }
 

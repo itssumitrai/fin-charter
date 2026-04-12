@@ -32,6 +32,8 @@ export class ChartSonifier {
 
     if (length === 0) return;
 
+    if (typeof AudioContext === 'undefined') return;
+
     this._audioCtx = new AudioContext();
     this._oscillator = this._audioCtx.createOscillator();
     this._gainNode = this._audioCtx.createGain();

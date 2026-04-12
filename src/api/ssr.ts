@@ -12,8 +12,13 @@ export interface SSROptions {
  * Render chart data to an SVG string without a DOM.
  * Suitable for server-side rendering in Node.js.
  */
+/** Strip potentially unsafe characters from CSS color strings to prevent SVG injection. */
+const safeColor = (c: string) => c.replace(/[^a-zA-Z0-9#(),. ]/g, '');
+
 export function renderChartToSVG(bars: Bar[], options: SSROptions): string {
-  const { width, height, backgroundColor = '#1a1a2e', lineColor = '#2196F3', type = 'line' } = options;
+  const { width, height, type = 'line' } = options;
+  const backgroundColor = safeColor(options.backgroundColor ?? '#1a1a2e');
+  const lineColor = safeColor(options.lineColor ?? '#2196F3');
 
   if (bars.length === 0) return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${backgroundColor}"/></svg>`;
 

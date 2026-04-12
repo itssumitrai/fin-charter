@@ -11,12 +11,11 @@ export interface DepthChartOptions {
   midPrice?: number;
 }
 
-const DEFAULTS: Required<DepthChartOptions> = {
+const DEFAULTS: Omit<Required<DepthChartOptions>, 'midPrice'> = {
   bidColor: '#00E396',
   askColor: '#FF3B5C',
   bidFillColor: 'rgba(0,227,150,0.15)',
   askFillColor: 'rgba(255,59,92,0.15)',
-  midPrice: 0,
 };
 
 /**
