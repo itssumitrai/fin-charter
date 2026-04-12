@@ -1,47 +1,83 @@
 <script lang="ts">
+  import { appStore } from '../../data/store.svelte.ts';
   import { chartContext } from '../../data/chart-context.svelte.ts';
+  import type { Periodicity } from '@itssumitrai/fin-charter';
 
   interface RangePreset {
     label: string;
-    value: number | 'ytd' | 'all';
+    /** Number of days for the range, or special values. */
+    days: number | 'ytd' | 'all';
+    /** The appropriate data interval for this range. */
+    periodLabel: string;
+    periodValue: Periodicity;
   }
 
   const ranges: RangePreset[] = [
-    { label: '1D', value: 1 },
-    { label: '1W', value: 7 },
-    { label: '1M', value: 30 },
-    { label: '3M', value: 90 },
-    { label: '6M', value: 180 },
-    { label: '1Y', value: 365 },
-    { label: 'YTD', value: 'ytd' },
-    { label: 'All', value: 'all' },
+    { label: '1D', days: 1, periodLabel: '1m', periodValue: { interval: 1, unit: 'minute' } },
+    { label: '1W', days: 7, periodLabel: '5m', periodValue: { interval: 5, unit: 'minute' } },
+    { label: '1M', days: 30, periodLabel: '1h', periodValue: { interval: 1, unit: 'hour' } },
+    { label: '3M', days: 90, periodLabel: '1D', periodValue: { interval: 1, unit: 'day' } },
+    { label: '6M', days: 180, periodLabel: '1D', periodValue: { interval: 1, unit: 'day' } },
+    { label: '1Y', days: 365, periodLabel: '1D', periodValue: { interval: 1, unit: 'day' } },
+    { label: 'YTD', days: 'ytd', periodLabel: '1D', periodValue: { interval: 1, unit: 'day' } },
+    { label: 'All', days: 'all', periodLabel: '1W', periodValue: { interval: 1, unit: 'week' } },
   ];
 
   let activeRange = $state<string>('');
 
   function selectRange(range: RangePreset) {
-    const chart = chartContext.chartApi;
-    if (!chart) return;
-
     activeRange = range.label;
 
-    const now = Math.floor(Date.now() / 1000);
+    // Step 1: Change the periodicity — this triggers data reload in AdvancedChart
+    const currentPeriod = appStore.periodicityLabel;
+    const needsReload = currentPeriod !== range.periodLabel;
 
-    if (range.value === 'all') {
-      chart.fitContent();
-      return;
+    if (needsReload) {
+      appStore.setPeriodicity(range.periodLabel, range.periodValue);
     }
 
-    if (range.value === 'ytd') {
-      // YTD: from Jan 1 of current year (UTC) to now
-      const year = new Date().getUTCFullYear();
-      const jan1UTC = Date.UTC(year, 0, 1) / 1000;
-      chart.setVisibleRange(jan1UTC, now);
-      return;
-    }
+    // Step 2: After data loads, zoom to the requested range
+    // Use a polling approach to wait for loading to finish
+    const applyRange = () => {
+      const chart = chartContext.chartApi;
+      if (!chart) return;
 
-    const from = now - range.value * 86400;
-    chart.setVisibleRange(from, now);
+      if (range.days === 'all') {
+        chart.fitContent();
+        return;
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      let from: number;
+
+      if (range.days === 'ytd') {
+        const year = new Date().getUTCFullYear();
+        from = Date.UTC(year, 0, 1) / 1000;
+      } else {
+        from = now - (range.days as number) * 86400;
+      }
+
+      chart.setVisibleRange(from, now);
+    };
+
+    if (needsReload) {
+      // Wait for data to load before zooming
+      const waitForLoad = () => {
+        if (!appStore.loading) {
+          // Data loaded — apply range after a brief paint delay
+          requestAnimationFrame(() => {
+            requestAnimationFrame(applyRange);
+          });
+        } else {
+          setTimeout(waitForLoad, 100);
+        }
+      };
+      // Start checking after a brief delay for the load to begin
+      setTimeout(waitForLoad, 200);
+    } else {
+      // Same periodicity — just zoom immediately
+      applyRange();
+    }
   }
 </script>
 
