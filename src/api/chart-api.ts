@@ -72,6 +72,7 @@ import {
   type SeriesOptions,
   type IndicatorType,
   type IndicatorOptions,
+  type AnnotationExport,
   DEFAULT_CHART_OPTIONS,
   DARK_THEME,
   LIGHT_THEME,
@@ -80,6 +81,7 @@ import {
 } from './options';
 
 import { computeHeikinAshi } from '../transforms/heikin-ashi';
+import { aggregateOHLC } from '../transforms/aggregate';
 import type { Periodicity } from '../core/periodicity';
 import { timestampToMinuteOfDay, getSessionForTime } from '../core/market-session';
 import type { MarketSession } from '../core/market-session';
@@ -180,6 +182,10 @@ export interface IChartApi {
   registerDrawingType(type: string, factory: (id: string, points: AnchorPoint[], options: DrawingOptions) => ISeriesPrimitive & DrawingPrimitive): void;
   serializeDrawings(): SerializedDrawing[];
   deserializeDrawings(data: SerializedDrawing[]): void;
+  /** Export all annotations (drawings + text labels + alert lines) as a serializable object. */
+  exportAnnotations(): AnnotationExport;
+  /** Import annotations from a previously exported object. */
+  importAnnotations(data: AnnotationExport): void;
   // ── Feature 9/10: Chart State Save/Restore ────────────────────────────────
   /** Export the current chart configuration (no bar data) as a serializable state object. */
   exportState(): ChartState;
@@ -1827,6 +1833,43 @@ class ChartApi implements IChartApi {
     this.requestRepaint(InvalidationLevel.Full);
   }
 
+  exportAnnotations(): AnnotationExport {
+    return {
+      version: 1,
+      drawings: this.serializeDrawings(),
+      textLabels: this._textLabels.map(l => ({
+        time: l.time,
+        price: l.price,
+        text: l.options.text,
+        options: l.options as unknown as Record<string, unknown>,
+      })),
+      alertLines: this._alertLines.map(a => ({
+        price: a.options.price,
+        color: a.options.color,
+        title: a.options.title ?? '',
+        triggerMode: a.options.triggerMode ?? 'crossing-up',
+      })),
+    };
+  }
+
+  importAnnotations(data: AnnotationExport): void {
+    if (data.drawings) this.deserializeDrawings(data.drawings);
+    if (data.textLabels) {
+      for (const tl of data.textLabels) {
+        this.addTextLabel(tl.time, tl.price, tl.text, tl.options);
+      }
+    }
+    if (data.alertLines) {
+      for (const al of data.alertLines) {
+        this.addAlertLine(al.price, {
+          color: al.color,
+          title: al.title,
+          triggerMode: al.triggerMode as any,
+        });
+      }
+    }
+  }
+
   exportState(): ChartState {
     // Collect series configs (no bar data)
     const seriesEntries = this._series.map((entry, idx) => ({
@@ -2428,6 +2471,19 @@ class ChartApi implements IChartApi {
     if (!primaryStore || range.fromIdx > range.toIdx || primaryStore.length === 0) {
       if (seriesForPane.length === 0) return;
     }
+
+    // Auto-downsample if too many bars are visible
+    let effectiveStore = primaryStore;
+    if (this._options.dataGrouping?.enabled && primaryStore) {
+      const visibleBars = range.toIdx - range.fromIdx + 1;
+      const maxBars = this._options.dataGrouping.maxBars ?? 2000;
+      if (visibleBars > maxBars && primaryStore.length >= 2) {
+        const interval = primaryStore.time[1] - primaryStore.time[0];
+        const groupFactor = Math.ceil(visibleBars / maxBars);
+        effectiveStore = aggregateOHLC(primaryStore, interval * groupFactor);
+      }
+    }
+    void effectiveStore; // reserved for future use in rendering pipeline
 
     // Auto-scale price from visible data (only series assigned to this pane)
     this._updatePaneDataRange(pane, seriesForPane, range);
