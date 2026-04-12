@@ -55,8 +55,8 @@ function makeMockTarget() {
 }
 
 describe('DRAWING_REGISTRY', () => {
-  it('has all 16 built-in drawing types', () => {
-    expect(DRAWING_REGISTRY.size).toBe(16);
+  it('has all 22 built-in drawing types', () => {
+    expect(DRAWING_REGISTRY.size).toBe(22);
     expect(DRAWING_REGISTRY.has('horizontal-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('vertical-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('trendline')).toBe(true);
@@ -73,6 +73,12 @@ describe('DRAWING_REGISTRY', () => {
     expect(DRAWING_REGISTRY.has('fib-fan')).toBe(true);
     expect(DRAWING_REGISTRY.has('crossline')).toBe(true);
     expect(DRAWING_REGISTRY.has('measurement')).toBe(true);
+    expect(DRAWING_REGISTRY.has('gann-fan')).toBe(true);
+    expect(DRAWING_REGISTRY.has('parallel-channel')).toBe(true);
+    expect(DRAWING_REGISTRY.has('fibonacci-timezone')).toBe(true);
+    expect(DRAWING_REGISTRY.has('price-range')).toBe(true);
+    expect(DRAWING_REGISTRY.has('date-range')).toBe(true);
+    expect(DRAWING_REGISTRY.has('callout')).toBe(true);
   });
 });
 
