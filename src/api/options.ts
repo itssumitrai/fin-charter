@@ -1,4 +1,5 @@
 import type { Bar, ColumnData, DeepPartial } from '../core/types';
+import type { SerializedDrawing } from '../drawings/index';
 import type { CandlestickRendererOptions } from '../renderers/candlestick';
 import type { LineRendererOptions } from '../renderers/line';
 import type { AreaRendererOptions } from '../renderers/area';
@@ -141,6 +142,12 @@ export interface ChartOptions {
   currency?: string;     // ISO 4217 currency code, e.g. 'USD', 'EUR'
   /** Text direction: 'ltr' (default) or 'rtl'. Set to 'auto' to detect from locale. */
   direction?: import('../core/rtl').TextDirection | 'auto';
+  /** Auto-downsampling options for large datasets. */
+  dataGrouping?: {
+    enabled: boolean;
+    /** Maximum number of visible bars before downsampling kicks in. Default: 2000. */
+    maxBars?: number;
+  };
   /**
    * Rendering backend. `'webgl'` uses WebGL2 for supported series types
    * (candlestick, line, area) and falls back to Canvas 2D for the rest.
@@ -256,7 +263,20 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   timeGaps: {
     visible: false,
   },
+  dataGrouping: {
+    enabled: false,
+    maxBars: 2000,
+  },
 };
+
+// ─── Annotation Export ──────────────────────────────────────────────────────
+
+export interface AnnotationExport {
+  version: number;
+  drawings: SerializedDrawing[];
+  textLabels: Array<{ time: number; price: number; text: string; options?: Record<string, unknown> }>;
+  alertLines: Array<{ price: number; color: string; title: string; triggerMode: string }>;
+}
 
 // ─── Series options ─────────────────────────────────────────────────────────
 
