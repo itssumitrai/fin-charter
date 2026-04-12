@@ -146,6 +146,8 @@ export interface ChartOptions {
   decalPatterns?: {
     enabled: boolean;
   };
+  /** High-contrast mode for accessibility. Increases line widths and label sizes. */
+  highContrast?: boolean;
   /** Auto-downsampling options for large datasets. */
   dataGrouping?: {
     enabled: boolean;
@@ -268,6 +270,7 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
     visible: false,
   },
   decalPatterns: { enabled: false },
+  highContrast: false,
   dataGrouping: {
     enabled: false,
     maxBars: 2000,

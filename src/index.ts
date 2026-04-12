@@ -32,6 +32,14 @@ export { isWebGLAvailable } from './renderers/webgl/index';
 // ─── Export ─────────────────────────────────────────────────────────
 export type { CSVExportOptions, PDFExportOptions } from './api/export';
 
+// ─── SSR ────────────────────────────────────────────────────────────
+export { renderChartToSVG } from './api/ssr';
+export type { SSROptions } from './api/ssr';
+
+// ─── Sonification ────────────────────────────────────────────────────
+export { ChartSonifier } from './core/sonification';
+export type { SonificationOptions } from './core/sonification';
+
 // ─── Periodicity ──────────────────────────────────────────────────────
 export type { Periodicity } from './core/periodicity';
 export { periodicityToSeconds, periodicityToLabel } from './core/periodicity';
@@ -85,6 +93,9 @@ export type { IPlugin, PluginChartApi, PluginPaintContext } from './core/plugin'
 // ─── Storage & Persistence ──────────────────────────────────────────
 export { LocalStorageAdapter, IndexedDBAdapter, DrawingPersistence } from './core/storage-adapter';
 export type { IStorageAdapter } from './core/storage-adapter';
+
+// ─── Formula Engine ─────────────────────────────────────────────────────────
+export { evaluateFormula } from './core/formula-engine';
 
 // ─── Custom Indicators ──────────────────────────────────────────────
 export { CustomIndicatorRegistry } from './core/custom-indicator';
@@ -207,3 +218,19 @@ export {
   US_MARKET, UK_MARKET, JP_MARKET, DE_MARKET, AU_MARKET, CRYPTO_MARKET,
 } from './market';
 export type { MarketDefinition, MarketHoliday } from './market';
+
+// ─── Depth Chart ────────────────────────────────────────────────────
+export { renderDepthChart } from './renderers/depth-chart';
+export type { DepthChartData, DepthChartOptions } from './renderers/depth-chart';
+
+// ─── Chart Grid ─────────────────────────────────────────────────────
+export { ChartGrid } from './core/chart-grid';
+export type { ChartGridOptions } from './core/chart-grid';
+
+// ─── Volume Profile ──────────────────────────────────────────────────
+export { computeVolumeProfile } from './core/volume-profile';
+export type { VolumeProfileBin, VolumeProfileResult } from './core/volume-profile';
+
+// ─── Pattern Recognition ─────────────────────────────────────────────
+export { detectPatterns } from './core/pattern-recognition';
+export type { PatternMatch } from './core/pattern-recognition';

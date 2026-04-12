@@ -18,6 +18,7 @@ import { Pane } from '../core/pane';
 import { PaneDivider, DIVIDER_HEIGHT } from '../core/pane-divider';
 import { AlertLine, type AlertLineOptions } from '../core/alert-line';
 import { TextLabel, type TextLabelOptions } from '../core/text-label';
+import { OrderLine, PositionLine, type OrderLineOptions, type PositionLineOptions } from '../core/order-line';
 import { UndoRedoManager, type Command } from '../core/undo-redo';
 import {
   RangeSelectionHandler,
@@ -264,6 +265,21 @@ export interface IChartApi {
   getTextLabels(): import('../core/text-label').TextLabel[];
   /** Re-read CSS design token variables and repaint. */
   refreshCSSTheme(): void;
+  /** Generate an accessible HTML data table from visible chart data. */
+  getDataTable(): HTMLTableElement;
+  // ── Order & Position Lines ────────────────────────────────────────────────
+  /** Add an order line to the chart. */
+  addOrderLine(options: import('../core/order-line').OrderLineOptions): import('../core/order-line').OrderLine;
+  /** Remove an order line. */
+  removeOrderLine(line: import('../core/order-line').OrderLine): void;
+  /** Get all order lines. */
+  getOrderLines(): import('../core/order-line').OrderLine[];
+  /** Add a position line to the chart. */
+  addPositionLine(options: import('../core/order-line').PositionLineOptions): import('../core/order-line').PositionLine;
+  /** Remove a position line. */
+  removePositionLine(line: import('../core/order-line').PositionLine): void;
+  /** Get all position lines. */
+  getPositionLines(): import('../core/order-line').PositionLine[];
 }
 
 // ─── Internal series entry ──────────────────────────────────────────────────
@@ -420,6 +436,10 @@ class ChartApi implements IChartApi {
   private _textLabels: TextLabel[] = [];
   private _nextTextLabelId = 0;
 
+  // Order & position lines
+  private _orderLines: OrderLine[] = [];
+  private _positionLines: PositionLine[] = [];
+
   // Periodicity
   private _periodicity: Periodicity = { interval: 1, unit: 'day' };
   private _periodicityCallbacks: ((p: Periodicity) => void)[] = [];
@@ -517,6 +537,11 @@ class ChartApi implements IChartApi {
     this._wrapper.appendChild(this._tooltipEl);
 
     container.appendChild(this._wrapper);
+
+    // ── Accessibility (WCAG 2.2) ───────────────────────────────────────────
+    this._wrapper.setAttribute('role', 'img');
+    this._wrapper.setAttribute('aria-label', `Financial chart${options.symbol ? ' for ' + options.symbol : ''}`);
+
     this._readCSSDefaults();
 
     // Get contexts
@@ -982,6 +1007,38 @@ class ChartApi implements IChartApi {
       this._cssSeriesDefaults = {};
     }
     this.requestRepaint(InvalidationLevel.Full);
+  }
+
+  getDataTable(): HTMLTableElement {
+    const table = document.createElement('table');
+    table.setAttribute('role', 'table');
+    table.setAttribute('aria-label', 'Chart data');
+    table.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);';
+
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    ['Date', 'Open', 'High', 'Low', 'Close', 'Volume'].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+
+    const tbody = table.createTBody();
+    if (this._series.length > 0) {
+      const store = this._series[0].api.getDataLayer().store;
+      const range = this._timeScale.visibleRange();
+      const to = Math.min(range.toIdx, store.length - 1);
+      for (let i = Math.max(0, range.fromIdx); i <= to; i++) {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = new Date(store.time[i] * 1000).toISOString().split('T')[0];
+        row.insertCell().textContent = store.open[i].toFixed(2);
+        row.insertCell().textContent = store.high[i].toFixed(2);
+        row.insertCell().textContent = store.low[i].toFixed(2);
+        row.insertCell().textContent = store.close[i].toFixed(2);
+        row.insertCell().textContent = String(Math.round(store.volume[i]));
+      }
+    }
+    return table;
   }
 
   private _readCSSDefaults(): void {
@@ -1482,6 +1539,46 @@ class ChartApi implements IChartApi {
 
   getTextLabels(): TextLabel[] {
     return [...this._textLabels];
+  }
+
+  // ── Order & Position Lines ────────────────────────────────────────────────
+
+  addOrderLine(options: OrderLineOptions): OrderLine {
+    const line = new OrderLine(options);
+    this._orderLines.push(line);
+    this.requestRepaint(InvalidationLevel.Light);
+    return line;
+  }
+
+  removeOrderLine(line: OrderLine): void {
+    const idx = this._orderLines.indexOf(line);
+    if (idx >= 0) {
+      this._orderLines.splice(idx, 1);
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  getOrderLines(): OrderLine[] {
+    return [...this._orderLines];
+  }
+
+  addPositionLine(options: PositionLineOptions): PositionLine {
+    const line = new PositionLine(options);
+    this._positionLines.push(line);
+    this.requestRepaint(InvalidationLevel.Light);
+    return line;
+  }
+
+  removePositionLine(line: PositionLine): void {
+    const idx = this._positionLines.indexOf(line);
+    if (idx >= 0) {
+      this._positionLines.splice(idx, 1);
+      this.requestRepaint(InvalidationLevel.Light);
+    }
+  }
+
+  getPositionLines(): PositionLine[] {
+    return [...this._positionLines];
   }
 
   // ── Feature 5: Indicator API ────────────────────────────────────────────
@@ -2933,7 +3030,8 @@ class ChartApi implements IChartApi {
     const gridOpts = this._options.grid;
 
     ctx.save();
-    ctx.lineWidth = Math.max(1, Math.round(pixelRatio));
+    const baseLineWidth = Math.max(1, Math.round(pixelRatio));
+    ctx.lineWidth = this._options.highContrast ? baseLineWidth * 2 : baseLineWidth;
 
     // Horizontal price grid lines
     if (gridOpts.horzLinesVisible) {
