@@ -17,6 +17,12 @@ import { createFibArc } from './fib-arc';
 import { createFibFan } from './fib-fan';
 import { createCrossline } from './crossline';
 import { createMeasurement } from './measurement';
+import { createGannFan } from './gann-fan';
+import { createParallelChannel } from './parallel-channel';
+import { createFibonacciTimezone } from './fibonacci-timezone';
+import { createPriceRange } from './price-range';
+import { createDateRange } from './date-range';
+import { createCallout } from './callout';
 
 // Re-export public types
 export type { AnchorPoint, DrawingOptions, DrawingHitTestResult, SerializedDrawing, DrawingPrimitive, DrawingContext, DrawingFactory } from './base';
@@ -43,6 +49,12 @@ export function registerBuiltinDrawings(): void {
   DRAWING_REGISTRY.set('fib-fan', createFibFan as DrawingFactory);
   DRAWING_REGISTRY.set('crossline', createCrossline as DrawingFactory);
   DRAWING_REGISTRY.set('measurement', createMeasurement as DrawingFactory);
+  DRAWING_REGISTRY.set('gann-fan', createGannFan as DrawingFactory);
+  DRAWING_REGISTRY.set('parallel-channel', createParallelChannel as DrawingFactory);
+  DRAWING_REGISTRY.set('fibonacci-timezone', createFibonacciTimezone as DrawingFactory);
+  DRAWING_REGISTRY.set('price-range', createPriceRange as DrawingFactory);
+  DRAWING_REGISTRY.set('date-range', createDateRange as DrawingFactory);
+  DRAWING_REGISTRY.set('callout', createCallout as DrawingFactory);
 }
 
 // Register built-ins immediately on import
