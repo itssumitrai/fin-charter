@@ -142,6 +142,10 @@ export interface ChartOptions {
   currency?: string;     // ISO 4217 currency code, e.g. 'USD', 'EUR'
   /** Text direction: 'ltr' (default) or 'rtl'. Set to 'auto' to detect from locale. */
   direction?: import('../core/rtl').TextDirection | 'auto';
+  /** Color-blind accessibility: use hatching patterns in addition to color. */
+  decalPatterns?: {
+    enabled: boolean;
+  };
   /** Auto-downsampling options for large datasets. */
   dataGrouping?: {
     enabled: boolean;
@@ -263,6 +267,7 @@ export const DEFAULT_CHART_OPTIONS: ChartOptions = {
   timeGaps: {
     visible: false,
   },
+  decalPatterns: { enabled: false },
   dataGrouping: {
     enabled: false,
     maxBars: 2000,

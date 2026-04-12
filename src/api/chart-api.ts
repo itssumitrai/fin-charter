@@ -2586,6 +2586,11 @@ class ChartApi implements IChartApi {
       }
     }
 
+    // Decal patterns for color-blind support
+    if (this._options.decalPatterns?.enabled && primaryStore) {
+      this._drawDecalPatterns(ctx, range, primaryStore, indexToX, primaryPriceToY, pixelRatio);
+    }
+
     // Markers (main pane only)
     if (isMain) {
       for (const entry of seriesForPane) {
@@ -3073,6 +3078,46 @@ class ChartApi implements IChartApi {
         runStart = i;
         runSession = session;
       }
+    }
+
+    ctx.restore();
+  }
+
+  private _drawDecalPatterns(
+    ctx: CanvasRenderingContext2D,
+    range: VisibleRange,
+    store: ColumnStore,
+    indexToX: (i: number) => number,
+    priceToY: (p: number) => number,
+    pixelRatio: number,
+  ): void {
+    const barSpacing = this._timeScale.barSpacing;
+    const halfBar = Math.max(1, Math.round((barSpacing * 0.8 * pixelRatio) / 2));
+    const to = Math.min(range.toIdx, store.length - 1);
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = pixelRatio;
+
+    for (let i = range.fromIdx; i <= to; i++) {
+      if (store.close[i] >= store.open[i]) continue; // skip bullish bars
+
+      const cx = Math.round(indexToX(i) * pixelRatio);
+      const openY = Math.round(priceToY(store.open[i]) * pixelRatio);
+      const closeY = Math.round(priceToY(store.close[i]) * pixelRatio);
+      const top = Math.min(openY, closeY);
+      const bottom = Math.max(openY, closeY);
+      const left = cx - halfBar;
+      const right = cx + halfBar;
+
+      // Draw diagonal hatching lines
+      ctx.beginPath();
+      const step = 4 * pixelRatio;
+      for (let y = top; y < bottom; y += step) {
+        ctx.moveTo(left, y);
+        ctx.lineTo(Math.min(right, left + step), Math.min(bottom, y + step));
+      }
+      ctx.stroke();
     }
 
     ctx.restore();
