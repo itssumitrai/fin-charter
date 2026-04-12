@@ -29,6 +29,19 @@ import { computeChoppiness } from './choppiness';
 import { computeMFI } from './mfi';
 import { computeROC } from './roc';
 import { computeLinearRegression } from './linear-regression';
+import { computeDEMA } from './dema';
+import { computeTEMA } from './tema';
+import { computeWMA } from './wma';
+import { computeHMA } from './hma';
+import { computeRVI } from './rvi';
+import { computeDPO } from './dpo';
+import { computeKST } from './kst';
+import { computeTSI } from './tsi';
+import { computePPO } from './ppo';
+import { computeUltimate } from './ultimate';
+import { computeMassIndex } from './mass-index';
+import { computeVortex } from './vortex';
+import { computeDMI } from './dmi';
 
 export const SMA: IndicatorRegistration = {
   type: 'sma',
@@ -418,6 +431,155 @@ export const LINEAR_REGRESSION: IndicatorRegistration = {
 };
 registerIndicator(LINEAR_REGRESSION);
 
+export const DEMA: IndicatorRegistration = {
+  type: 'dema',
+  overlay: true,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeDEMA(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(DEMA);
+
+export const TEMA: IndicatorRegistration = {
+  type: 'tema',
+  overlay: true,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeTEMA(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(TEMA);
+
+export const WMA: IndicatorRegistration = {
+  type: 'wma',
+  overlay: true,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeWMA(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(WMA);
+
+export const HMA: IndicatorRegistration = {
+  type: 'hma',
+  overlay: true,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeHMA(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(HMA);
+
+export const RVI: IndicatorRegistration = {
+  type: 'rvi',
+  overlay: false,
+  defaultParams: { period: 10 },
+  compute(store, params) {
+    const r = computeRVI(store.open, store.high, store.low, store.close, store.length, params.period ?? 10);
+    return { rvi: r.rvi, signal: r.signal };
+  },
+  colorMap(primaryColor) { return { rvi: primaryColor, signal: '#ff6d00' }; },
+};
+registerIndicator(RVI);
+
+export const DPO: IndicatorRegistration = {
+  type: 'dpo',
+  overlay: false,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeDPO(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(DPO);
+
+export const KST: IndicatorRegistration = {
+  type: 'kst',
+  overlay: false,
+  defaultParams: {},
+  compute(store, _params) {
+    const r = computeKST(store.close, store.length);
+    return { kst: r.kst, signal: r.signal };
+  },
+  colorMap(primaryColor) { return { kst: primaryColor, signal: '#ff6d00' }; },
+};
+registerIndicator(KST);
+
+export const TSI: IndicatorRegistration = {
+  type: 'tsi',
+  overlay: false,
+  defaultParams: { longPeriod: 25, shortPeriod: 13 },
+  compute(store, params) {
+    const r = computeTSI(store.close, store.length, params.longPeriod ?? 25, params.shortPeriod ?? 13);
+    return { tsi: r.tsi };
+  },
+  colorMap(primaryColor) { return { tsi: primaryColor }; },
+};
+registerIndicator(TSI);
+
+export const PPO: IndicatorRegistration = {
+  type: 'ppo',
+  overlay: false,
+  defaultParams: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  compute(store, params) {
+    const r = computePPO(store.close, store.length, params.fastPeriod ?? 12, params.slowPeriod ?? 26, params.signalPeriod ?? 9);
+    return { ppo: r.ppo, signal: r.signal, histogram: r.histogram };
+  },
+  colorMap(primaryColor) { return { ppo: primaryColor, signal: '#ff6d00', histogram: '#00E396' }; },
+};
+registerIndicator(PPO);
+
+export const ULTIMATE: IndicatorRegistration = {
+  type: 'ultimate',
+  overlay: false,
+  defaultParams: { p1: 7, p2: 14, p3: 28 },
+  compute(store, params) {
+    return { value: computeUltimate(store.high, store.low, store.close, store.length, params.p1 ?? 7, params.p2 ?? 14, params.p3 ?? 28) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(ULTIMATE);
+
+export const MASS_INDEX: IndicatorRegistration = {
+  type: 'mass-index',
+  overlay: false,
+  defaultParams: { period: 25 },
+  compute(store, params) {
+    return { value: computeMassIndex(store.high, store.low, store.length, params.period ?? 25) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(MASS_INDEX);
+
+export const VORTEX: IndicatorRegistration = {
+  type: 'vortex',
+  overlay: false,
+  defaultParams: { period: 14 },
+  compute(store, params) {
+    const r = computeVortex(store.high, store.low, store.close, store.length, params.period ?? 14);
+    return { viPlus: r.viPlus, viMinus: r.viMinus };
+  },
+  colorMap(_primaryColor) { return { viPlus: '#00E396', viMinus: '#FF3B5C' }; },
+};
+registerIndicator(VORTEX);
+
+export const DMI: IndicatorRegistration = {
+  type: 'dmi',
+  overlay: false,
+  defaultParams: { period: 14 },
+  compute(store, params) {
+    const r = computeDMI(store.high, store.low, store.close, store.length, params.period ?? 14);
+    return { plusDI: r.plusDI, minusDI: r.minusDI };
+  },
+  colorMap(_primaryColor) { return { plusDI: '#00E396', minusDI: '#FF3B5C' }; },
+};
+registerIndicator(DMI);
+
 export const allIndicators: IndicatorRegistration[] = [
   SMA,
   EMA,
@@ -448,4 +610,17 @@ export const allIndicators: IndicatorRegistration[] = [
   MFI,
   ROC,
   LINEAR_REGRESSION,
+  DEMA,
+  TEMA,
+  WMA,
+  HMA,
+  RVI,
+  DPO,
+  KST,
+  TSI,
+  PPO,
+  ULTIMATE,
+  MASS_INDEX,
+  VORTEX,
+  DMI,
 ];
