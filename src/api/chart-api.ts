@@ -1854,7 +1854,20 @@ class ChartApi implements IChartApi {
 
   importAnnotations(data: AnnotationExport): void {
     if (data.drawings) this.deserializeDrawings(data.drawings);
-    // Text labels and alert lines would need additional restore logic
+    if (data.textLabels) {
+      for (const tl of data.textLabels) {
+        this.addTextLabel(tl.time, tl.price, tl.text, tl.options);
+      }
+    }
+    if (data.alertLines) {
+      for (const al of data.alertLines) {
+        this.addAlertLine(al.price, {
+          color: al.color,
+          title: al.title,
+          triggerMode: al.triggerMode as any,
+        });
+      }
+    }
   }
 
   exportState(): ChartState {
@@ -2464,7 +2477,7 @@ class ChartApi implements IChartApi {
     if (this._options.dataGrouping?.enabled && primaryStore) {
       const visibleBars = range.toIdx - range.fromIdx + 1;
       const maxBars = this._options.dataGrouping.maxBars ?? 2000;
-      if (visibleBars > maxBars) {
+      if (visibleBars > maxBars && primaryStore.length >= 2) {
         const interval = primaryStore.time[1] - primaryStore.time[0];
         const groupFactor = Math.ceil(visibleBars / maxBars);
         effectiveStore = aggregateOHLC(primaryStore, interval * groupFactor);
