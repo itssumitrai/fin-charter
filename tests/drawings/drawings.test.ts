@@ -55,8 +55,8 @@ function makeMockTarget() {
 }
 
 describe('DRAWING_REGISTRY', () => {
-  it('has all 22 built-in drawing types', () => {
-    expect(DRAWING_REGISTRY.size).toBe(22);
+  it('has all 27 built-in drawing types', () => {
+    expect(DRAWING_REGISTRY.size).toBe(27);
     expect(DRAWING_REGISTRY.has('horizontal-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('vertical-line')).toBe(true);
     expect(DRAWING_REGISTRY.has('trendline')).toBe(true);

@@ -23,6 +23,11 @@ import { createFibonacciTimezone } from './fibonacci-timezone';
 import { createPriceRange } from './price-range';
 import { createDateRange } from './date-range';
 import { createCallout } from './callout';
+import { createExtendedLine } from './extended-line';
+import { createTriangle } from './triangle';
+import { createRegressionChannel } from './regression-channel';
+import { createBrush } from './brush';
+import { createCycleLines } from './cycle-lines';
 
 // Re-export public types
 export type { AnchorPoint, DrawingOptions, DrawingHitTestResult, SerializedDrawing, DrawingPrimitive, DrawingContext, DrawingFactory } from './base';
@@ -55,6 +60,11 @@ export function registerBuiltinDrawings(): void {
   DRAWING_REGISTRY.set('price-range', createPriceRange as DrawingFactory);
   DRAWING_REGISTRY.set('date-range', createDateRange as DrawingFactory);
   DRAWING_REGISTRY.set('callout', createCallout as DrawingFactory);
+  DRAWING_REGISTRY.set('extended-line', createExtendedLine as DrawingFactory);
+  DRAWING_REGISTRY.set('triangle', createTriangle as DrawingFactory);
+  DRAWING_REGISTRY.set('regression-channel', createRegressionChannel as DrawingFactory);
+  DRAWING_REGISTRY.set('brush', createBrush as DrawingFactory);
+  DRAWING_REGISTRY.set('cycle-lines', createCycleLines as DrawingFactory);
 }
 
 // Register built-ins immediately on import

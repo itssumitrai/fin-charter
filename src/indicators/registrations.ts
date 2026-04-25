@@ -42,6 +42,16 @@ import { computeUltimate } from './ultimate';
 import { computeMassIndex } from './mass-index';
 import { computeVortex } from './vortex';
 import { computeDMI } from './dmi';
+import { computeStochRSI } from './stoch-rsi';
+import { computeCMO } from './cmo';
+import { computeChaikinOsc } from './chaikin-osc';
+import { computeAD } from './ad';
+import { computeALMA } from './alma';
+import { computeZLEMA } from './zlema';
+import { computeBOP } from './bop';
+import { computePVT } from './pvt';
+import { computeEMV } from './emv';
+import { computeStdDev } from './std-dev';
 
 export const SMA: IndicatorRegistration = {
   type: 'sma',
@@ -580,6 +590,117 @@ export const DMI: IndicatorRegistration = {
 };
 registerIndicator(DMI);
 
+export const STOCH_RSI: IndicatorRegistration = {
+  type: 'stoch-rsi',
+  overlay: false,
+  defaultParams: { rsiPeriod: 14, stochPeriod: 14, kPeriod: 3, dPeriod: 3 },
+  compute(store, params) {
+    const r = computeStochRSI(store.close, store.length, params.rsiPeriod ?? 14, params.stochPeriod ?? 14, params.kPeriod ?? 3, params.dPeriod ?? 3);
+    return { k: r.k, d: r.d };
+  },
+  colorMap(primaryColor) { return { k: primaryColor, d: '#ff6d00' }; },
+};
+registerIndicator(STOCH_RSI);
+
+export const CMO: IndicatorRegistration = {
+  type: 'cmo',
+  overlay: false,
+  defaultParams: { period: 14 },
+  compute(store, params) {
+    return { value: computeCMO(store.close, store.length, params.period ?? 14) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(CMO);
+
+export const CHAIKIN_OSC: IndicatorRegistration = {
+  type: 'chaikin-osc',
+  overlay: false,
+  defaultParams: { fastPeriod: 3, slowPeriod: 10 },
+  compute(store, params) {
+    return { value: computeChaikinOsc(store.high, store.low, store.close, store.volume, store.length, params.fastPeriod ?? 3, params.slowPeriod ?? 10) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(CHAIKIN_OSC);
+
+export const AD: IndicatorRegistration = {
+  type: 'ad',
+  overlay: false,
+  defaultParams: {},
+  compute(store, _params) {
+    return { value: computeAD(store.high, store.low, store.close, store.volume, store.length) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(AD);
+
+export const ALMA: IndicatorRegistration = {
+  type: 'alma',
+  overlay: true,
+  defaultParams: { period: 20, offset: 0.85, sigma: 6 },
+  compute(store, params) {
+    return { value: computeALMA(store.close, store.length, params.period ?? 20, params.offset ?? 0.85, params.sigma ?? 6) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(ALMA);
+
+export const ZLEMA: IndicatorRegistration = {
+  type: 'zlema',
+  overlay: true,
+  defaultParams: { period: 20 },
+  compute(store, params) {
+    return { value: computeZLEMA(store.close, store.length, params.period ?? 20) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(ZLEMA);
+
+export const BOP: IndicatorRegistration = {
+  type: 'bop',
+  overlay: false,
+  defaultParams: { period: 14 },
+  compute(store, params) {
+    return { value: computeBOP(store.open, store.high, store.low, store.close, store.length, params.period ?? 14) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(BOP);
+
+export const PVT: IndicatorRegistration = {
+  type: 'pvt',
+  overlay: false,
+  defaultParams: {},
+  compute(store, _params) {
+    return { value: computePVT(store.close, store.volume, store.length) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(PVT);
+
+export const EMV: IndicatorRegistration = {
+  type: 'emv',
+  overlay: false,
+  defaultParams: { period: 14 },
+  compute(store, params) {
+    return { value: computeEMV(store.high, store.low, store.volume, store.length, params.period ?? 14) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(EMV);
+
+export const STD_DEV: IndicatorRegistration = {
+  type: 'std-dev',
+  overlay: false,
+  defaultParams: { period: 20, multiplier: 1 },
+  compute(store, params) {
+    return { value: computeStdDev(store.close, store.length, params.period ?? 20, params.multiplier ?? 1) };
+  },
+  colorMap(primaryColor) { return { value: primaryColor }; },
+};
+registerIndicator(STD_DEV);
+
 export const allIndicators: IndicatorRegistration[] = [
   SMA,
   EMA,
@@ -623,4 +744,14 @@ export const allIndicators: IndicatorRegistration[] = [
   MASS_INDEX,
   VORTEX,
   DMI,
+  STOCH_RSI,
+  CMO,
+  CHAIKIN_OSC,
+  AD,
+  ALMA,
+  ZLEMA,
+  BOP,
+  PVT,
+  EMV,
+  STD_DEV,
 ];

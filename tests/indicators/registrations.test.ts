@@ -38,8 +38,8 @@ describe('Indicator Registrations compute()', () => {
     });
   }
 
-  it('all 42 indicators are registered', () => {
-    expect(allIndicators.length).toBe(42);
+  it('all 52 indicators are registered', () => {
+    expect(allIndicators.length).toBe(52);
   });
 
   it('each indicator has a type string', () => {
