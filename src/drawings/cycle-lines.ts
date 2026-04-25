@@ -19,19 +19,8 @@ export class CycleLinesDrawing extends BaseDrawing {
     if (interval === 0) return null;
 
     const chartWidth = ctx.chartWidth;
-    // Find nearest cycle line
+    // Check if cursor is near any cycle line
     const offset = ((x - x1) % interval + interval) % interval;
-    const nearestX = x - offset;
-
-    // Check all cycle lines that are within chart bounds
-    for (let cx = x1 % interval === 0 ? 0 : x1 - Math.floor(x1 / interval) * interval; cx <= chartWidth; cx += Math.abs(interval)) {
-      if (Math.abs(x - cx) < HIT_THRESHOLD) {
-        return { drawingId: this.id, part: 'body', cursorStyle: 'move' };
-      }
-    }
-
-    // Also check in a simpler way: distance from cursor to nearest cycle line
-    void nearestX;
     const distToNearest = Math.min(offset, Math.abs(interval) - offset);
     if (distToNearest < HIT_THRESHOLD) {
       return { drawingId: this.id, part: 'body', cursorStyle: 'move' };
