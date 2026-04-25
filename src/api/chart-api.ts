@@ -312,6 +312,10 @@ interface SeriesEntry {
   paneId: string;
   /** Cached Heikin-Ashi transformed store (invalidated when data length changes). */
   _haCache?: { length: number; store: import('../core/types').ColumnStore };
+  /** Independent price scale owned exclusively by this series. Non-null when the
+   *  series was created with `independentScale: true`. The scale auto-scales to this
+   *  series's visible data only, without affecting the pane's shared right scale. */
+  independentPriceScale: PriceScale | null;
 }
 
 // ─── niceStep utility ───────────────────────────────────────────────────────
@@ -2473,6 +2477,10 @@ class ChartApi implements IChartApi {
         return true;
       }
     }
+    // Check independent price scales
+    for (const entry of this._series) {
+      if (entry.independentPriceScale?.isAnimating) return true;
+    }
     // Check last bar animations
     for (const anim of this._lastBarAnims.values()) {
       if (anim.animating) return true;
@@ -2588,6 +2596,10 @@ class ChartApi implements IChartApi {
     // Advance price scale animations (smooth Y-axis transitions)
     pane.priceScale.tick();
     pane.leftPriceScale.tick();
+    // Tick independent price scales for series in this pane
+    for (const entry of seriesForPane) {
+      if (entry.independentPriceScale) entry.independentPriceScale.tick();
+    }
 
     if (isMain) {
       // Draw watermark BEFORE grid/series so it appears behind everything
@@ -2658,7 +2670,11 @@ class ChartApi implements IChartApi {
       const rawStore = entry.api.getDataLayer().store;
       const store = this._getEffectiveStore(entry, rawStore);
       let priceToY: (p: number) => number;
-      if (this._comparisonMode) {
+      if (entry.independentPriceScale) {
+        // Use the series's own independent scale — ignores comparison mode
+        const indScale = entry.independentPriceScale;
+        priceToY = (p: number) => indScale.priceToY(p);
+      } else if (this._comparisonMode) {
         const basis = this._getBasisPrice(entry, range);
         priceToY = (price: number) => {
           const pct = ((price - basis) / basis) * 100;
@@ -3315,6 +3331,38 @@ class ChartApi implements IChartApi {
         ctx.textBaseline = 'middle';
         ctx.fillText(priceText, axisRight - padding, labelY);
       }
+
+      // Independent-scale series: draw a colored current-price label per series
+      // (skip the first/primary series — it already has its own label above)
+      for (let i = 1; i < seriesForPane.length; i++) {
+        const entry = seriesForPane[i];
+        if (!entry.api.isVisible() || !entry.independentPriceScale) continue;
+        const entryStore = entry.api.getDataLayer().store;
+        if (entryStore.length === 0) continue;
+
+        const entryLastClose = entryStore.close[entryStore.length - 1];
+        const entryLastOpen = entryStore.open[entryStore.length - 1];
+        const entryIsUp = entryLastClose >= entryLastOpen;
+
+        // Derive label color from the series options (fall back to green/red)
+        const seriesOpts = entry.api.options() as Record<string, unknown>;
+        const seriesColor = (typeof seriesOpts.color === 'string' && seriesOpts.color)
+          || (entryIsUp ? '#00E396' : '#FF3B5C');
+
+        const indScale = entry.independentPriceScale;
+        const entryLabelY = Math.round(indScale.priceToY(entryLastClose) * pixelRatio);
+        const entryPriceText = this._formatPrice(entryLastClose);
+        const lhEntry = Math.round(layout.fontSize * 1.8 * pixelRatio);
+
+        ctx.fillStyle = seriesColor;
+        ctx.fillRect(0, entryLabelY - lhEntry / 2, axisRight, lhEntry);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(layout.fontSize * pixelRatio)}px ${layout.fontFamily}`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(entryPriceText, axisRight - padding, entryLabelY);
+      }
     }
 
     // Price line labels on axis (main pane only)
@@ -3474,6 +3522,29 @@ class ChartApi implements IChartApi {
       const to = Math.min(range.toIdx, store.length - 1);
 
       const isLeft = entry.api.options().priceScaleId === 'left';
+
+      // Series with an independent scale update their own scale only
+      if (entry.independentPriceScale) {
+        entry.independentPriceScale.setHeight(pane.height);
+        let indMin = Infinity;
+        let indMax = -Infinity;
+        const useSegTree = store === rawStore && dataLayer.segmentTree.length === store.length && this._sessionFilter === 'all';
+        if (useSegTree) {
+          const { min, max } = dataLayer.queryMinMax(range.fromIdx, to);
+          indMin = min;
+          indMax = max;
+        } else {
+          for (let i = range.fromIdx; i <= to; i++) {
+            if (!this._isBarVisibleForFilter(store, i)) continue;
+            if (store.low[i] < indMin) indMin = store.low[i];
+            if (store.high[i] > indMax) indMax = store.high[i];
+          }
+        }
+        if (indMin < Infinity && indMax > -Infinity) {
+          entry.independentPriceScale.autoScale(indMin, indMax);
+        }
+        continue;
+      }
 
       if (this._comparisonMode) {
         // In comparison mode we must scan in percent space (no segment tree shortcut)
@@ -4250,7 +4321,13 @@ class ChartApi implements IChartApi {
       this.requestRepaint(InvalidationLevel.Full),
     );
 
-    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId });
+    const useIndependent = !!(resolvedOptions as { independentScale?: boolean }).independentScale;
+    const independentPriceScale = useIndependent ? new PriceScale('right') : null;
+    if (independentPriceScale) {
+      independentPriceScale.setHeight(pane.height);
+    }
+
+    this._series.push({ api: api as SeriesApi<SeriesType>, renderer, type, paneId, independentPriceScale });
 
     // Clear cached comparison basis when series data changes
     const seriesApi = api as SeriesApi<SeriesType>;
