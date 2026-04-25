@@ -13,7 +13,6 @@ export function computeChaikinOsc(
 
   // Accumulation/Distribution line
   const adLine = new Float64Array(length);
-  adLine[0] = 0;
   for (let i = 0; i < length; i++) {
     const hl = high[i] - low[i];
     const mfm = hl === 0 ? 0 : ((close[i] - low[i]) - (high[i] - close[i])) / hl;

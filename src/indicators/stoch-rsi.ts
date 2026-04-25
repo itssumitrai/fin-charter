@@ -57,4 +57,3 @@ export function computeStochRSI(
 
   return { k, d };
 }
-
