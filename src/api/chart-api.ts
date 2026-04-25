@@ -3332,8 +3332,11 @@ class ChartApi implements IChartApi {
         ctx.fillText(priceText, axisRight - padding, labelY);
       }
 
-      // Independent-scale series: draw a colored current-price label per series
-      // (skip the first/primary series — it already has its own label above)
+      // Independent-scale series: draw a colored current-price label per series.
+      // We start from index 1 because index 0 is always the primary (first-added)
+      // series in this._series, and it already received its price label in the block
+      // above. Independent-scale series that happen to be in seriesForPane at index
+      // 0 are therefore intentionally excluded here to avoid drawing two labels.
       for (let i = 1; i < seriesForPane.length; i++) {
         const entry = seriesForPane[i];
         if (!entry.api.isVisible() || !entry.independentPriceScale) continue;
@@ -3344,7 +3347,8 @@ class ChartApi implements IChartApi {
         const entryLastOpen = entryStore.open[entryStore.length - 1];
         const entryIsUp = entryLastClose >= entryLastOpen;
 
-        // Derive label color from the series options (fall back to green/red)
+        // Use the series-specific line color; fall back to the same up/down palette
+        // used elsewhere in this file (#00E396 / #FF3B5C) so the label is always readable.
         const seriesOpts = entry.api.options() as Record<string, unknown>;
         const seriesColor = (typeof seriesOpts.color === 'string' && seriesOpts.color)
           || (entryIsUp ? '#00E396' : '#FF3B5C');
