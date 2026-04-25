@@ -294,6 +294,17 @@ export interface BaseSeriesOptions {
   visible?: boolean;
   paneId?: string;
   label?: string;
+  /**
+   * When `true`, the series gets its own independent price scale that auto-scales
+   * exclusively to this series's data. Multiple overlay series can each maintain
+   * their own Y-axis range, enabling multi-symbol comparison without normalising
+   * to percentage values.
+   *
+   * The independent scale is shown on the right price axis alongside the primary
+   * scale: each series draws its own current-price label in the series's primary
+   * color so it is easy to distinguish at a glance.
+   */
+  independentScale?: boolean;
 }
 
 export type CandlestickSeriesOptions = BaseSeriesOptions & Partial<CandlestickRendererOptions>;
